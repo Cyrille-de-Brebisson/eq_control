@@ -1,11 +1,11 @@
 // LET US BE VERY CLEAR!!!!
 // THIS CODE IS CRAP! It's only purpose is to allow testing of the main code on windows...
+// It is also full of things used to generate ngc and other star data..
 // Note that it will open a tcp socket that the ascom driver can connect to!
 // To do so, "double click" in the ascom driver on the "com" name (label) and it will attempt to connect to here...
 // This makes ascom testing quite convinient...
 // Appart from this, the code here (which #includes the .ino code) is full of test code, and other atrocities that where usefull at some point
 // and left in because you never know!
-
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
@@ -23,13 +23,17 @@
 #pragma comment(lib, "ws2_32.lib")
 
 
-using namespace std;
-void arobas();
+#define PC // building for PC!!!
 
+// empty version of ACD namespace in in windows (assumes power is always "on"). ACD not used for keyboard (as in ESP v2 boards)
+namespace CADC {
+  int next() { return 200; }
+  void begin() {}
+};
 
-
-
-namespace MSerial { // my light weight implementation of serial. 38400 baud
+// This is a windows version of the serial namespace used on device.
+// On windows serial comunications will go in parallel through the console (with read/write) and a socket on port 8080 which can be used by the Ascom driver...
+namespace MSerial {
     SOCKET clientSocket= INVALID_SOCKET;
     char t[1000]; int pos= 0;
     CRITICAL_SECTION cs;
@@ -67,32 +71,8 @@ namespace MSerial { // my light weight implementation of serial. 38400 baud
         }
     }
     void sockSend(char const *s, int len) { if (clientSocket!=INVALID_SOCKET) send(clientSocket, s, len, 0); }
-
     void startSock() { CreateThread(NULL, 0, sockListen, nullptr, 0, NULL); }
 
-    void print(char const *s) { sockSend(s,strlen(s)); 
-     while (*s!=0) { if (*s=='\n') printf("\r\n"); else printf("%c", *s); *s++; } 
-    }
-    void print(char s) { sockSend(&s,1); 
-     if (s=='\n') printf("\r\n"); else printf("%c", s); 
-    }
-    void flush(char s) { print(s); }
-    void flush(char const *s) { print(s); }
-    void print(int16_t v) { printf("%d", v); }
-    void print(int8_t v) { printf("%d", v); }
-    void print(uint16_t v) { printf("%d", v); }
-    //void print(int32_t v) { printf("%d", v&0xffff); }
-    void write(char const *s, int len) { sockSend(s,len); char t[1000]; memcpy(t, s, len); t[len]= 0; printf("%s", t); }
-    void write(char s) { print(s); }
-    int16_t read()
-    {
-        if (pos==0) return -1;
-        EnterCriticalSection(&cs);
-        char r= t[0];
-        memcpy(t, t+1, pos); pos--;
-        LeaveCriticalSection(&cs);
-        return r;
-    }
     static DWORD WINAPI readConsole(LPVOID lpThreadParameter)
     {
         while (true) { 
@@ -107,44 +87,46 @@ namespace MSerial { // my light weight implementation of serial. 38400 baud
         InitializeCriticalSection(&cs); 
         startSock();
         CreateThread(nullptr, 0, readConsole, nullptr, 0, nullptr);
-
-        //uint8_t a[13]= {0x3a, 0x53, 0x64, 0x2d, 0x31, 0x31, 0xdf, 0x30, 0x39, 0x3a, 0x33, 0x34, 0x23}; for (int i=0; i<13; i++) t[pos]= a[pos++];
-        //uint8_t a[]= {0x23, 0x3a, 0x47, 0x44, 0x23}; for (int i=0; i<sizeof(a); i++) t[pos]= a[pos++];
-        //char a[]= ":Sr2:31:00#:Sd-89:15:00#:MS#"; for (int i=0; i<sizeof(a)-1; i++) t[pos]= a[pos++];
     }
+
+    int16_t read()
+    {
+        if (pos==0) return -1;
+        EnterCriticalSection(&cs);
+        char r= t[0];
+        memcpy(t, t+1, pos); pos--;
+        LeaveCriticalSection(&cs);
+        return r;
+    }
+    void print(char const *s) { sockSend(s,strlen(s)); while (*s!=0) { if (*s=='\n') printf("\r\n"); else printf("%c", *s); *s++; } }
+    void print(char s) { sockSend(&s,1); if (s=='\n') printf("\r\n"); else printf("%c", s); }
+    void flush(char s) { print(s); }
+    void flush(char const *s) { print(s); }
 };
 
-#define memcpy_P memcpy
-#define PROGMEM
-uint8_t PORTB=0, PORTC=0, PORTD=0, DDRB=0, DDRC=0, DDRD=0, PINC=0;
-uint16_t keys= 0;
-static uint16_t kbdValue() { return keys; }
-static void inline portSetup() {} // set 3 kbd pins to pullup, one kbd pin to out and leave I2C alone...
-#define PORTDSET(p) (PORTD|=p)
-#define PORTDCLEAR(p) (PORTD&=~(p))
-static void inline portBWritePin(int8_t pin, int8_t v) { if (v) PORTB|= 1<<pin; else PORTB&=~(1<<pin);}
-static void inline portCWritePin(int8_t pin, int8_t v) { if (v) PORTC|= 1<<pin; else PORTC&=~(1<<pin); }
-#define PC
-uint64_t freq, start;
-uint32_t micros()
-{
-    uint64_t now; QueryPerformanceCounter((LARGE_INTEGER*)&now); now= (now-start)*1000000/freq;
-    return uint32_t(now);
+namespace Time { // Windows version of 'time'
+    uint64_t freq, start;
+    void begin() { QueryPerformanceFrequency((LARGE_INTEGER*)&freq); QueryPerformanceCounter((LARGE_INTEGER*)&start); }
+    uint32_t unow()
+    {
+        uint64_t now; QueryPerformanceCounter((LARGE_INTEGER*)&now); now= (now-start)*1000000/freq;
+        return uint32_t(now);
+    }
+    uint32_t mnow()  // not actually used!
+    {
+        uint64_t now; QueryPerformanceCounter((LARGE_INTEGER*)&now); now= (now-start)*1000/freq;
+        return uint32_t(now);
+    }
 }
-uint32_t millis() { return micros()/1000; }
-namespace Time {
-    void begin() {}
-    uint32_t unow() { return micros(); } // now in microseconds. But with 4 microsecond precision only...
-    uint32_t mnow() { return millis(); }// now in milliseconds.
-}
-class CI2C { public:
+
+class CI2C { public: // windows versoin of I2C (send data to LCD)
     uint8_t *d= nullptr;
     int nb= 0;
     uint32_t msToDone= 0;
-    bool next() 
+    bool next() // will simulate the HW version of next. Including the return 'true' only after 50ms or so...
     {
         if (d==nullptr) return false;          // nothing to do...
-        if (msToDone>millis()) return true; // busy
+        if (msToDone>Time::mnow()) return true; // busy
         memset(d, 0, nb); d= nullptr; return false;
     }
     void begin() { }
@@ -152,14 +134,27 @@ class CI2C { public:
     { 
         if (d!=nullptr) return;
         d= i; this->nb= nb;
-        msToDone= millis()+50;
+        msToDone= Time::mnow()+50;
     }
 } I2C;
+
+#define memcpy_P memcpy
+#define PROGMEM
 #define pgm_read_dword(a) ((*(a))&0xffffffff)
 #define pgm_read_word(a)  ((*(uint16_t*)(a))&0xffff)
 #define pgm_read_byte(a)  ((*(uint32_t*)(a))&0xff)
+
+uint8_t PORTB=0, PORTC=0, PORTD=0, DDRB=0, DDRC=0, DDRD=0, PINC=0;
+static void inline portSetup() {} // set 3 kbd pins to pullup, one kbd pin to out and leave I2C alone...
+#define PORTDSET(p) (PORTD|=p)
+#define PORTDCLEAR(p) (PORTD&=~(p))
+static void inline portBWritePin(int8_t pin, int8_t v) { if (v) PORTB|= 1<<pin; else PORTB&=~(1<<pin);}
+static void inline portCWritePin(int8_t pin, int8_t v) { if (v) PORTC|= 1<<pin; else PORTC&=~(1<<pin); }
+
 #define debug(...) ATLTRACE2(__VA_ARGS__)
 void udelay(uint16_t) {}
+uint16_t keys= 0;
+static uint16_t kbdValue() { return keys; }
 void noInterrupts(){} // Time sensitive
 void PORTBCLEAR(int){}
 void PORTBSET(int){}
@@ -190,6 +185,7 @@ void xTaskCreate(void (*cb)(void*), char const*, int, void *p, int, void*)
     CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)cb, p, 0, nullptr);
 }
 #define reboot()
+// windows simulation of GPS module... Will always return the same data...
 int gpspos= 0;
 int gpsGetData(char *b, int size) 
 { 
@@ -273,7 +269,7 @@ class CMyWin : public CFBWindow { public:
             text(310, 9*3*8, 500, print("SpiralDD:%d", spiralDD), ClBlack, ClWhite, 3);
             text(310,10*3*8, 500, print("SpiralDR:%d", spiralDR), ClBlack, ClWhite, 3);
             text(310,11*3*8, 500, print("keys:%x", keys), ClBlack, ClWhite, 3);
-            text(310,12*3*8, 500, print("usteps:%d %d", MRa.countAllUncountedSteps/2, MRa.countAllUncountedSteps/2*1000/millis()), ClBlack, ClWhite, 3);
+            text(310,12*3*8, 500, print("usteps:%d %d", MRa.countAllUncountedSteps/2, MRa.countAllUncountedSteps/2*1000/Time::mnow()), ClBlack, ClWhite, 3);
             text(310,13*3*8, 500, print("RA m:0 pos:%d M:%d", MRa.pos, MRa.maxPos), ClBlack, ClWhite,2);
             text(310,14*3*8, 500, print("RA mr:%d pos:%d Mr:%d", MRa.minPosReal, MRaposInReal(), MRa.maxPosReal), ClBlack, ClWhite,2);
             text(310,15*3*8, 500, print("PORTB:%d", PORTB), ClBlack, ClWhite,2);
@@ -283,18 +279,16 @@ class CMyWin : public CFBWindow { public:
 
 int main()
 {
-    QueryPerformanceFrequency((LARGE_INTEGER*)&freq); QueryPerformanceCounter((LARGE_INTEGER*)&start); 
+    Time::begin();
     setup();
-
-    // MRa.pos+= MRa.maxPos/4;
-    // MRa.dst= MRa.pos;
-    // int d= (MRa.maxPosReal-MRa.minPosReal)/4;
-    //MRa.maxPosReal+= 43000*2; 
-    //MRa.minPosReal+= 43000*2; 
-    //enableFlip(false);
-
     CMyWin fb; fb.setFps(20); fb.run();
 }
+
+
+
+/////////////////////
+////////////////////
+// From here on, it's all testing, and code generation code...
 
 struct { char const *n; double ra, dec; } stars2[]={
     { "Acamar",2.971023,-40.304672},

@@ -1,7 +1,7 @@
 #define TMC // in arduino (__AVR__) nano mode, you can select the TMC or non TMC driver... in esp, it is ALWAYS tmc...
-//#define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
+#define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
                // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply
-#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
+//#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
 //#define WEIRED_KBD // I had some early ARV boards with a slightly differnet keyboard. Uncomment for those
 
 /********************************************
@@ -748,7 +748,9 @@ class Ctmc2209 { public:
     void begin()
     {
         // Read register to make sure motor is OK... But don't care what it is or does...
-        uint8_t v[4]; while (readRegister(0, v)!=0) { udelay(10000); UARTAdr= (UARTAdr+1)&3; } // Auto discovert uart addr!
+        #ifndef PC // Thiw will not work on PC!
+            uint8_t v[4]; while (readRegister(0, v)!=0) { udelay(10000); UARTAdr= (UARTAdr+1)&3; } // Auto discovert uart addr!
+        #endif
         static uint8_t const IGCONF[8]=    { 5, UARTAdr, GCONFAdr|0x80, 0, 0, 1, 0b11000001 };       memcpy(GCONF, IGCONF, 8);       // GCONF.pdn_disable=1, GCONF.mstep_reg_select = 1 (use MRES for step count)
         static uint8_t const ICHOPCONF[8]= { 5, UARTAdr, CHOPCONFAdr|0x80, 0x10, 0x00, 0x00, 0x53 }; memcpy(CHOPCONF, ICHOPCONF, 8); // TOFF=3, microsteps=0(256), INTPOL=1, HSTRT= 5, TBL=0, double edge off (because we can do up/down in 1 function)
         sendPacket(GCONF, 8); sendPacket(CHOPCONF, 8);
