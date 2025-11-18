@@ -1,3 +1,8 @@
+// This code is copyright Cyrille de Brébisson
+// Contact me if you want to use all or part of it.
+// Most likely I will say yes unless it is for commercial use at which point we can discuss
+
+
 #define TMC // in arduino (__AVR__) nano mode, you can select the TMC or non TMC driver... in esp, it is ALWAYS tmc...
 #define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
                // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply

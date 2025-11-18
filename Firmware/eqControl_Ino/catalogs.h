@@ -1,3 +1,7 @@
+// This code is copyright Cyrille de Brébisson
+// Contact me if you want to use all or part of it.
+// Most likely I will say yes unless it is for commercial use at which point we can discuss
+
 void getRaDecPos(uint8_t const *s, int32_t &ra, int32_t &dec) // extract ra/dec from 3 program memory bytes that containthe data with 12 bit precision
 {
     uint8_t b1= pgm_read_byte(s), b2= pgm_read_byte(s+1), b3= pgm_read_byte(s+2);
