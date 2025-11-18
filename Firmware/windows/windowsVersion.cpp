@@ -1,3 +1,12 @@
+// LET US BE VERY CLEAR!!!!
+// THIS CODE IS CRAP! It's only purpose is to allow testing of the main code on windows...
+// Note that it will open a tcp socket that the ascom driver can connect to!
+// To do so, "double click" in the ascom driver on the "com" name (label) and it will attempt to connect to here...
+// This makes ascom testing quite convinient...
+// Appart from this, the code here (which #includes the .ino code) is full of test code, and other atrocities that where usefull at some point
+// and left in because you never know!
+
+
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #include <winsock2.h>
@@ -67,6 +76,8 @@ namespace MSerial { // my light weight implementation of serial. 38400 baud
     void print(char s) { sockSend(&s,1); 
      if (s=='\n') printf("\r\n"); else printf("%c", s); 
     }
+    void flush(char s) { print(s); }
+    void flush(char const *s) { print(s); }
     void print(int16_t v) { printf("%d", v); }
     void print(int8_t v) { printf("%d", v); }
     void print(uint16_t v) { printf("%d", v); }
@@ -103,6 +114,29 @@ namespace MSerial { // my light weight implementation of serial. 38400 baud
     }
 };
 
+#define memcpy_P memcpy
+#define PROGMEM
+uint8_t PORTB=0, PORTC=0, PORTD=0, DDRB=0, DDRC=0, DDRD=0, PINC=0;
+uint16_t keys= 0;
+static uint16_t kbdValue() { return keys; }
+static void inline portSetup() {} // set 3 kbd pins to pullup, one kbd pin to out and leave I2C alone...
+#define PORTDSET(p) (PORTD|=p)
+#define PORTDCLEAR(p) (PORTD&=~(p))
+static void inline portBWritePin(int8_t pin, int8_t v) { if (v) PORTB|= 1<<pin; else PORTB&=~(1<<pin);}
+static void inline portCWritePin(int8_t pin, int8_t v) { if (v) PORTC|= 1<<pin; else PORTC&=~(1<<pin); }
+#define PC
+uint64_t freq, start;
+uint32_t micros()
+{
+    uint64_t now; QueryPerformanceCounter((LARGE_INTEGER*)&now); now= (now-start)*1000000/freq;
+    return uint32_t(now);
+}
+uint32_t millis() { return micros()/1000; }
+namespace Time {
+    void begin() {}
+    uint32_t unow() { return micros(); } // now in microseconds. But with 4 microsecond precision only...
+    uint32_t mnow() { return millis(); }// now in milliseconds.
+}
 class CI2C { public:
     uint8_t *d= nullptr;
     int nb= 0;
@@ -121,37 +155,6 @@ class CI2C { public:
         msToDone= millis()+50;
     }
 } I2C;
-
-#define memcpy_P memcpy
-#define PROGMEM
-uint8_t PORTB=0, PORTC=0, PORTD=0, DDRB=0, DDRC=0, DDRD=0, PINC=0;
-uint16_t keys= 0;
-static uint8_t portCRead() 
-{ 
-    if ((PORTB&0x10)==0) return ~keys>>3; 
-    if ((PORTB&0x08)==0) return ~keys; 
-    return ~keys>>6; // assumes...
-}
-static void inline portDSetup() {}// This sets pins 2-7 (0 and 1 are RS232)
-#define PORTDSET(p) (PORTD|=p)
-#define PORTDCLEAR(p) (PORTD&=~(p))
-static void inline portBSetup() {}// Sets pins 8-13 (motorEn, kbd0-1, led)
-static void inline portCSetup() {} // set 3 kbd pins to pullup, one kbd pin to out and leave I2C alone...
-static void inline portBWritePin(int8_t pin, int8_t v) { if (v) PORTB|= 1<<pin; else PORTB&=~(1<<pin);}
-static void inline portCWritePin(int8_t pin, int8_t v) { if (v) PORTC|= 1<<pin; else PORTC&=~(1<<pin); }
-#define PC
-uint64_t freq, start;
-uint32_t micros()
-{
-    uint64_t now; QueryPerformanceCounter((LARGE_INTEGER*)&now); now= (now-start)*1000000/freq;
-    return uint32_t(now);
-}
-uint32_t millis() { return micros()/1000; }
-namespace Time {
-    void begin() {}
-    uint32_t unow() { return micros(); } // now in microseconds. But with 4 microsecond precision only...
-    uint32_t mnow() { return millis(); }// now in milliseconds.
-}
 #define pgm_read_dword(a) ((*(a))&0xffffffff)
 #define pgm_read_word(a)  ((*(uint16_t*)(a))&0xffff)
 #define pgm_read_byte(a)  ((*(uint32_t*)(a))&0xff)
@@ -164,11 +167,45 @@ void PORTBPULLUP(int){}
 void PORTBOUT(int){}
 int PORTBGET(){ return 0; }
 void interrupts(){}
+static int const maxPulsesPerSecond= 9200;
+uint32_t portSET_INTERRUPT_MASK_FROM_ISR() { return 0; }
+void portCLEAR_INTERRUPT_MASK_FROM_ISR(uint32_t ) { }
+void DoNotOptimize(uint8_t const &) { }
+static const int8_t raDirPin    = 2; 
+static const int8_t decDirPin   = 3; 
+static const int8_t focDirPin   = 4; 
+static const int8_t raStepPin   = 5; 
+static const int8_t decStepPin  = 6; 
+static const int8_t focStepPin  = 7; 
+static const int8_t motorSerialRa = 8;
+static const int8_t motorSerialDec = 9;
+static const int8_t motorSerialFocus = 10;
+static float const M_PI= 3.14159265358979323846264338327f;
+static const int8_t raUartAddr= 3; 
+static const int8_t decUartAddr= 1;
+static const int8_t focUartAddr= 2; 
+void esp_restart() {}
+void xTaskCreate(void (*cb)(void*), char const*, int, void *p, int, void*)
+{
+    CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)cb, p, 0, nullptr);
+}
+#define reboot()
+int gpspos= 0;
+int gpsGetData(char *b, int size) 
+{ 
+    static char const gr[]=
+        "$GNGGA,102758.000,4544.96195,N,00450.25286,E,1,08,1.2,147.6,M,50.2,M,,*4A\n"
+        "$GNZDA,111557.000,04,11,2025,00,00*4F\n";
+    int l= strlen(gr);
+    if (size+gpspos>l) size= l-gpspos;
+    memcpy(b, gr+gpspos, l); gpspos+= size; if (gpspos>=l) gpspos= 0;
+    return l;
 
-#define main inomain
-#include "eqControl_TMC2209/eqControl_TMC2209.ino"
-#undef main
-// #include "aGotino/aGotino.ino"
+}
+void gpsDone() { ExitThread(0); }
+bool gpsBegin() { return true; }
+
+#include "../eqControl_Ino/eqControl_Ino.ino"
 
 class CMyWin : public CFBWindow { public:
     CMyWin(): CFBWindow(L"CB focusser", 800, 600) { }
