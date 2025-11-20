@@ -6,7 +6,7 @@
 #define TMC // in arduino (__AVR__) nano mode, you can select the TMC or non TMC driver... in esp, it is ALWAYS tmc...
 #define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
                // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply
-//#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
+#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
 //#define WEIRED_KBD // I had some early ARV boards with a slightly differnet keyboard. Uncomment for those
 
 /********************************************
@@ -137,6 +137,14 @@ static uint16_t const keyRight= 1<<8;
 #if defined(__AVR__)
 // move I2C to IRQ? (better when screen off, worse when on), so decision is hard...
 // move motor move to IRQ? should be better in all cases!
+// Timing information
+// display takes 5ms
+// handleing next for RA in tracking mode = 24µs
+// loop doing nothing is around 50µs
+// loop moving both motors (goto) = 75µs = 13500 pas/s... for historical reasons, it is limited to 9200
+// dealing with serial reply takes around 150µs
+
+
 
 // Arduino Pin Layout
 // pins 0-7 are on PORTD
@@ -176,10 +184,11 @@ static void udelay(uint16_t us) { my_delay_us(us*4); }
 __attribute__((always_inline)) inline void DoNotOptimize(const uint8_t &value) { asm volatile("" : "+m"(const_cast<uint8_t &>(value))); }
 static void inline portSetup() 
 { 
-    DDRD|= 0b11111100; PORTD= 0b00011100; // Set all motor pins to out and the direction pins to 1. pins 0/1 are used by serial and not an issue...
     #ifdef TMC    
+        DDRD|= 0b11111100; PORTD= 0b00000000; // Set all motor pins to out and the direction pins to low. pins 0/1 are used by serial and not an issue...
         DDRB= 0b111111; PORTB= 0b011111;    // Set B port pins (motor serial + kbd rows0-1 + led) to out and high, except for portB5 which is pin 13=LED
     #else
+        DDRD|= 0b11111100; PORTD= 0b00011100; // Set all motor pins to out and the direction pins to 1. pins 0/1 are used by serial and not an issue...
         DDRB= 0b111111; PORTB= 0b011100;    // Set B port pins (motor enable + kbd rows0-1 + led) to out and high, except for RA and dec enable and portB5 which is pin 13=LED
     #endif
     DDRC= 0b001000; PORTC= 0b001111;    // set 3 kbd pins to pullup, one kbd pin to out and leave I2C alone...
@@ -195,17 +204,10 @@ static void portBWritePin(int8_t pin, int8_t v) { PORTB= (PORTB&(~(1<<pin)))|(v<
 static void portCWritePin(int8_t pin, int8_t v) { PORTC= (PORTC&(~(1<<pin)))|(v<<pin); }
 static uint8_t portCRead() { my_delay_us(1); return PINC; }
 
-// Kbd matrix (3*3) // Warning, these are for AVR, pins 14 and above have a +3 numbering on the esp32...
-//static uint8_t const kbdr0= 12, kbdr1= 11, kbdr2= 17; // rows are output. high by default to match the pullups
-//static uint8_t const kbdc0= 14, kbdc1= 15, kbdc2= 16; // columns are input, pullup
+// Kbd matrix (3*3)
+// static uint8_t const kbdr0= 12, kbdr1= 11, kbdr2= 17; // rows are output. high by default to match the pullups
+// static uint8_t const kbdc0= 14, kbdc1= 15, kbdc2= 16; // columns are input, pullup
 // Sorry, I have made various PCB with slightly different kbd configurations...
-// In some case, you will need to change this setting
-// D11=PB3 = col 0
-// D12=PB4 = col 1
-// D17=PC3 = col 2
-// D14=PC0 = row top
-// D13=PC1 = row mid
-// D16=PC2 = row bot
 static uint16_t kbdValue()
 {
     uint16_t keys;
@@ -213,7 +215,7 @@ static uint16_t kbdValue()
         portBWritePin(3, 0); keys= (~portCRead())&0x7; portBWritePin(3, 1); 
         portBWritePin(4, 0); keys|= ((~portCRead())&0x7)<<3;  portBWritePin(4, 1); 
         portCWritePin(3, 0); keys|= uint16_t((~portCRead())&0x7)<<6;  portCWritePin(3, 1); 
-    #else
+    #else // case for erarly prototpyes...
         portBWritePin(3, 0); keys= ((~portCRead())&0x7)<<3; portBWritePin(3, 1); 
         portBWritePin(4, 0); keys|= ((~portCRead())&0x7);  portBWritePin(4, 1); 
         portCWritePin(3, 0); keys|= uint16_t((~portCRead())&0x7)<<6;  portCWritePin(3, 1); 
@@ -221,7 +223,13 @@ static uint16_t kbdValue()
     return keys;
 }
 
-#define reboot() // does not work on AVR because old bootloader sucks...
+static void reboot()
+{ // Due to bootloadezr issues, and some other stuff that I do not understand, you need to make sure that no key is pressed when doing a reboot
+    while (kbdValue()!=0);
+    udelay(10000);
+    void (*rstfunc)()=0;
+    rstfunc();
+}
 //static void reboot()
 //{
   // Watchdog code does not work with old bootloader...
@@ -283,12 +291,11 @@ namespace MSerial {
 };
 
 namespace Time {
-    int32_t t= 0;
+    uint32_t t= 0; // counter incremented every 1/4 of a second
     void begin()
     {
         TCCR1A= 0; // no output on compare match, normal, 0 to ffff count
-        TCCR1B= 3; // normal count, clock at 1/64th (2 is 1/8th) see what is best later...
-        // 1/64th gives 4micro s precision 1/8th gives 0.5micro s precision...
+        TCCR1B= 3; // normal count, clock at 1/64th of 16mhz so 4 us per tick, give 65536*4us = 1/4s for a timer overflow...
         TCCR1C= 0; // no output compares...
         OCR1AH= OCR1AL= OCR1BH= OCR1BL= 0; // output compares at 0 as not used
         ICR1H= ICR1L= 0; // same for input captures
@@ -296,17 +303,17 @@ namespace Time {
     }
     uint32_t unow() // now in microseconds. But with 4 microsecond precision only...
     {
-        // TIFR1 bit 0 is high on overflow of 16 bit timer 4 to 32 times per second depending...
-        if ((TIFR1&1)!=0) { TIFR1= 1; t+= 4; } // This happens every 260ms at one 64th divider...so no chances to loose one...
+        // TIFR1 bit 0 is high on overflow of 16 bit timer. happends 4 times per second, so no chances to miss one case
+        if ((TIFR1&1)!=0) { TIFR1= 1; t+= 4; } // risk of TIFR1 off here and ticking before the read of TCNT1L... but more than unlikely. and in all cases would just end up giving time in the past for a tick, no issue
         uint8_t l= TCNT1L;
         uint8_t h= TCNT1H;
-        return (uint32_t(t)<<16)|(uint32_t(h)<<10)|(uint16_t(l)<<2);
+        return (t<<16)|(uint32_t(h)<<10)|(uint16_t(l)<<2);
     }
-    uint32_t mnow() // now in milliseconds.
+    uint32_t mnow() // now in milliseconds. Not used here...
     {
         if ((TIFR1&1)!=0) { TIFR1= 1; t+= 4; } // This happens every 260ms at one 64th divider...so no chances to loose one...
         uint8_t h= TCNT1H;
-        return (uint32_t(t)<<6)|h;
+        return (t<<6)|h;
     }
 };
 
@@ -357,7 +364,7 @@ namespace CADC {
 // pins 3, 2, 0: stepper step (ra, dec, foc)
 // pin 1: stepper dir (dec)
 static const int8_t raDirPin    = -1; 
-static const int8_t decDirPin   = 1; 
+static const int8_t decDirPin   = -1; 
 static const int8_t focDirPin   = -1; 
 static const int8_t raStepPin   = 0, raUartAddr= 3; 
 static const int8_t decStepPin  = 2, decUartAddr= 1;
@@ -737,8 +744,8 @@ static uint32_t inline Abs(int32_t v) { return v>=0 ? v: uint32_t(-v); }
 // can work in step units and in an arbitrary "user" unit
 // can add an extra, always on, uncounted movement to system (sideral)
 class Ctmc2209 { public:
-    uint8_t const serialPin, dir;
 #ifdef TMC
+    uint8_t const serialPin;
     static uint16_t const tmc2209Delay= 8; // 8micro s = 125Kb/s = 12.5KB/s = 1.6millis for a read/modify/write of a register... Trying 500kb/s did not work...
     // This can be "solved" by keeping a copy of the last sent value of the register so that we do not need to do a read but can just write using the last known copy..
     // Hend dropping from 20 bytes (4 out, 8 in, 8 out) to only 8 bytes out and  .6msec
@@ -748,7 +755,7 @@ class Ctmc2209 { public:
     static uint8_t const IHOLD_IRUNAdr= 0x10;
     uint8_t GCONF[8], CHOPCONF[8];
     uint8_t const IHold;
-    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold): serialPin(1<<(serial-8)), dir(1<<dir), IHold(IHold) { }
+    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold): serialPin(1<<(serial-8)), IHold(IHold) { }
 
     void begin()
     {
@@ -779,7 +786,6 @@ class Ctmc2209 { public:
     // Assumes that line is high before and output mode
     void sendPacket(uint8_t *s, uint8_t size)
     {
-        uint8_t t= PORTD; PORTDCLEAR(dir); 
         s[size-1]= swuart_calcCRC(s, size-1);
         do { // send size bytes
             uint8_t v= *s++;
@@ -789,7 +795,6 @@ class Ctmc2209 { public:
             PORTBSET(serialPin); udelay(tmc2209Delay); // stop bit
             interrupts();
         } while (--size!=0);
-        PORTD= t;
     }
     // l is the size WITH the crc and s has to be l bytes long...
     // return >=0 on packet ok. Else -1: no start bit, -2: no end bit, -3: crc error
@@ -798,7 +803,6 @@ class Ctmc2209 { public:
     {
         int8_t er;
         noInterrupts(); // Time sensitive.. will be 8*10=80 microseconds!
-        uint8_t t= PORTD; PORTDCLEAR(dir); 
         PORTBPULLUP(serialPin);
         for (int8_t j= 0; j<l; j++) // For all packets
         {
@@ -809,11 +813,10 @@ class Ctmc2209 { public:
         }
         // Back to normal operations
         PORTBOUT(serialPin);
-        PORTD= t;
         interrupts();
         if (swuart_calcCRC(s, l-1)==s[l-1]) return 0; // verify crc and return if ok
         er= -3;
-    err: PORTD= t; PORTBOUT(serialPin); interrupts(); return er; // return to normal and return error code
+    err: PORTBOUT(serialPin); interrupts(); return er; // return to normal and return error code
     }
     int8_t readRegister(uint8_t r, uint8_t *v)
     {
@@ -833,8 +836,14 @@ class Ctmc2209 { public:
     { CHOPCONF[3]= (CHOPCONF[3]&~15)|val; sendPacket(CHOPCONF, 8); }
     void shaft(uint8_t dir) // update GCONF.shaft 0:direction 1, 1:direction 0
     { GCONF[6]= (GCONF[6]&~8)|(dir<<3); sendPacket(GCONF, 8); }
+    void shaft2(uint8_t dir) // update GCONF.shaft 0:direction 1, 1:direction 0. But only update if needed!
+    { 
+        if ((GCONF[6]&8)==(dir<<3)) return;
+        GCONF[6]= (GCONF[6]&~8)|(dir<<3); sendPacket(GCONF, 8); 
+    }
 #else
-    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold): dir(1<<dir), serialPin(0) { }
+    uint8_t const dir;
+    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold): dir(1<<dir) { }
 #endif
 };
 
@@ -843,7 +852,7 @@ class CMotor : public Ctmc2209 { public:
         uint8_t const stp;                 // pins
         int32_t pos=0, dst=0; int32_t requestedSpd=0;  // Current pos, destination and desired speed (req speed it absolute value).
         uint32_t maxPos=0;                      // maximum positions in steps (min is 0!)...
-        uint32_t spdMax=0, accMax=0;            // max speeds and accelerations in steps/s, steps**2/ms (carefull, this 2nd one is in units per mili seconds, not seconds!)
+        uint32_t spdMax=0, accMax=0;            // max speeds and accelerations in steps/s, steps**2/hundredth of s (carefull, this 2nd one is in units per 10 mili seconds, not seconds!)
         #ifndef TMC
             static const
         #endif
@@ -859,7 +868,7 @@ class CMotor : public Ctmc2209 { public:
         invertDir= invert;
         kill();
         this->maxPos= maxPos;
-        spdMax= maxStpPs, accMax= int32_t(maxStpPs)/int32_t(msToFullSpeed);
+        spdMax= maxStpPs, accMax= 10*int32_t(maxStpPs)/int32_t(msToFullSpeed);
         this->minPosReal= minPosReal; this->maxPosReal= maxPosReal;
         dst= pos= realToPos(initPosReal);
     }
@@ -892,7 +901,16 @@ class CMotor : public Ctmc2209 { public:
     void goUp(int32_t spd) { if (spd<0) return goDown(-spd); goToSteps(maxPos, spd); return; }
     void goDown(int32_t spd) { if (spd<0) return goUp(-spd); goToSteps(0, spd); return; }
     void inline stop() { requestedSpd=0; } // controled stop to here... migt be better to calculate end pos to avoid double back...
-    void inline kill() { dst= pos; currentSpd= requestedSpd=0; if (!invertDir) PORTDSET(dir); else PORTDCLEAR(dir); } // hard stop!
+    void inline kill() // hard stop!
+    {
+        dst= pos; currentSpd= requestedSpd=0; 
+        #ifdef TMC
+            microsteps(lnPulsesPerPulses= 0);
+            if (!invertDir) shaft(0); else shaft(1);
+        #else
+            if (!invertDir) PORTDSET(dir); else PORTDCLEAR(dir);
+        #endif
+    } 
 
     // movement controls in user units...
     // internally, the position is kepts in steps...
@@ -946,15 +964,15 @@ class CMotor : public Ctmc2209 { public:
         if (currentSpd==0) 
         {
             if (requestedSpd==0) return;
-            nextStepmus= now; nextMs= now; // we were stopped, but now we are moving. So resync all movements...
+            nextStepmus= now; nextMs= now; deltaBetweenSteps= 0; // we were stopped, but now we want to move. So declare next step is now..
         }
         //printf("next pos:%d dst:%d reqSpd: %d spd:%d\r\n", pos, dst, requestedSpd, currentSpd);
 
-        if (int32_t(now-nextMs)>=0)
+        if (int32_t(now-nextMs)>=0) // This takes 120micros to execute when there is a change of speed. and 74 when there is none..
         {
-            nextMs+= 1000;
+            nextMs+= 10000; // every 10ms, handle acceleration
             // Quantisation on a milisecond.
-            // Every ms, update speed (+ or - acc) up to desirned speed...
+            // Every ms, update speed (+ or - acc) up to desired speed...
             // then update mus delta between steps
             int32_t oldSpd= currentSpd;
             if (int32_t(Abs(currentSpd))>requestedSpd) // Slow down if we are going too fast!
@@ -963,29 +981,23 @@ class CMotor : public Ctmc2209 { public:
                 if (Abs(requestedSpd-currentSpd)<accMax) 
                 { 
                     if (currentSpd<0) currentSpd= -requestedSpd; else currentSpd= requestedSpd; 
-                    if (requestedSpd==0) dst= pos; // if speed 0 requested, then we are at destination..
+                    if (requestedSpd==0) { kill(); return; } // if speed 0 requested, then we are at destination..
                 }
                 else { if (currentSpd>0) currentSpd-= accMax; else currentSpd+= accMax; }
             } 
             else {
                 int8_t changeSign;
                 int32_t stepsLeft= dst-pos;
-                if (Abs(stepsLeft)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax) goto dstReached;   // We have arrived and are going slow enough to stop. do it
-                else if (stepsLeft<0 && currentSpd>0) changeSign= -4;           // past or at destination and going the wrong direction. we need to decelerate agressively...
-                else if (stepsLeft>0 && currentSpd<0) changeSign= 4;            // same the other way around!
+                if (Abs(stepsLeft)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) goto dstReached;   // We have arrived and are going slow enough to stop. do it
+                else if (stepsLeft<0 && currentSpd>0) changeSign= -2;           // past or at destination and going the wrong direction. we need to decelerate agressively...
+                else if (stepsLeft>0 && currentSpd<0) changeSign= 2;            // same the other way around!
                 else {
-                    // calculate time, then distance to speed=0: sum(i=0 to n, spd-i*maxAcc)
-                    uint32_t msToSpd0= Abs(currentSpd)/accMax; // number of ms until we are slow enough to hard stop...
-                    //1/2*accMax*t²...
-                    // accMax is in the order of 100 at this point in time...
-                    // assuming it takes less than 1s to full speed... t² is smaller than 1million... and t²*accMax smaller than 1billion by a factor 10... so u32 are ok..
-                    // But speed is in steps per second and t in ms... so there is a division by 1e3 that will need to happen at one point as accMAx is in /ms unit...
-                    uint32_t distSlowDown= (accMax*msToSpd0*msToSpd0)>>11; // /2000;
+                    // It will take speed/acceleration time to stop. Since distance at constant acceleration is 1/2*acc*t² it will take 1/2*acc*(spd/acc)² = 1/2*spd²/acc steps to slow down...
+                    // Be carefull about units! spd is in steps/s and acc in steps/(1/100s²)
+                    // uint32_t distSlowDown= currentSpd*currentSpd/(accMax*100)/2; so there is a divide by 200 But we will use 192 instead which is 3*8*8 and will yeild distances slightly longer (safer) and allow for pre-divide of spd
+                    uint32_t distSlowDown= (currentSpd>>3)*(currentSpd>>3)/(accMax*3); // here allows for maxspd of 1 million steps/s
                     changeSign= (stepsLeft>0)?1:-1;                        // assumes the need to accelerate in the right dirrection
-                    if (distSlowDown>=Abs(stepsLeft)) 
-                    {
-                        changeSign*= -4; // unless we need to slow down!
-                    }
+                    if (distSlowDown>=Abs(stepsLeft)) changeSign*= -1; // unless we need to slow down!
                 }
                 currentSpd+= accMax*changeSign;
                 if (currentSpd>requestedSpd) currentSpd= requestedSpd;
@@ -993,27 +1005,25 @@ class CMotor : public Ctmc2209 { public:
             }
             if (currentSpd!=oldSpd)
             {
-                if (currentSpd==0) currentSpd= accMax>>1;
-                if ((currentSpd>=0) ^ invertDir) PORTDSET(dir); else PORTDCLEAR(dir);
-                //printHex2(PORTD, 2); MSerial::print(" portD\n");
+                // make sure that we have a minimum speed of one pulse per second!
+                if (Abs(currentSpd)<(1<<lnPulsesPerPulses)) currentSpd= (1<<lnPulsesPerPulses)*(currentSpd>=0?1:-1);
+                #ifdef TMC
+                    if ((currentSpd>=0) ^ invertDir) shaft2(0); else shaft2(1); 
+                #else
+                    if ((currentSpd>=0) ^ invertDir) PORTDSET(dir); else PORTDCLEAR(dir);
+                #endif
                 uint32_t newDeltaBetweenSteps= 1000000UL / (Abs(currentSpd)>>lnPulsesPerPulses);
-                if (newDeltaBetweenSteps<deltaBetweenSteps) nextStepmus-= deltaBetweenSteps-newDeltaBetweenSteps;
+                if (newDeltaBetweenSteps<deltaBetweenSteps) nextStepmus= nextStepmus-deltaBetweenSteps+newDeltaBetweenSteps; // case where we shorten the delay. execute sooner rather than later...
                 deltaBetweenSteps= newDeltaBetweenSteps;
-                //static uint32_t lastPos= 0; printf("deltaBetweenSteps:%d speed:%d(%d) pos:%d delta:%d dst:%d\r\n", deltaBetweenSteps, currentSpd, requestedSpd, pos, pos-lastPos, dst); lastPos= pos;
             }
         }
 
         if (int32_t(now-nextStepmus)<0) return;    // nothing to do. we wait
-        if (Abs(pos-dst)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax) // destination reached!
+        if (Abs(pos-dst)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) // destination reached!
         { 
-            dstReached: 
-            if (pos==dst) { kill(); return; }
-            #ifdef TMC        
-                lnPulsesPerPulses= 0; microsteps(0);  // can not be here in non microstep mode normally
-            #endif
-            return; 
+            dstReached: kill(); return; 
         } 
-        PORTDSET(stp);            // step pulse up Minimum 1.9micros until down... or 31 cycles...
+        PORTDSET(stp);            // step pulse up Minimum 1.9micros until down... or 31 cycles... Mesured at 7µs using logic... so WAY more... why?
         DoNotOptimize(stp);
         nextStepmus+= deltaBetweenSteps;           // program allarm
         if (currentSpd>=0) pos+= 1<<lnPulsesPerPulses; else pos-= 1<<lnPulsesPerPulses;      // increase pos
@@ -1040,6 +1050,7 @@ class CMotorUncounted : public CMotor { public:
     void killUncountedSpeed() { deltaBetweenUncountedSteps= 0; }
     void setUncountedSpeed(uint32_t seconds, int32_t unitsToMove, uint32_t now, int32_t uncountedMaxRealVal) // MRa.setUncountedSpeed(23*3600UL+56*60+4, 24*3600UL, micros()); // every 23h56m4s do a full turn
     {
+        kill(); // reset microsteps and the like...
         this->uncountedMaxRealVal= uncountedMaxRealVal;
         NextUncountedSteps= now; unstep= 0;
         // every now and then, we need to shift the real min/max to stay in sync...
@@ -1114,7 +1125,7 @@ class CMotorUncounted : public CMotor { public:
 };
 
 // The 3 motors!
-static CMotorUncounted MRa(raDirPin,   raStepPin, motorSerialRa, 31);  // full power on hold (anyhow, never stops)
+static CMotorUncounted MRa(raDirPin, raStepPin, motorSerialRa, 31);  // full power on hold (anyhow, never stops)
 static CMotor MDec(decDirPin, decStepPin, motorSerialDec, 16);      // 1/2 power on hold
 static CMotor MFocus(focDirPin, focStepPin, motorSerialFocus, 7);   // 1/4 power on hold (assuming not off when not in use)
 
@@ -1870,7 +1881,7 @@ static bool lastpower= false; // true if power is on!
 
 
 // Main UI function!
-static void doUI()
+static void doUI() // Display takes around 5ms...
 {
     char t[22]; // Text buffer...
     if (!display.next()) return; // update UI upon screen send complete

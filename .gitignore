@@ -1,1 +1,8 @@
-Ascom/.sv
+Ascom/.vs
+Ascom/bin
+Ascom/obj
+Firmware/build
+Firmware/windows/.vs
+Firmware/windows/windowsVersion
+Firmware/windows/x64
+*.user
