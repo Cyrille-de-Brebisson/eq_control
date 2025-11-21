@@ -1,4 +1,4 @@
-// This code is copyright Cyrille de Brébisson
+// This code is copyright Cyrille de Brebisson
 // Contact me if you want to use all or part of it.
 // Most likely I will say yes unless it is for commercial use at which point we can discuss
 

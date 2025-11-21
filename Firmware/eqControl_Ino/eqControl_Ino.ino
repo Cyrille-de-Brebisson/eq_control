@@ -135,13 +135,12 @@ static uint16_t const keyRight= 1<<8;
 #endif
 
 #if defined(__AVR__)
-// move I2C to IRQ? (better when screen off, worse when on), so decision is hard...
-// move motor move to IRQ? should be better in all cases!
-// Timing information
+// Motors are now in IRQ!
+// Timing information (old version, but we should be faster now...)
 // display takes 5ms
 // handleing next for RA in tracking mode = 24µs
 // loop doing nothing is around 50µs
-// loop moving both motors (goto) = 75µs = 13500 pas/s... for historical reasons, it is limited to 9200
+// loop moving both motors (goto) = 75µs = 13500 pas/s... for historical reasons, it is limited to 10000
 // dealing with serial reply takes around 150µs
 
 
@@ -224,21 +223,12 @@ static uint16_t kbdValue()
 }
 
 static void reboot()
-{ // Due to bootloadezr issues, and some other stuff that I do not understand, you need to make sure that no key is pressed when doing a reboot
+{ // Due to bootloader issues, and some other stuff that I do not understand, you need to make sure that no key is pressed when doing a reboot. And watchdog does not work...
     while (kbdValue()!=0);
     udelay(10000);
     void (*rstfunc)()=0;
     rstfunc();
 }
-//static void reboot()
-//{
-  // Watchdog code does not work with old bootloader...
-  //cli();  // Disable interrupts
-  //WDTCSR = (1 << WDCE) | (1 << WDE); // If you do not do this, then the next write to watchdog will not be taken into concideration by CPU
-  //WDTCSR = (1 << WDE) | (1 << WDP3) | (0 << WDP2) | (0 << WDP1) | (0 << WDP0); // set watchdog in reset mode in 4s. This gives time for a full restart and therefore for the clear of this setting after a reboot so that there is no eternal reboot
-  //sei();  // Re-enable interrupts
-  //while (1); // Wait for watchdog to time out (~15ms)
-//}
 
 namespace MSerial {
 	// interrupt driven serial class. 700 bytes smaller than the standard Serial class...
@@ -873,7 +863,7 @@ class CMotor : public Ctmc2209 { public:
         dst= pos= realToPos(initPosReal);
     }
     #ifdef TMC
-    void powerOn() { begin(); lnPulsesPerPulses= 0; }// begin will set to 256 micro steps...
+    void powerOn() { cli(); begin(); lnPulsesPerPulses= 0; sei(); }// begin will set to 256 micro steps...
     #endif
 
     // movement controls in steps...
@@ -882,6 +872,7 @@ class CMotor : public Ctmc2209 { public:
     void inline goToSteps(uint32_t destination) { goToSteps(destination, spdMax); } 
     void goToSteps(uint32_t destination, uint32_t spdStepsPS)
     { 
+        cli();
         if ((int32_t(destination)<pos)!=lastDirection)
         {
           if (lastDirection) destination+= backlash, lastDirection= false; // was going down, now needs to go up, so need to do backlash more steps, so we need to add backlash from destination!
@@ -896,6 +887,7 @@ class CMotor : public Ctmc2209 { public:
             maxPos&= 0xffffff<<lnPulsesPerPulses;
         #endif
         requestedSpd= spdStepsPS;
+        sei();
     }
     void guide(int32_t steps, uint32_t speed) { if (speed>maxPulsesPerSecond) speed=maxPulsesPerSecond; if (minPosReal<maxPosReal) steps= -steps; goToSteps(pos+steps, speed); }
     void goUp(int32_t spd) { if (spd<0) return goDown(-spd); goToSteps(maxPos, spd); return; }
@@ -903,6 +895,7 @@ class CMotor : public Ctmc2209 { public:
     void inline stop() { requestedSpd=0; } // controled stop to here... migt be better to calculate end pos to avoid double back...
     void inline kill() // hard stop!
     {
+        cli();
         dst= pos; currentSpd= requestedSpd=0; 
         #ifdef TMC
             microsteps(lnPulsesPerPulses= 0);
@@ -910,6 +903,7 @@ class CMotor : public Ctmc2209 { public:
         #else
             if (!invertDir) PORTDSET(dir); else PORTDCLEAR(dir);
         #endif
+        sei();
     } 
 
     // movement controls in user units...
@@ -954,75 +948,72 @@ class CMotor : public Ctmc2209 { public:
     ///////////////////////////////////////////
     // All this is about actually moving!!!
     int32_t currentSpd=0;         // current speed in steps per second. sign indicates direction... can not be 0 if not done moving...
-    uint32_t nextMs=0;            // next time we need update speed and recalculate intervals (when now arrives there...(ms timer))
     uint32_t nextStepmus=0;       // next time we need to step
     uint32_t deltaBetweenSteps=0; // delta between 2 steps during this ms slot...
 
-    // issue steps if/as needed...
-    void next(uint32_t now)
-    {
+    // verify speed and time between steps...
+    void quantize()
+    {   // This takes 120micros to execute when there is a change of speed. and 74 when there is none..
         if (currentSpd==0) 
         {
             if (requestedSpd==0) return;
-            nextStepmus= now; nextMs= now; deltaBetweenSteps= 0; // we were stopped, but now we want to move. So declare next step is now..
-        }
-        //printf("next pos:%d dst:%d reqSpd: %d spd:%d\r\n", pos, dst, requestedSpd, currentSpd);
-
-        if (int32_t(now-nextMs)>=0) // This takes 120micros to execute when there is a change of speed. and 74 when there is none..
-        {
-            nextMs+= 10000; // every 10ms, handle acceleration
-            // Quantisation on a milisecond.
-            // Every ms, update speed (+ or - acc) up to desired speed...
-            // then update mus delta between steps
-            int32_t oldSpd= currentSpd;
-            if (int32_t(Abs(currentSpd))>requestedSpd) // Slow down if we are going too fast!
-            { 
-                // Can we slow down to requestedSpd directly? or would that be to jerky?
-                if (Abs(requestedSpd-currentSpd)<accMax) 
-                { 
-                    if (currentSpd<0) currentSpd= -requestedSpd; else currentSpd= requestedSpd; 
-                    if (requestedSpd==0) { kill(); return; } // if speed 0 requested, then we are at destination..
-                }
-                else { if (currentSpd>0) currentSpd-= accMax; else currentSpd+= accMax; }
-            } 
-            else {
-                int8_t changeSign;
-                int32_t stepsLeft= dst-pos;
-                if (Abs(stepsLeft)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) goto dstReached;   // We have arrived and are going slow enough to stop. do it
-                else if (stepsLeft<0 && currentSpd>0) changeSign= -2;           // past or at destination and going the wrong direction. we need to decelerate agressively...
-                else if (stepsLeft>0 && currentSpd<0) changeSign= 2;            // same the other way around!
-                else {
-                    // It will take speed/acceleration time to stop. Since distance at constant acceleration is 1/2*acc*t² it will take 1/2*acc*(spd/acc)² = 1/2*spd²/acc steps to slow down...
-                    // Be carefull about units! spd is in steps/s and acc in steps/(1/100s²)
-                    // uint32_t distSlowDown= currentSpd*currentSpd/(accMax*100)/2; so there is a divide by 200 But we will use 192 instead which is 3*8*8 and will yeild distances slightly longer (safer) and allow for pre-divide of spd
-                    uint32_t distSlowDown= (currentSpd>>3)*(currentSpd>>3)/(accMax*3); // here allows for maxspd of 1 million steps/s
-                    changeSign= (stepsLeft>0)?1:-1;                        // assumes the need to accelerate in the right dirrection
-                    if (distSlowDown>=Abs(stepsLeft)) changeSign*= -1; // unless we need to slow down!
-                }
-                currentSpd+= accMax*changeSign;
-                if (currentSpd>requestedSpd) currentSpd= requestedSpd;
-                if (currentSpd<-requestedSpd) currentSpd= -requestedSpd;
-            }
-            if (currentSpd!=oldSpd)
-            {
-                // make sure that we have a minimum speed of one pulse per second!
-                if (Abs(currentSpd)<(1<<lnPulsesPerPulses)) currentSpd= (1<<lnPulsesPerPulses)*(currentSpd>=0?1:-1);
-                #ifdef TMC
-                    if ((currentSpd>=0) ^ invertDir) shaft2(0); else shaft2(1); 
-                #else
-                    if ((currentSpd>=0) ^ invertDir) PORTDSET(dir); else PORTDCLEAR(dir);
-                #endif
-                uint32_t newDeltaBetweenSteps= 1000000UL / (Abs(currentSpd)>>lnPulsesPerPulses);
-                if (newDeltaBetweenSteps<deltaBetweenSteps) nextStepmus= nextStepmus-deltaBetweenSteps+newDeltaBetweenSteps; // case where we shorten the delay. execute sooner rather than later...
-                deltaBetweenSteps= newDeltaBetweenSteps;
-            }
+            nextStepmus= Time::unow()+1000; deltaBetweenSteps= 0; // we were stopped, but now we want to move. So declare next step is in 1ms to make sure ISR does not stat before we are done...
         }
 
-        if (int32_t(now-nextStepmus)<0) return;    // nothing to do. we wait
-        if (Abs(pos-dst)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) // destination reached!
+        // Quantisation on a "tick"
+        // Every tick, update speed (+ or - acc) up to desired speed...
+        // then update mus delta between steps
+        int32_t futureSpeed= currentSpd;
+        if (int32_t(Abs(futureSpeed))>requestedSpd) // Slow down if we are going too fast!
         { 
-            dstReached: kill(); return; 
+            // Can we slow down to requestedSpd directly? or would that be to jerky?
+            if (Abs(requestedSpd-futureSpeed)<accMax*2)
+            { 
+                if (requestedSpd==0) return kill();  // if speed 0 requested, then we are at destination..
+                if (futureSpeed<0) futureSpeed= -requestedSpd; else futureSpeed= requestedSpd;  // set speed to request...
+            }
+            else { if (futureSpeed>0) futureSpeed-= accMax; else futureSpeed+= accMax; } // accelerate or decelerate as needed...
         } 
+        else {
+            int8_t changeSign;
+            int32_t stepsLeft= dst-pos;
+            if (Abs(stepsLeft)<(1<<lnPulsesPerPulses) && Abs(futureSpeed)<=accMax*2) return kill();    // We have arrived and are going slow enough to stop. do it
+            else if (stepsLeft<0 && futureSpeed>0) changeSign= -2;           // past or at destination and going the wrong direction. we need to decelerate agressively...
+            else if (stepsLeft>0 && futureSpeed<0) changeSign= 2;            // same the other way around!
+            else {
+                // It will take speed/acceleration time to stop. Since distance at constant acceleration is 1/2*acc*t² it will take 1/2*acc*(spd/acc)² = 1/2*spd²/acc steps to slow down...
+                // Be carefull about units! spd is in steps/s and acc in steps/(1/100s²)
+                // uint32_t distSlowDown= futureSpeed*futureSpeed/(accMax*100)/2; so there is a divide by 200 But we will use 192 instead which is 3*8*8 and will yeild distances slightly longer (safer) and allow for pre-divide of spd
+                uint32_t distSlowDown= (futureSpeed>>3)*(futureSpeed>>3)/(accMax*3); // here allows for maxspd of 1 million steps/s
+                changeSign= (stepsLeft>0)?1:-1;                        // assumes the need to accelerate in the right dirrection
+                if (distSlowDown>=Abs(stepsLeft)) changeSign*= -1; // unless we need to slow down!
+            }
+            futureSpeed+= accMax*changeSign;
+            if (futureSpeed>requestedSpd) futureSpeed= requestedSpd;
+            if (futureSpeed<-requestedSpd) futureSpeed= -requestedSpd;
+        }
+        if (currentSpd==futureSpeed) return; // no change in speed...
+        // make sure that we have a minimum speed of one pulse per second!
+        if (Abs(futureSpeed)<(1<<lnPulsesPerPulses)) futureSpeed= (1<<lnPulsesPerPulses)*(futureSpeed>=0?1:-1);
+        // Handle direction
+        uint32_t newDeltaBetweenSteps= 1000000UL / (Abs(futureSpeed)>>lnPulsesPerPulses); // Calculate new interval
+        cli(); // make sure no IRQ arrives while we do that!
+        #ifdef TMC
+            if ((futureSpeed>=0) ^ invertDir) shaft2(0); else shaft2(1); 
+        #else
+            if ((futureSpeed>=0) ^ invertDir) PORTDSET(dir); else PORTDCLEAR(dir);
+        #endif
+        currentSpd= futureSpeed;
+        if (newDeltaBetweenSteps<deltaBetweenSteps) nextStepmus= nextStepmus-deltaBetweenSteps+newDeltaBetweenSteps; // case where we shorten the delay. execute sooner rather than later...
+        deltaBetweenSteps= newDeltaBetweenSteps; // save new delay!
+        sei();
+    }
+
+    void step(uint32_t now)
+    {
+        if (currentSpd==0) return;
+        if (int32_t(now-nextStepmus)<0) return;    // nothing to do. we wait
+        if (Abs(pos-dst)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) return; // destination reached!
         PORTDSET(stp);            // step pulse up Minimum 1.9micros until down... or 31 cycles... Mesured at 7µs using logic... so WAY more... why?
         DoNotOptimize(stp);
         nextStepmus+= deltaBetweenSteps;           // program allarm
@@ -1032,8 +1023,7 @@ class CMotor : public Ctmc2209 { public:
     }
 };
 
-static struct { int32_t ra, dec; bool flip= false; } savedGotoForFlip;
-static void flip();
+static struct { int32_t ra, dec; uint8_t flipFlags= 0; } savedGotoForFlip; // flipFlags bits 0: flipping, bit 1: flip must be calcualted as it was requested by low level...
 
 class CMotorUncounted : public CMotor { public:
   CMotorUncounted(uint8_t dir, uint8_t stp, uint8_t serialPin, uint8_t IHold): CMotor(dir, stp, serialPin, IHold) { }
@@ -1047,10 +1037,12 @@ class CMotorUncounted : public CMotor { public:
         uint32_t countAllUncountedSteps= 0;     // count ALL the uncounted steps to sync with PC
         int16_t _guide= 0;                      // Steps to add or remove in the automatic direction...
         uint8_t sideralMove= 0;                 // just to save the data..
+        bool batchExtraStepsOnMoveComplete= false; // this will be true if sideral steps were lost due to slewing...
     void killUncountedSpeed() { deltaBetweenUncountedSteps= 0; }
     void setUncountedSpeed(uint32_t seconds, int32_t unitsToMove, uint32_t now, int32_t uncountedMaxRealVal) // MRa.setUncountedSpeed(23*3600UL+56*60+4, 24*3600UL, micros()); // every 23h56m4s do a full turn
     {
         kill(); // reset microsteps and the like...
+        cli();
         this->uncountedMaxRealVal= uncountedMaxRealVal;
         NextUncountedSteps= now; unstep= 0;
         // every now and then, we need to shift the real min/max to stay in sync...
@@ -1060,29 +1052,30 @@ class CMotorUncounted : public CMotor { public:
         unitsToMove= muldiv(unitsToMove, maxPos, maxPosReal-minPosReal);     // transform to steps... Assumes no loss of data as we have large number of both...
         if (unitsToMove<0) unitsToMove= -unitsToMove, unitsPerSteps= -unitsPerSteps;
         deltaBetweenUncountedSteps= muldiv(seconds, 1000000L, unitsToMove);  // delta, in micros between uncounted steps...
+        batchExtraStepsOnMoveComplete= false;
+        sei();
     }
     int32_t nextGuideStep= 0, guideStepSize= 0;
     uint8_t skipNSteps= 0;
     // TODO: make division performed by PC, not me!!!
-    void guide(int16_t steps, uint32_t speed, uint32_t now) { guideStepSize= 1000000UL/speed; if (unitsPerSteps>0) steps= -steps; _guide= steps; nextGuideStep= now; }
-    bool lastSpeedWasNegative= false;
-    uint16_t slop;
-    void next(uint32_t now)
+    void guide(int16_t steps, uint32_t speed) { cli(); guideStepSize= 1000000UL/speed; if (unitsPerSteps>0) steps= -steps; _guide= steps; nextGuideStep= Time::unow(); sei(); }
+    void step(uint32_t now)
     {
-        CMotor::next(now); 
-        if (currentSpd<0) lastSpeedWasNegative= true;
-        if (currentSpd!=0 || deltaBetweenUncountedSteps==0 || savedGotoForFlip.flip) return; // if moving, or no slow moves... just return...
-        if (lastSpeedWasNegative && slop!=0) { 
-            printf("detected back move. move up by %d steps\r\n", slop);
-            lastSpeedWasNegative= false; guide(slop, spdMax>>3, now); return; } // if stopped moving backward 
+        CMotor::step(now); 
+        if (currentSpd!=0) { batchExtraStepsOnMoveComplete= true; return; }
+        if (deltaBetweenUncountedSteps==0 || savedGotoForFlip.flipFlags!=0) return; // if moving, or no slow moves... just return...
 
-        // if we moved for a while, now-NextUncountedSteps will increment and lots of steps will be issued at once after to catch up...
-        // what will it do for slow down? no clue! maybe we should back correct and not do it the other way around...
-        // to be seen after...
+        // Done slewing. Now back to sideral...
+        if (batchExtraStepsOnMoveComplete) // do we need to handle missed steps? If yes, then we will use guiding system to do so...
+        {
+            batchExtraStepsOnMoveComplete= false;
+            //_guide= (now-NextUncountedSteps)/deltaBetweenUncountedSteps; // Number of misses steps is simply the delta time/time in between steps...
+            //guideStepSize= deltaBetweenUncountedSteps/32;  // we will issue guide steps at 32 times the sideral rate. So a 45second slew will result in a little bit over 1s of extra movement
+            //nextGuideStep= now;                            // starting now!
+        }
 
         if (guideStepSize!=0 && int32_t(now-nextGuideStep)>=0) 
         {
-            printf("guiding %d left\r\n", _guide);
             nextGuideStep+=guideStepSize; 
             if (_guide==0) guideStepSize= 0; // end of guiding...
             else if (_guide>0) { _guide--; goto step; } // We need to issue an extra step! go for it...
@@ -1093,34 +1086,36 @@ class CMotorUncounted : public CMotor { public:
         NextUncountedSteps+= deltaBetweenUncountedSteps; if (skipNSteps!=0) { skipNSteps--; return; }
 
         step:
-          countAllUncountedSteps++; 
-          #ifdef TMC
-            if (lnPulsesPerPulses!=0) microsteps(lnPulsesPerPulses=0); // if speed is not slow... slow down to max!
-          #endif
-          PORTDSET(stp); DoNotOptimize(stp);                              // step pulse up Minimum 1.9micros until down... or 31 cycles...
-          unstep+=256; // 256microsteps per step...
-          // correct real min/max. unitsPerSteps sign indicate if the moves are in the same, or in the oposit direction as the real units
-          if (unitsPerSteps>0)
-          {   // in telescopes, we always are going the other way, so this is never used...
-              // so if memory needs to be gained, this could be commented out...
-              if (pos<=0) { flip(); return; }
-              pos--;
-              while (unstep>=unitsPerSteps) 
-              { 
-                  unstep-= unitsPerSteps; minPosReal--, maxPosReal--; 
-                  if (minPosReal<0 || maxPosReal<0) minPosReal+= uncountedMaxRealVal, maxPosReal+= uncountedMaxRealVal; // Actually needs to check on 
-              }  
-          } else if (unitsPerSteps<0)
-          {
-              pos++;
-              if (pos>=maxPos) { flip(); return; }
-              while (unstep>=-unitsPerSteps)
-              { 
-                  unstep-= -unitsPerSteps; minPosReal++, maxPosReal++; 
-                  if (min(maxPosReal, minPosReal)>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal;
-              }
-          }
-          DoNotOptimize(stp); PORTDCLEAR(stp);                              // step pulse down. It takes 4 cycles for an out, 12 cycles to add/substract 1. comparisons of 2 16 bit numbers is 6 cycles
+        countAllUncountedSteps++; 
+        #ifdef TMC
+            // When we are here, a KILL MUST have been done, so dir and misrosteps HAVE to be the right way around, so this should NOT be needed...
+            //if (lnPulsesPerPulses!=0) microsteps(lnPulsesPerPulses=0); // if speed is not slow... slow down to max!
+        #endif
+        PORTDSET(stp); DoNotOptimize(stp);                              // step pulse up Minimum 1.9micros until down... or 31 cycles...
+        unstep+=256; // 256microsteps per step...
+        // correct real min/max. unitsPerSteps sign indicate if the moves are in the same, or in the oposit direction as the real units
+        if (unitsPerSteps>0)
+        {   // in telescopes, we always are going the other way, so this is never used...
+            // so if memory needs to be gained, this could be commented out...
+            if (pos<=0) { savedGotoForFlip.flipFlags= 2; goto done; }
+            pos--;
+            while (unstep>=unitsPerSteps) 
+            { 
+                unstep-= unitsPerSteps; minPosReal--, maxPosReal--; 
+                if (minPosReal<0 || maxPosReal<0) minPosReal+= uncountedMaxRealVal, maxPosReal+= uncountedMaxRealVal; // Actually needs to check on 
+            }  
+        } else if (unitsPerSteps<0)
+        {
+            pos++;
+            if (pos>=maxPos) { savedGotoForFlip.flipFlags= 2; goto done; }
+            while (unstep>=-unitsPerSteps)
+            { 
+                unstep-= -unitsPerSteps; minPosReal++, maxPosReal++; 
+                if (min(maxPosReal, minPosReal)>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal;
+            }
+        }
+        done:
+        DoNotOptimize(stp); PORTDCLEAR(stp);                              // step pulse down. It takes 4 cycles for an out, 12 cycles to add/substract 1. comparisons of 2 16 bit numbers is 6 cycles
     }
 };
 
@@ -1434,7 +1429,7 @@ class CSavedData { public:
     uint8_t guidingBits; // 0:ra pier invert, 1:ra invert, 2:ra stop, 3:dec pier invert, 4:dec invert, 5:dec stop (these are server side stuff)
                          // 6: AP mode (true if access point mode, esp32 only)
     uint16_t raBacklash, focBacklash;
-    uint8_t raSettle; // server side. will cause pulse guide after ra negative to avoid slack...
+    uint8_t _raSettle; // not used anymore...
     uint8_t extra[11]; // for future...
     uint8_t crc;
     uint8_t calcCrc()
@@ -1495,7 +1490,6 @@ class CSavedData { public:
         MFocus.init(uint32_t(savedData.focMaxStp)<<8, uint32_t(savedData.focMaxSpd)<<8,  savedData.focAcc, -int32_t(savedData.focMaxStp)*savedData.FocStepdum/20, int32_t(savedData.focMaxStp)*savedData.FocStepdum/20, 0, (CSavedData::savedData.invertAxes&4)!=0);
         MFocus.backlash= savedData.focBacklash<<8;
         MRa.backlash= savedData.raBacklash;
-        MRa.slop= savedData.raSettle;
         MDec.backlash= savedData.decBacklash;
     }
 } CSavedData::savedData;
@@ -1745,16 +1739,16 @@ static void flipDec()
 
 void flip() // This only works if amplitude > 180° and scope is close to edge! Not tested at this point in time... Assumes user is not dumb!
 {
+    savedGotoForFlip.flipFlags= 1;
     stopMovingOnKeyRelease= false;
     savedGotoForFlip.ra= MRaposInReal(); savedGotoForFlip.dec= MDec.posInReal();
-    savedGotoForFlip.flip= true;
     MRa.goToSteps(MRa.maxPos/2); MDec.goToSteps(MDec.maxPos);
     return;
 }
 
 static void goTo(int32_t ra, int32_t dec)
 {
-    if (savedGotoForFlip.flip) return; // no goto while doing a flip...
+    if (savedGotoForFlip.flipFlags!=0) return; // no goto while doing a flip...
     if (ra<0 || ra>24*3600L || dec<-90*3600L || dec>90*3600L) return; // error detection.. had issue with bad serial commands (missed inbound byte)
     // The telescope can only access stars when the counterweight are bellow the center of gravity.
     // This, in essence, limits the RA coordinates to 12h instead of 24h...
@@ -1773,7 +1767,7 @@ static void goTo(int32_t ra, int32_t dec)
     if (!sameSideOfMeridian(ra))
     { // go to true north and enable flip... Can not be here if flip not enabled!
         // MSerial.print("gf"); printHex2(ra,6); printHex2(dec,6); printHex2(MRa.maxPosReal,6); printHex(MRa.minPosReal,6); MSerial.flush(); // debug stuff...
-        savedGotoForFlip.ra= ra; savedGotoForFlip.dec= dec; savedGotoForFlip.flip= true;
+        savedGotoForFlip.ra= ra; savedGotoForFlip.dec= dec; savedGotoForFlip.flipFlags= 1;
         MRa.goToSteps(MRa.maxPos/2); MDec.goToSteps(MDec.maxPos);
         return;
     }
@@ -1784,12 +1778,12 @@ static void goTo(int32_t ra, int32_t dec)
 
 static void goTo2(int32_t ra, int32_t dec, int16_t time) // move in direction at speed
 {
-    if (savedGotoForFlip.flip) return; // no goto while doing a flip...
+    if (savedGotoForFlip.flipFlags!=0) return; // no goto while doing a flip...
     MDecOn();
     stopMovingOnKeyRelease= false;
     if (!sameSideOfMeridian(ra)) // meridian flip?
     { 
-        savedGotoForFlip.ra= ra; savedGotoForFlip.dec= dec; savedGotoForFlip.flip= true;
+        savedGotoForFlip.ra= ra; savedGotoForFlip.dec= dec; savedGotoForFlip.flipFlags= 1;
         MRa.goToSteps(MRa.maxPos/2); MDec.goToSteps(MDec.maxPos);
         return;
     }
@@ -1924,11 +1918,11 @@ static void doUI() // Display takes around 5ms...
 
     // display.clear(); // No need as screen is erased as we go...
 
-    if (savedGotoForFlip.flip) // Meridian swapping!
+    if (savedGotoForFlip.flipFlags!=0) // Meridian swapping!
     {
         display.text2("Flip", 32, 0);
         dispRaDec(MRaposInReal(), MDec.posInReal());
-        if ((newKeyDown&keyEsc)!=0) { savedGotoForFlip.flip= false; } // esc key. stop where we are...
+        if ((newKeyDown&keyEsc)!=0) { savedGotoForFlip.flipFlags= 0; } // esc key. stop where we are...
         return;
     }
 
@@ -2143,7 +2137,23 @@ static uint32_t readHex(char *&s, int8_t cnt) // read an hex value from a string
 }
 
 
+static void timer2_init_10kHz()
+{
+    // Set Timer2 to CTC mode
+    TCCR2A = (1 << WGM21);    // CTC, OCR2A as top
+    TCCR2B = 0;               // stop timer for configuration
+    OCR2A = 24;               // colmpare value (16MHz / (64 * (24+1)) = 10kHz)
+    TIMSK2 = (1 << OCIE2A); // Enable interrupt on compare match A
+    TCCR2B |= (1 << CS22);    // / Start Timer2 with prescaler 64
+}
 
+static uint8_t volatile quantizeTime= 0; // quantizeTime will get to 0 every 10ms or 100 ticks at 0.1ms
+ISR(TIMER2_COMPA_vect)
+{
+  uint32_t now= Time::unow();
+  MRa.step(now); MDec.step(now); MFocus.step(now); // move motors as needed
+  if (quantizeTime!=0) quantizeTime--;
+}
 
 static char input[40];                         // stores serial input
 static uint8_t in= 0;                          // current char in serial input
@@ -2165,18 +2175,21 @@ static void inline loop()
   #else
     bool const power= true;
   #endif
-  uint32_t now= Time::unow();
-  MRa.next(now); MDec.next(now); MFocus.next(now); // move motors as needed
-  if (savedGotoForFlip.flip) // Meridian swapping!
+  do { doUI(); } while (quantizeTime!=0);
+
+  MRa.quantize(); MDec.quantize(); MFocus.quantize(); // update motor speeds
+  quantizeTime= 100; // no issues is ISR as it wont change quantizeTime when 0 and it's 0 at the moment...
+
+  if ((savedGotoForFlip.flipFlags&2)!=0) flip(); // Meridian swapping requested by low level...
+  if (savedGotoForFlip.flipFlags!=0) // Meridian swapping in progress
     if (!MDec.isMoving() && !MRa.isMoving()) // wait until we reach north...
     {
       // now flip the coordinates on the 2 axes and then continue goto to saved positions...
       flipDec(); flipRa();
-      savedGotoForFlip.flip= false;
+      savedGotoForFlip.flipFlags= false;
       goTo(savedGotoForFlip.ra, savedGotoForFlip.dec);
     }
 
-  doUI(); // Do UI.
 
   ///////////////////////////////////////////
   // serial input processing
@@ -2195,9 +2208,9 @@ static void inline loop()
         bool decMove= MDec.isMoving(); if (!decMove) decGuiding= false; 
         // bit 0: moving, bit 1: focus moving, bit 2: side of pier, bit 3: meridian swapping, bit 4: flip disabled,
         //   bit 5: tracking disabled, bit 6: power, bit 7: guiding
-        printHex2(((decMove||MRa.isMoving())?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | (savedGotoForFlip.flip?8:0) | 
+        printHex2(((decMove||MRa.isMoving())?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
                    (isRaFlipEnabled()?0:16) | (MRa.deltaBetweenUncountedSteps==0?32:0) | (power?64:0) | ((decGuiding||(MRa._guide!=0))?128:0), 2);
-        printHex2(now/1000, 6);                             // this allows to verify time drift
+        printHex2(Time::mnow(), 6);                         // this allows to verify time drift
         printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
         printHex2(MRa.countAllUncountedSteps, 6);           // this is also a time drift check
         printHex2(MRa.pos, 8); printHex2(MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
@@ -2220,11 +2233,11 @@ static void inline loop()
     if (c=='@')
     { // serial read hex representation of CSavedData (save settings)
         #ifndef ESP
-            now+= 1000000ULL; // 1s timeout...
+            uint32_t now= Time::mnow()+1000; // 1s timeout...
             for (uint8_t i=0; i<sizeof(CSavedData); i++)
             {
                 char t[2]; for (int8_t p=0; p<2; p++)  // read 2 chars (1 byte)
-				  while (true) { if (now<Time::unow()) goto er; int c= MSerial::read(); if (c<0) continue; t[p]= c; break; }
+				  while (true) { if (now<Time::mnow()) goto er; int c= MSerial::read(); if (c<0) continue; t[p]= c; break; }
                 char *T= t; ((uint8_t*)&CSavedData::savedData)[i]= readHex(T,2);
             }
             if (CSavedData::savedData.testCrc()) CSavedData::savedData.save(); else { er: CSavedData::savedData.load(); } // verify crc!
@@ -2258,7 +2271,7 @@ static void inline loop()
 #define t2(c1,c2) input[1]==c1 && input[2]==c2
     if (t2('$', 'P')) { flipDec(); continue; }
     if (t2('$', 'f')) { enableFlip(input[3]!='0'); continue; } // flip on/off
-    if (t1('Q')) { savedGotoForFlip.flip= false; MFocus.stop(); MDec.stop(); MRa.stop(); continue; } // :Q# stop driven movements (including focusser)
+    if (t1('Q')) { savedGotoForFlip.flipFlags= 0; MFocus.stop(); MDec.stop(); MRa.stop(); continue; } // :Q# stop driven movements (including focusser)
 
     if (t1('T')) // track. provides dst in ra/dec as int24, time to be there in ms as int16. then a crc as int8
     { s--;
@@ -2278,7 +2291,7 @@ static void inline loop()
     if (t2('M', 'd')) { MDecOn(); MDec.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mdspd(8)# (move dec in direction at speed)
     if (t2('M', 'r')) { MRa.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mrspd(8)# (move ra in direction at speed)
     if (t2('M', 'f')) { flip(); continue; } // // force a meridian flip (assumes that the user has verified that it was possible!)
-    if (t2('p', 'r')) { MRa.guide(n1, n2, now); stopMovingOnKeyRelease= false; continue; } // :prstp(8)spd(8)# pulse guide ra for step count at speed
+    if (t2('p', 'r')) { MRa.guide(n1, n2); stopMovingOnKeyRelease= false; continue; } // :prstp(8)spd(8)# pulse guide ra for step count at speed
     if (t2('p', 'd')) { MDecOn(); decGuiding= true; MDec.guide(n1, n2); stopMovingOnKeyRelease= false; continue; } // :pdstp(8)spd(8)# pulse guide dec for step count at speed
     if (t2('$', 'T')) { CSavedData::savedData.initUncountedStep2(n1); continue; } // Track at speed to allow lunar/solar... parameter is second per full turn...
     // Focusser commands
@@ -2297,6 +2310,7 @@ static void setup()
     MSerial::begin();
     display.begin();
     CSavedData::savedData.load(); // motors are initialized here..
+    timer2_init_10kHz();
 }
 #ifndef PC
 int main() 
