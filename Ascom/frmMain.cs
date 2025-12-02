@@ -15,6 +15,7 @@ using ASCOM.Astrometry.Transform;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 
 namespace ASCOM.LocalServer
 {
@@ -59,7 +60,6 @@ namespace ASCOM.LocalServer
                 BeginInvoke((MethodInvoker)delegate ()
                 {
                     if (comboBox1.SelectedIndex == -1) comboBox1.SelectedIndex = 3;
-                    checkBox1.Checked= SharedResources.saveTimes;
                     labelCom.Text = SharedResources.comPort;
                     if (SharedResources.Connected)
                     {
@@ -189,8 +189,6 @@ namespace ASCOM.LocalServer
                         checkBox11.Text= "Yell on power off";
                         label41.Text = "N/A";
                         label42.Text = "N/A";
-                        label18.Text = "N/A";
-                        label19.Text = "N/A";
                         label21.Text = "N/A";
                     }
                     resetHWSetupFields();
@@ -326,8 +324,9 @@ namespace ASCOM.LocalServer
                     textBox18.Text = (360 * 3600 * (Int64)SharedResources.decBacklash / SharedResources.decMaxPos).ToString();
                     textBox14.Text = (360 * 3600 * (Int64)SharedResources.raBacklash / SharedResources.raMaxPos).ToString();
                     textBox19.Text = SharedResources.focBacklash.ToString();
-                    textBox21.Text = (360 * 3600 * (Int64)SharedResources.raSettle / SharedResources.raMaxPos).ToString();
+                    //textBox21.Text = (360 * 3600 * (Int64)SharedResources.raSettle / SharedResources.raMaxPos).ToString();
                     RAMaxMovement.Text= SharedResources.raAmplitude.ToString();
+                    groupBox2.Visible= SharedResources.focMaxSpd != 0;
 
                     textBox6.Text = (SharedResources.guideRateDecf()*3600).ToString("N1");
                     textBox15.Text = (SharedResources.guideRateRaf()*3600).ToString("N1");
@@ -381,7 +380,6 @@ namespace ASCOM.LocalServer
                 decdps.Text = "";
                 checkBox4.Checked = checkBox5.Checked = checkBox6.Checked = false;
                 textBox19.Text= "N/A";
-                textBox21.Text= "N/A";
                 textBox18.Text= "N/A";
                 label53.Enabled= label54.Enabled= label55.Enabled= textBox25.Enabled= textBox24.Enabled= textBox26.Enabled= false;
             }
@@ -415,7 +413,7 @@ namespace ASCOM.LocalServer
                         int.TryParse(FocMaxAcc.Text, out focAcc) && int.TryParse(this.FocMaxPos.Text, out focMaxStp) && int.TryParse(FocMaxSpd.Text, out focMaxSpd) &&
                         int.TryParse(textBox18.Text, out decBacklash) && int.TryParse(RAMaxMovement.Text, out raAmplitude) &&
                         double.TryParse(textBox6.Text, out decGuideRate) && double.TryParse(textBox15.Text, out raGuideRate) &&
-                        int.TryParse(textBox14.Text, out raBacklash) && int.TryParse(textBox19.Text, out focBacklash) && int.TryParse(textBox21.Text, out raSettle))
+                        int.TryParse(textBox14.Text, out raBacklash) && int.TryParse(textBox19.Text, out focBacklash) )
                     {
                         SharedResources.raMaxPos = raMaxPos; SharedResources.raMaxSpeed = raMaxSpeed; SharedResources.ramsToSpeed =ramsToSpeed; SharedResources.decMaxPos = decMaxPos; SharedResources.decMaxSpeed = decMaxSpeed; SharedResources.decmsToSpeed = decmsToSpeed; SharedResources.timeComp = timeComp;
                         SharedResources.Latitude = Latitude; SharedResources.Longitude= Longitude; SharedResources.SiteAltitude= SiteAltitude; SharedResources.FocalLength= FocalLength; SharedResources.Diameter_mm= Diameter_mm; SharedResources.Area_cm2= Area_cm2; SharedResources.FocStepdum = (int)(foxstp * 10);
@@ -495,10 +493,9 @@ namespace ASCOM.LocalServer
                     if (
                         (source==-1 && checkboxlogsystem.Checked) ||
                         (source==0 && checkboxascom.Checked) ||
-                        (source==1 && checkBox8.Checked) ||
-                        (source==2 && checkBox1.Checked) ||
-                        (source==3 && checkBox15.Checked) ||
-                        (source==4 && checkBox16.Checked))
+                        (source==1 && checkBox8.Checked) ||   // frequent ascom
+                        (source==3 && checkBox15.Checked) ||  // phd2
+                        (source==4 && checkBox16.Checked))    // iss
                      BeginInvoke((MethodInvoker)delegate () { logBox.AppendText(message + "\r\n"); });
             } catch (Exception ) { }
             
@@ -647,25 +644,6 @@ namespace ASCOM.LocalServer
             }
             txt+= v.ToString()+" ";
             return txt;
-        }
-        private void button27_Click(object sender, EventArgs e)
-        {
-           string t= "pctime, hwtimes, uncountedsteps, hw/pctime, uncounted/pctime\r\n";
-           for (int i=0; i<SharedResources.usedSavedTimes-120; i++)
-                t+= SharedResources.savedTimes[i].pctime.ToString()+", "+SharedResources.savedTimes[i].HWtime.ToString()+", "+SharedResources.savedTimes[i].uncountedSteps.ToString()
-                    +", "+(((double)(SharedResources.savedTimes[i+120].HWtime-SharedResources.savedTimes[i].HWtime))/(SharedResources.savedTimes[i+120].pctime-SharedResources.savedTimes[i].pctime)).ToString()
-                    +", "+(((double)(SharedResources.savedTimes[i+120].uncountedSteps-SharedResources.savedTimes[i].uncountedSteps))/(SharedResources.savedTimes[i+120].pctime-SharedResources.savedTimes[i].pctime)).ToString()+"\r\n";
-           logBox.Text= t;
-        }
-
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            SharedResources.saveTimes= checkBox1.Checked;
-        }
-
-        private void button28_Click(object sender, EventArgs e)
-        {
-            SharedResources.usedSavedTimes= 0;
         }
 
         private void button29_Click(object sender, EventArgs e) // Save configuration
@@ -880,20 +858,6 @@ namespace ASCOM.LocalServer
         private void button35_Click(object sender, EventArgs e)
         {
             button35.Visible= false;
-        }
-
-        private void label41_Click(object sender, EventArgs e)
-        {
-
-        }
-        private void button36_Click(object sender, EventArgs e)
-        {
-            
-        }
-
-        private void label43_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void checkBox7_CheckedChanged(object sender, EventArgs e)
