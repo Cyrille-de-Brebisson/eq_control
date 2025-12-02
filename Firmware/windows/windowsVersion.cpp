@@ -24,6 +24,12 @@
 
 
 #define PC // building for PC!!!
+#define IRAM_ATTR // not used on windows...
+#define STEP1(stp) // coule be used to count things???
+#define STEP2(stp)
+#define cli()
+#define sei()
+#define reboot()
 
 // empty version of ACD namespace in in windows (assumes power is always "on"). ACD not used for keyboard (as in ESP v2 boards)
 namespace CADC {
@@ -184,7 +190,6 @@ void xTaskCreate(void (*cb)(void*), char const*, int, void *p, int, void*)
 {
     CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)cb, p, 0, nullptr);
 }
-#define reboot()
 // windows simulation of GPS module... Will always return the same data...
 int gpspos= 0;
 int gpsGetData(char *b, int size) 
@@ -277,10 +282,25 @@ class CMyWin : public CFBWindow { public:
     }
 };
 
+unsigned long __stdcall motorThread(void*)
+{
+    while (true)
+    {
+        uint32_t now = Time::unow();
+        for (int i=0; i<100; i++)
+        {
+            MRa.step(now); MDec.step(now); MFocus.step(now); // move motors as needed
+        }
+        quantizeTime = 0;
+        Sleep(10);
+    }
+}
+
 int main()
 {
     Time::begin();
     setup();
+    CreateThread(nullptr, 0, motorThread, nullptr, 0, nullptr);
     CMyWin fb; fb.setFps(20); fb.run();
 }
 

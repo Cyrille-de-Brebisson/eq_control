@@ -6,7 +6,7 @@
 #define TMC // in arduino (__AVR__) nano mode, you can select the TMC or non TMC driver... in esp, it is ALWAYS tmc...
 #define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
                // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply
-#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
+//#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
 //#define WEIRED_KBD // I had some early ARV boards with a slightly differnet keyboard. Uncomment for those
 
 /********************************************
@@ -130,17 +130,10 @@ static uint16_t const keyRight= 1<<8;
 
 
 
-#ifndef PC
-#define printf(...) // no printf on devices!
-#endif
-
 #if defined(__AVR__)
-// Motors are now in IRQ!
-// Timing information (old version, but we should be faster now...)
+// Motors are and serial receive/send is IRQ based...
 // display takes 5ms
-// handleing next for RA in tracking mode = 24µs
-// loop doing nothing is around 50µs
-// loop moving both motors (goto) = 75µs = 13500 pas/s... for historical reasons, it is limited to 10000
+// handleing next for both motors at full speed is around 75µs. limiting to 10K steps per second to keep room for the rest of the code!
 // dealing with serial reply takes around 150µs
 
 
@@ -167,11 +160,14 @@ static const int8_t focStepPin  = 7;
 static const int8_t motorSerialRa = 8; // This is port B
 static const int8_t motorSerialDec = 9;
 static const int8_t motorSerialFocus = 10;
+static const int8_t raUartAddr= 3;  // on arduino they are all at 3 but uses 3 separate pins...
+static const int8_t decUartAddr= 3; 
+static const int8_t focUartAddr= 3; 
 // LCD control. This is for information only as the I2C hardware is hard wired on them anyway...
 static const int8_t displayClk  = 18; // A4
 static const int8_t displayIO   = 19; // A5
 
-static int const maxPulsesPerSecond= 9200;
+static int const maxPulsesPerSecond= 10000;
 static void inline my_delay_us(uint16_t us)
 { // at 16mhz, we need 16cycles / us
     __asm__ __volatile__ (
@@ -180,20 +176,29 @@ static void inline my_delay_us(uint16_t us)
     );
 }
 static void udelay(uint16_t us) { my_delay_us(us*4); }
-__attribute__((always_inline)) inline void DoNotOptimize(const uint8_t &value) { asm volatile("" : "+m"(const_cast<uint8_t &>(value))); }
+
+__attribute__((always_inline)) inline void DoNotOptimize(const uint8_t &value) { asm volatile("" : "+m"(const_cast<uint8_t &>(value))); } // This is a guard around step toggle to make sure that the time requirement is met.
+
 static void inline portSetup() 
 { 
     #ifdef TMC    
         DDRD|= 0b11111100; PORTD= 0b00000000; // Set all motor pins to out and the direction pins to low. pins 0/1 are used by serial and not an issue...
         DDRB= 0b111111; PORTB= 0b011111;    // Set B port pins (motor serial + kbd rows0-1 + led) to out and high, except for portB5 which is pin 13=LED
+        // Here we also define the code to use to toggle step pins depending on the motor... in TMC, pin change means step...
+        #define STEP1(pin) PORTDTOGGLE(pin)
+        #define STEP2(pin)
     #else
         DDRD|= 0b11111100; PORTD= 0b00011100; // Set all motor pins to out and the direction pins to 1. pins 0/1 are used by serial and not an issue...
         DDRB= 0b111111; PORTB= 0b011100;    // Set B port pins (motor enable + kbd rows0-1 + led) to out and high, except for RA and dec enable and portB5 which is pin 13=LED
+        // Here we also define the code to use to toggle step pins depending on the motor... in DRV, pin up then down with at least 2us interval means step...
+        #define STEP1(pin) PORTDSET(pin); DoNotOptimize(pin)
+        #define STEP2(pin) DoNotOptimize(pin); PORTDCLEAR(pin);
     #endif
     DDRC= 0b001000; PORTC= 0b001111;    // set 3 kbd pins to pullup, one kbd pin to out and leave I2C alone...
 }
 static void inline PORTDSET(uint8_t p) { PORTD|=p; }
 static void inline PORTDCLEAR(uint8_t p) { PORTD&=~p; }
+static void inline PORTDTOGGLE(uint8_t p) { PORTD^= p; }
 static void inline PORTBSET(uint8_t p) { PORTB|=p; }
 static void inline PORTBCLEAR(uint8_t p) { PORTB&=~p; }
 static uint8_t inline PORTBGET() { return PINB; }
@@ -239,7 +244,7 @@ namespace MSerial {
 	static volatile char txBuffer[BUFFER_SIZE];
 	static volatile uint8_t txHead= 0, txTail= 0;
 
-	// USART Receive Complete interrupt
+	// USART Receive Complete interrupt. i.e: data in
 	ISR(USART_RX_vect) 
 	{
 	  char c= UDR0;
@@ -247,7 +252,7 @@ namespace MSerial {
 	  if (nextHead==rxTail) return;  // Buffer full
 	  rxBuffer[rxHead]= c; rxHead= nextHead;
 	}
-	// USART Data Register Empty interrupt
+	// USART Data Register Empty interrupt. I.e: ready to send next byte
 	ISR(USART_UDRE_vect) 
 	{
 	  if (txHead==txTail) { UCSR0B&= ~(1<<UDRIE0); return; } // Nothing to send, disable UDRE interrupt
@@ -281,7 +286,7 @@ namespace MSerial {
 };
 
 namespace Time {
-    uint32_t t= 0; // counter incremented every 1/4 of a second
+    uint32_t t= 0; // counter which incremented every 1/4 of a second
     void begin()
     {
         TCCR1A= 0; // no output on compare match, normal, 0 to ffff count
@@ -319,31 +324,17 @@ namespace CADC {
     uint8_t inline next() { return ADCH; }
 };
 #else
-    #undef HASADC // for safety
+    #undef HASADC // for safety, no ADC if no TMC...
 #endif
 
-// These are used in esp32 mode...
-#define IRAM_ATTR
-#define portSET_INTERRUPT_MASK_FROM_ISR() 0
-#define portCLEAR_INTERRUPT_MASK_FROM_ISR(a)
-#undef HASGPS // just making sure! as there is no GPS in __AVR__ mode..
+#define IRAM_ATTR // esp32 thing... not used here
+#undef HASGPS     // just making sure! as there is no GPS in __AVR__ mode..
 
 
 
 #elif !defined(PC) // if __AVR__ is not defined, AND PC is not defined... then the only option left is ESP. PC gets defined in the PC source code and __AVR__ in the Arduino system...
+// Note that some of the ESP specific code is in main.cpp. Except a couple of things like keyboard that need the key definitions...
 #define ESP
-#include "sdkconfig.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/gpio.h"
-#include "esp_task_wdt.h"
-#include "esp_wifi.h"
-#include "esp_netif.h"
-#include <math.h>
-#include <string.h>
-#define TMC // always defined in ESP mode...
-
 
 #ifndef  HASADC
 // ESP23 C3 pin Layout
@@ -354,7 +345,7 @@ namespace CADC {
 // pins 3, 2, 0: stepper step (ra, dec, foc)
 // pin 1: stepper dir (dec)
 static const int8_t raDirPin    = -1; 
-static const int8_t decDirPin   = -1; 
+static const int8_t decDirPin   = -1; // it's wired, but we won't use it as tmc react strangely if you use it with rs232
 static const int8_t focDirPin   = -1; 
 static const int8_t raStepPin   = 0, raUartAddr= 3; 
 static const int8_t decStepPin  = 2, decUartAddr= 1;
@@ -367,28 +358,25 @@ static const gpio_num_t LCD_SLC= GPIO_NUM_8;
 static const gpio_num_t LCD_SDA= GPIO_NUM_9;
 #else // in V2 of the board we use the ADC to handle the keyboard and monitor power supply
 static const int8_t raDirPin    = -1; 
-static const int8_t decDirPin   = 6; 
+static const int8_t decDirPin   = -1;  // we won't use it as tmc react strangely if you use it with rs232
 static const int8_t focDirPin   = -1; 
-static const int8_t raStepPin   = 5, raUartAddr= 3; 
-static const int8_t decStepPin  = 7, decUartAddr= 1;
-static const int8_t focStepPin  = 8, focUartAddr= 2; 
-static const int8_t motorSerialRa = 21;
-static const int8_t motorSerialDec = 21;
-static const int8_t motorSerialFocus = 21;
+static const int8_t raStepPin   = 5; 
+static const int8_t decStepPin  = 7;
+static const int8_t focStepPin  = 8; 
+static const int8_t motorSerialRa = 21, raUartAddr= 1;
+static const int8_t motorSerialDec = 21, decUartAddr= 2;
+static const int8_t motorSerialFocus = 21, focUartAddr= 0;
 static const gpio_num_t LCD_SLC= GPIO_NUM_10;
 static const gpio_num_t LCD_SDA= GPIO_NUM_0;
 #endif
-
-static int const maxPulsesPerSecond= 10000;
-
 
 #include "hal/gpio_types.h"
 #include "soc/gpio_reg.h"
 #include "soc/io_mux_reg.h"
 #include "soc/soc.h"
 
-class CGPIO { public:
-    static void output(uint64_t mask)
+namespace CGPIO {
+    void output(uint64_t mask)
     {
         gpio_config_t io_conf = {};
         io_conf.intr_type = GPIO_INTR_DISABLE;
@@ -398,7 +386,7 @@ class CGPIO { public:
         io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
         gpio_config(&io_conf);
     }
-    static void input(uint64_t mask, bool poolup)
+    void input(uint64_t mask, bool poolup)
     {
         gpio_config_t io_conf = {};
         io_conf.intr_type = GPIO_INTR_DISABLE;
@@ -408,30 +396,57 @@ class CGPIO { public:
         io_conf.pull_up_en = poolup?GPIO_PULLUP_ENABLE:GPIO_PULLUP_DISABLE;
         gpio_config(&io_conf);
     }
-    static int inline read(int pin) { return gpio_get_level(gpio_num_t(pin)); }
-    static void inline set(int pin, int value) { gpio_set_level(gpio_num_t(pin), value); }
+    int inline read(int pin) { return gpio_get_level(gpio_num_t(pin)); }
+    #define GPIO_OUT_W1TS_REG_R     (*((volatile uint32_t*)0x60004008))
+    #define GPIO_OUT_W1TC_REG_R     (*((volatile uint32_t*)0x6000400C))
+    #define GPIO_IN_REG_R  (*((volatile uint32_t*)0x6000403C))
+    //#define GPIO_OUT_W1TS_REG_R     (*((volatile uint32_t*)GPIO_OUT_W1TS_REG))
+    //#define GPIO_OUT_W1TC_REG_R     (*((volatile uint32_t*)GPIO_OUT_W1TC_REG))
+    int pins= 0;
+    void inline IRAM_ATTR set(int pin, int value) 
+    { 
+        if (value) GPIO_OUT_W1TS_REG_R= 1<<pin, pins|= 1<<pin; else GPIO_OUT_W1TC_REG_R= 1<<pin, pins&= ~(1<<pin);
+        //gpio_set_level(gpio_num_t(pin), value); 
+    }
+    void inline IRAM_ATTR toggle(int pin_mask)  // WARNING, the pin is pre-shifted here!!
+    { 
+        pins^= pin_mask;
+        if ((pins&pin_mask)!=0) GPIO_OUT_W1TS_REG_R= pin_mask; else GPIO_OUT_W1TC_REG_R= pin_mask;
+        //gpio_set_level(gpio_num_t(pin), value); 
+    }
+    void inline IRAM_ATTR set(int pin) 
+    { 
+        GPIO_OUT_W1TS_REG_R= 1<<pin; pins|= 1<<pin;
+    }
+    void inline IRAM_ATTR clear(int pin) 
+    { 
+        GPIO_OUT_W1TC_REG_R= 1<<pin; pins&= ~(1<<pin);
+    }
 };
+// in TMC, a pin toggle is a step... so only one operation...
+#define STEP1(pin) CGPIO::toggle(pin) 
+#define STEP2(pin) // step2 is used for DRV where the pin needs to go up, then down with a delay. dividing things in 1 allows to execute some actions between the 2 steps...
 static void GPIOSetup()
 {
-    CGPIO::output((1<<raStepPin)|(1<<decDirPin)|(1<<decStepPin)|(1<<focStepPin)
+
+    CGPIO::output((1<<raStepPin)|(1<<decStepPin)|(1<<focStepPin)
     #ifndef HASADC
         |(1<<kcl)|(1<<kcm)|(1<<kcr)
+        |(1<<6) // must be set low....
     #endif
     );
     CGPIO::set(raStepPin, 0);
-    CGPIO::set(decDirPin, 0);
     CGPIO::set(decStepPin, 0);
     CGPIO::set(focStepPin, 0);
     #ifndef HASADC
     CGPIO::set(kcl, 1);
     CGPIO::set(kcm, 1);
     CGPIO::set(kcr, 1);
+    CGPIO::set(decDirPin, 0);
     CGPIO::input((1<<krt)|(1<<krm)|(1<<krb), true);
+    CGPIO::set(6, 0); // must be set low
     #endif
 }
-#define PORTDSET(p) CGPIO::set(p, 1)
-#define PORTDCLEAR(p) CGPIO::set(p, 0)
-
 #ifdef HASADC
 #include "esp_adc/adc_continuous.h"
 namespace CADC {
@@ -441,6 +456,7 @@ namespace CADC {
     int8_t adcChannelToPinId[7]= {-1, -1, -1, -1, -1, -1, -1};
     uint32_t res[nbChannels]= {4096,4096,4096,0};
     int power= 0; // latest power supply read in deci volts.
+    int next() { return power; } // This is for existing reasons....
     adc_continuous_handle_t handle = NULL;
     static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *) // called around 10 times per second (4*16=64 samples per run at 20Khz) = 30 cycles per run
     {
@@ -484,8 +500,9 @@ namespace CADC {
         power= res[3]/33; // /330 = *5.4/1780
     }
 };
-
+int cnt=0;
 static uint16_t lastkbdValue1= 0, lastkbdValue2= 0, lastValid= 0;
+// Keyboard is set as 3 analog inputs with 3 keys on each line using resistance ladder
 static uint16_t kbdValue()
 {
     CADC::power= CADC::res[3]/33; // /330 = *5.4/1780
@@ -501,10 +518,15 @@ static uint16_t kbdValue()
     if (v[2]<1000) keys|= keyRight;
     else if (v[2]<2400) keys|= keyDown;
     else if (v[2]<3500) keys|= keyLeft;
+    if (cnt--==0) 
+    {
+        printf("%ld %ld %ld\n", CADC::res[0], CADC::res[1], CADC::res[2]); cnt= 10;
+    }
     if (keys==lastkbdValue1 && keys==lastkbdValue2) return lastValid= keys; // only return a stable value that has been read thrice...
     lastkbdValue1= lastkbdValue2; lastkbdValue2= keys; return lastValid;
 }
 #else
+// kbd in gpio mode, not ADC
 static int inline kbdc()  { return CGPIO::read(krt) | (CGPIO::read(krm)<<1) | (CGPIO::read(krb)<<2); }
 static uint16_t kbdValue()
 {
@@ -515,6 +537,8 @@ static uint16_t kbdValue()
     return keys^0x1ff;
 }
 #endif
+
+static int const maxPulsesPerSecond= 10000;
 
 #include "driver/gptimer.h"
 #include "freertos/semphr.h"
@@ -566,15 +590,20 @@ namespace MSerial {
     void print(char const *c) // Add string in output buffer..
 	{ 
 		int l= strlen(c); if (l==0) return; 
-		if (l+bufl>sizeof(buf) { usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
+		if (l+bufl>sizeof(buf)) { usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
 		memcpy(buf+bufl, c, l); bufl+= l; 
 	}
     void flush(char c) { print(c); usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
-} MSerial;
+};
 
+// These are here to be manageable in PC simulation mode
 #include "driver/uart.h"
 int gpsGetData(char *b, int size) { return uart_read_bytes(UART_NUM_1, b, size, 10); }
-void gpsDone() { vTaskDelete(nullptr); }
+void gpsDone() 
+{ 
+    uart_driver_delete(UART_NUM_1);
+    vTaskDelete(nullptr); 
+}
 bool gpsBegin()
 {
     const uart_config_t uart_config = { .baud_rate= 9600, .data_bits= UART_DATA_8_BITS, .parity= UART_PARITY_DISABLE, .stop_bits= UART_STOP_BITS_1, .flow_ctrl= UART_HW_FLOWCTRL_DISABLE };
@@ -584,6 +613,39 @@ bool gpsBegin()
     return true;
 }
 
+#include "driver/i2c_master.h"
+class CI2C { public:
+    i2c_master_bus_handle_t bus_handle; i2c_master_dev_handle_t dev_handle; bool hasBeenInitialize= false;
+    void begin()
+    { 
+        if (hasBeenInitialize) return; hasBeenInitialize= true;
+        i2c_master_bus_config_t bus_config = {
+            .i2c_port = I2C_NUM_0,
+            .sda_io_num = LCD_SDA,
+            .scl_io_num = LCD_SLC,
+            .clk_source = I2C_CLK_SRC_DEFAULT,
+            .glitch_ignore_cnt = 7,
+            .flags = { .enable_internal_pullup = 1 }
+        };
+        ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
+
+        i2c_device_config_t dev_config = {
+            .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+            .device_address = 0x3C, 
+            .scl_speed_hz = 200000, // 200khz...
+        };
+        ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &dev_handle));
+    }
+    void send(uint8_t *d, int nb) 
+    { 
+        // Assumes that d starts with chip address because that is how it used to work on arduino. So we skip it here...
+        d++, nb--;
+        i2c_master_transmit(dev_handle, d, nb, 1000 / portTICK_PERIOD_MS);
+        memset(d, 0, nb);
+    }
+    bool next() { return false; }
+} I2C;
+
 #include "alpaca.h"
 CAlpaca *alpaca= nullptr;
 static uint32_t ipaddr= 0;
@@ -591,18 +653,18 @@ static uint32_t ipaddr= 0;
 #define reboot esp_restart
 
 // This is to deal with __AVR__ functions...
+#define cli uint32_t old_level = portSET_INTERRUPT_MASK_FROM_ISR
+#define sei() portCLEAR_INTERRUPT_MASK_FROM_ISR(old_level)
+#define udelay(us) vTaskDelay(us/10/portTICK_PERIOD_MS)
 #define PROGMEM
-uint8_t pgm_read_byte(uint8_t const *p) { return *p; }
-uint16_t pgm_read_word(uint8_t const *p) { return p[0] | (((uint16_t)p[1])<<8); }
-uint16_t pgm_read_word(uint16_t const *p) { return *p; }
+static uint8_t inline pgm_read_byte(uint8_t const *p) { return *p; }
+static uint16_t inline pgm_read_word(uint8_t const *p) { return p[0] | (((uint16_t)p[1])<<8); }
+static uint16_t inline pgm_read_word(uint16_t const *p) { return *p; }
 #define memcpy_P memcpy
-static inline void DoNotOptimize(const uint8_t &value) { }
 #endif
 
 
-#include "catalogs.h" // Messier, NGC and star list...
-
-#ifdef HASGPS
+#ifdef HASGPS // this is only valid in ESP and PC mode...
 namespace CGPS {
     // Typical data comming form the gps at 9600 baud:
     // Info on visible satelites...
@@ -632,7 +694,7 @@ namespace CGPS {
     //$GNGLL,4544.97320,N,00450.24199,E,162304.000,A,A*4D
     //$GNZDA,162304.000,14,10,2025,00,00*4B
 
-    float latitude, longitude, altitude; // Will be valid once hasPosInfo is true. angles in radians, altitude in meters...
+    float latitude=M_PI/4.0f, longitude= -4*M_PI/180.0f, altitude=42.0f; // Will be valid once hasPosInfo is true. angles in radians, altitude in meters...
     int h, m, s, D, M, Y; // will be valid once hasTimeInfo is true. Y is 2025
     bool hasPosInfo= false, hasTimeInfo= false, talking= false;
 	bool waitGPS= false;                    // true if we are waiting on GPS init
@@ -659,7 +721,7 @@ namespace CGPS {
         char b[512]; int sze= 0;
         while (true)
         {
-            if (hasPosInfo && hasTimeInfo) gpsDone(); // end of task. frees all that is needed...
+            if ((hasPosInfo && hasTimeInfo) || !waitGPS) { gpsDone(); return; }// end of task. frees all that is needed...
             int r= gpsGetData(b+sze, sizeof(b)-sze-1);
             if (r<0) continue;
             sze+= r; b[sze]=0;
@@ -683,9 +745,7 @@ namespace CGPS {
                 if (memcmp(l, "$GNZDA", 6)==0) 
                 { 
                     if (!skipComa(l,le)) goto next; // skip 1 , and then read 162304.000,14,10,2025,00,00*4B (hms, d, m y)
-                    h= readint(l,2); if (h==-1) goto next;
-                    m= readint(l,2); if (m==-1) goto next;
-                    s= readint(l,2); if (s==-1) goto next;
+                    h= readint(l,2); if (h==-1) goto next; m= readint(l,2); if (m==-1) goto next; s= readint(l,2); if (s==-1) goto next;
                     if (!skipComa(l,le)) goto next;
                     D= readint(l,2); if (D==-1) goto next;
                     if (!skipComa(l,le)) goto next;
@@ -726,6 +786,27 @@ namespace CGPS {
 };
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////
+// Here is the real start of the whole program!!!!
+
+#include "catalogs.h" // Messier, NGC and star list...
+
 static uint32_t inline Abs(int32_t v) { return v>=0 ? v: uint32_t(-v); }
 
 //********************************************
@@ -733,28 +814,30 @@ static uint32_t inline Abs(int32_t v) { return v>=0 ? v: uint32_t(-v); }
 // knows where it is and can go to position at given speed, handles acceleration/decelerations
 // can work in step units and in an arbitrary "user" unit
 // can add an extra, always on, uncounted movement to system (sideral)
+static bool tmcuartInitialized= false;
 class Ctmc2209 { public:
 #ifdef TMC
     uint8_t const serialPin;
     static uint16_t const tmc2209Delay= 8; // 8micro s = 125Kb/s = 12.5KB/s = 1.6millis for a read/modify/write of a register... Trying 500kb/s did not work...
     // This can be "solved" by keeping a copy of the last sent value of the register so that we do not need to do a read but can just write using the last known copy..
     // Hend dropping from 20 bytes (4 out, 8 in, 8 out) to only 8 bytes out and  .6msec
-    uint8_t UARTAdr= 3;
+    uint8_t UARTAdr;
     static uint8_t const GCONFAdr= 0;
     static uint8_t const CHOPCONFAdr= 0x6C;
     static uint8_t const IHOLD_IRUNAdr= 0x10;
     uint8_t GCONF[8], CHOPCONF[8];
     uint8_t const IHold;
-    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold): serialPin(1<<(serial-8)), IHold(IHold) { }
+    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold, uint8_t adr): serialPin(1<<(serial-8)), UARTAdr(adr), IHold(IHold) { }
 
     void begin()
     {
         // Read register to make sure motor is OK... But don't care what it is or does...
-        #ifndef PC // Thiw will not work on PC!
+        #ifdef __AVR__
             uint8_t v[4]; while (readRegister(0, v)!=0) { udelay(10000); UARTAdr= (UARTAdr+1)&3; } // Auto discovert uart addr!
         #endif
-        static uint8_t const IGCONF[8]=    { 5, UARTAdr, GCONFAdr|0x80, 0, 0, 1, 0b11000001 };       memcpy(GCONF, IGCONF, 8);       // GCONF.pdn_disable=1, GCONF.mstep_reg_select = 1 (use MRES for step count)
-        static uint8_t const ICHOPCONF[8]= { 5, UARTAdr, CHOPCONFAdr|0x80, 0x10, 0x00, 0x00, 0x53 }; memcpy(CHOPCONF, ICHOPCONF, 8); // TOFF=3, microsteps=0(256), INTPOL=1, HSTRT= 5, TBL=0, double edge off (because we can do up/down in 1 function)
+        uint8_t const IGCONF[8]=    { 5, UARTAdr, GCONFAdr|0x80, 0, 0, 1, 0b11000001 };       memcpy(GCONF, IGCONF, 8);       // GCONF.pdn_disable=1, GCONF.mstep_reg_select = 1 (use MRES for step count)
+        uint8_t const ICHOPCONF[8]= { 5, UARTAdr, CHOPCONFAdr|0x80, 0x30, 0x00, 0x00, 0x53 }; memcpy(CHOPCONF, ICHOPCONF, 8); // TOFF=3, microsteps=0(256), INTPOL=1, HSTRT= 5, TBL=0, double edge on
+        endinit();
         sendPacket(GCONF, 8); sendPacket(CHOPCONF, 8);
         uint8_t IHOLD_IRUN[8]= { 5, UARTAdr, IHOLD_IRUNAdr|0x80, 0, 1, 31, IHold }; sendPacket(IHOLD_IRUN, 8); // set power in hold mode to 1/4 power...
     }
@@ -772,6 +855,24 @@ class Ctmc2209 { public:
         } while (--l!=0);
         return crc;
     }
+    #ifdef ESP
+    void endinit()
+    {
+        if (tmcuartInitialized) return; tmcuartInitialized= true;
+        // baud rate can but up to 500K...
+        const uart_config_t uart_config = { .baud_rate= 115200, .data_bits= UART_DATA_8_BITS, .parity= UART_PARITY_DISABLE, .stop_bits= UART_STOP_BITS_1, .flow_ctrl= UART_HW_FLOWCTRL_DISABLE };
+        uart_driver_install(UART_NUM_1, 1024*2, 0, 0, NULL, 0);
+        uart_param_config(UART_NUM_1, &uart_config);
+        uart_set_pin(UART_NUM_1, motorSerialRa, -1, -1, -1);
+    }
+    void sendPacket(uint8_t *s, uint8_t size)
+    {
+        s[size-1]= swuart_calcCRC(s, size-1);
+        uart_write_bytes(UART_NUM_1, s, size);
+        uart_wait_tx_done(UART_NUM_1, 1); // flush... This ensures that no steps are sent with the wrong configuration...
+    }
+    #else
+    static void inline endinit() { } // no init in avr/PC
     // send packet. Will calculate the checksum for you. size/s has to be the full packet lenght (with crc)
     // Assumes that line is high before and output mode
     void sendPacket(uint8_t *s, uint8_t size)
@@ -779,11 +880,11 @@ class Ctmc2209 { public:
         s[size-1]= swuart_calcCRC(s, size-1);
         do { // send size bytes
             uint8_t v= *s++;
-            noInterrupts(); // Time sensitive
+            cli(); // Time sensitive
             PORTBCLEAR(serialPin); udelay(tmc2209Delay); // start bit
             for (uint8_t i= 0; i<8; i++) { if ((v&1)==1) PORTBSET(serialPin); else PORTBCLEAR(serialPin); udelay(tmc2209Delay); v>>=1; }
             PORTBSET(serialPin); udelay(tmc2209Delay); // stop bit
-            interrupts();
+            sei();
         } while (--size!=0);
     }
     // l is the size WITH the crc and s has to be l bytes long...
@@ -792,7 +893,7 @@ class Ctmc2209 { public:
     int8_t readPacket(uint8_t *s, uint8_t l)
     {
         int8_t er;
-        noInterrupts(); // Time sensitive.. will be 8*10=80 microseconds!
+        cli(); // Time sensitive.. will be 8*10=80 microseconds!
         PORTBPULLUP(serialPin);
         for (int8_t j= 0; j<l; j++) // For all packets
         {
@@ -803,7 +904,7 @@ class Ctmc2209 { public:
         }
         // Back to normal operations
         PORTBOUT(serialPin);
-        interrupts();
+        sei();
         if (swuart_calcCRC(s, l-1)==s[l-1]) return 0; // verify crc and return if ok
         er= -3;
     err: PORTBOUT(serialPin); interrupts(); return er; // return to normal and return error code
@@ -814,6 +915,7 @@ class Ctmc2209 { public:
         int8_t er= readPacket(p, 8); if (er!=0) return er;
         memcpy(v, p+3, 4); return 0;
     }
+    #endif
     void writeRegister(uint8_t r, uint8_t const *v)
     {
         uint8_t p[7]= { 5, UARTAdr, uint8_t(r|0x80) }; memcpy(p+3, v, 4); sendPacket(p, 8);
@@ -833,37 +935,43 @@ class Ctmc2209 { public:
     }
 #else
     uint8_t const dir;
-    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold): dir(1<<dir) { }
+    Ctmc2209(uint8_t serial, uint8_t dir, uint8_t IHold, uint8_t addr): dir(1<<dir) { }
 #endif
 };
 
 
 class CMotor : public Ctmc2209 { public:
-        uint8_t const stp;                 // pins
         int32_t pos=0, dst=0; int32_t requestedSpd=0;  // Current pos, destination and desired speed (req speed it absolute value).
         uint32_t maxPos=0;                      // maximum positions in steps (min is 0!)...
         uint32_t spdMax=0, accMax=0;            // max speeds and accelerations in steps/s, steps**2/hundredth of s (carefull, this 2nd one is in units per 10 mili seconds, not seconds!)
+        int16_t backlash= 0;
+        #ifdef ESP
+            uint16_t const stp;                 // pins, on esp the shifted pin can be all the way to 256! so we need 2 bytes...
+        #else
+            uint8_t const stp;                 // pins, but on AVR, setting it to 1 byte saves 100 bytes of flash!
+        #endif
         #ifndef TMC
             static const
         #endif
         int8_t lnPulsesPerPulses= 0;            // one step pulse = 2^0=1 step on motor...
         bool invertDir= false;                  // used for Dec to deal with meridian side...
-        int16_t backlash= 0;
         bool lastDirection= false;              // false when positive...
+        bool pause= false;                      // do not issue steps when this is false
 
-    CMotor(uint8_t dir, uint8_t stp, uint8_t serial, uint8_t IHold): Ctmc2209(serial, dir, IHold), stp(1<<stp) { } // port configurations Handled at global level. This makes it CPU agnostic and saves RAM in AVR
+    CMotor(uint8_t dir, uint8_t stp, uint8_t serial, uint8_t IHold, uint8_t adr): Ctmc2209(serial, dir, IHold, adr), stp(1<<stp) { } // port configurations Handled at global level. This makes it CPU agnostic and saves RAM in AVR
 
     void init(uint32_t maxPos, uint32_t maxStpPs, uint32_t msToFullSpeed, int32_t minPosReal, int32_t maxPosReal, int32_t initPosReal, bool invert)
     {
         invertDir= invert;
         kill();
         this->maxPos= maxPos;
+        if (msToFullSpeed==0) msToFullSpeed= 200; // safety!
         spdMax= maxStpPs, accMax= 10*int32_t(maxStpPs)/int32_t(msToFullSpeed);
         this->minPosReal= minPosReal; this->maxPosReal= maxPosReal;
         dst= pos= realToPos(initPosReal);
     }
     #ifdef TMC
-    void powerOn() { cli(); begin(); lnPulsesPerPulses= 0; sei(); }// begin will set to 256 micro steps...
+    void powerOn() { pause= true; begin(); lnPulsesPerPulses= 0; pause= false; }// begin will set to 256 micro steps...
     #endif
 
     // movement controls in steps...
@@ -872,7 +980,7 @@ class CMotor : public Ctmc2209 { public:
     void inline goToSteps(uint32_t destination) { goToSteps(destination, spdMax); } 
     void goToSteps(uint32_t destination, uint32_t spdStepsPS)
     { 
-        cli();
+        pause= true; 
         if ((int32_t(destination)<pos)!=lastDirection)
         {
           if (lastDirection) destination+= backlash, lastDirection= false; // was going down, now needs to go up, so need to do backlash more steps, so we need to add backlash from destination!
@@ -887,7 +995,7 @@ class CMotor : public Ctmc2209 { public:
             maxPos&= 0xffffff<<lnPulsesPerPulses;
         #endif
         requestedSpd= spdStepsPS;
-        sei();
+        pause= false; 
     }
     void guide(int32_t steps, uint32_t speed) { if (speed>maxPulsesPerSecond) speed=maxPulsesPerSecond; if (minPosReal<maxPosReal) steps= -steps; goToSteps(pos+steps, speed); }
     void goUp(int32_t spd) { if (spd<0) return goDown(-spd); goToSteps(maxPos, spd); return; }
@@ -895,7 +1003,7 @@ class CMotor : public Ctmc2209 { public:
     void inline stop() { requestedSpd=0; } // controled stop to here... migt be better to calculate end pos to avoid double back...
     void inline kill() // hard stop!
     {
-        cli();
+        pause= true;
         dst= pos; currentSpd= requestedSpd=0; 
         #ifdef TMC
             microsteps(lnPulsesPerPulses= 0);
@@ -903,7 +1011,7 @@ class CMotor : public Ctmc2209 { public:
         #else
             if (!invertDir) PORTDSET(dir); else PORTDCLEAR(dir);
         #endif
-        sei();
+        pause= false;
     } 
 
     // movement controls in user units...
@@ -997,7 +1105,7 @@ class CMotor : public Ctmc2209 { public:
         if (Abs(futureSpeed)<(1<<lnPulsesPerPulses)) futureSpeed= (1<<lnPulsesPerPulses)*(futureSpeed>=0?1:-1);
         // Handle direction
         uint32_t newDeltaBetweenSteps= 1000000UL / (Abs(futureSpeed)>>lnPulsesPerPulses); // Calculate new interval
-        cli(); // make sure no IRQ arrives while we do that!
+        pause= true;
         #ifdef TMC
             if ((futureSpeed>=0) ^ invertDir) shaft2(0); else shaft2(1); 
         #else
@@ -1006,33 +1114,33 @@ class CMotor : public Ctmc2209 { public:
         currentSpd= futureSpeed;
         if (newDeltaBetweenSteps<deltaBetweenSteps) nextStepmus= nextStepmus-deltaBetweenSteps+newDeltaBetweenSteps; // case where we shorten the delay. execute sooner rather than later...
         deltaBetweenSteps= newDeltaBetweenSteps; // save new delay!
-        sei();
+        pause= false;
     }
 
-    void step(uint32_t now)
+    bool IRAM_ATTR step(uint32_t now) // return true if moving...
     {
-        if (currentSpd==0) return;
-        if (int32_t(now-nextStepmus)<0) return;    // nothing to do. we wait
-        if (Abs(pos-dst)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) return; // destination reached!
-        PORTDSET(stp);            // step pulse up Minimum 1.9micros until down... or 31 cycles... Mesured at 7µs using logic... so WAY more... why?
-        DoNotOptimize(stp);
+        if (currentSpd==0) return false;
+        if (int32_t(now-nextStepmus)<0) return true;    // nothing to do. we wait
+        if (Abs(pos-dst)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) return true; // destination reached!
+        if (pause) return true; // since this is rare, better test it as late as possible
+        STEP1(stp);            // step pulse up Minimum 1.9micros until down... or 31 cycles... Mesured at 7µs using logic... so WAY more... why?
         nextStepmus+= deltaBetweenSteps;           // program allarm
         if (currentSpd>=0) pos+= 1<<lnPulsesPerPulses; else pos-= 1<<lnPulsesPerPulses;      // increase pos
-        DoNotOptimize(stp);
-        PORTDCLEAR(stp);           // step pulse down. It takes 17 cycles to add 2 32 bit numbers! here I have at least 2 addition, so I should be OK on time!!!
+        STEP2(stp);           // step pulse down. It takes 17 cycles to add 2 32 bit numbers! here I have at least 2 addition, so I should be OK on time!!!
+        return true;
     }
 };
 
 static struct { int32_t ra, dec; uint8_t flipFlags= 0; } savedGotoForFlip; // flipFlags bits 0: flipping, bit 1: flip must be calcualted as it was requested by low level...
 
 class CMotorUncounted : public CMotor { public:
-  CMotorUncounted(uint8_t dir, uint8_t stp, uint8_t serialPin, uint8_t IHold): CMotor(dir, stp, serialPin, IHold) { }
+  CMotorUncounted(uint8_t dir, uint8_t stp, uint8_t serialPin, uint8_t IHold, uint8_t adr): CMotor(dir, stp, serialPin, IHold, adr) { }
     // Tell the system to add some "alway on" rotation which is not counted in the position... a continious drift...
     // Assumes that this is in the positive direction!
         uint32_t NextUncountedSteps= 0;         // Next time we need to step
         uint32_t deltaBetweenUncountedSteps= 0; // delta between 2 steps in micro seconds (1s/1e6)..
-        int16_t unstep= 0;                      // number of uncounted steps*256 for precision...
-        int16_t unitsPerSteps;                  // number of units per steps*256
+        uint16_t unstep= 0;                     // number of uncounted steps*256 for precision...
+        uint16_t unitsPerSteps;                 // number of units per steps*256. We are getting close to the 64K limit on an eq3 with 256 microsteps and a 30 to 16 gearing!
         int32_t uncountedMaxRealVal;            // make sure min real is always smaller than this. allign maxReal
         uint32_t countAllUncountedSteps= 0;     // count ALL the uncounted steps to sync with PC
         int16_t _guide= 0;                      // Steps to add or remove in the automatic direction...
@@ -1042,37 +1150,39 @@ class CMotorUncounted : public CMotor { public:
     void setUncountedSpeed(uint32_t seconds, int32_t unitsToMove, uint32_t now, int32_t uncountedMaxRealVal) // MRa.setUncountedSpeed(23*3600UL+56*60+4, 24*3600UL, micros()); // every 23h56m4s do a full turn
     {
         kill(); // reset microsteps and the like...
-        cli();
+        pause= true;
         this->uncountedMaxRealVal= uncountedMaxRealVal;
         NextUncountedSteps= now; unstep= 0;
         // every now and then, we need to shift the real min/max to stay in sync...
         // Let us add a *256 to the number just to be on the safe side of things...
         // how many steps do we need for 1 real unit?
-        unitsPerSteps= int16_t((int64_t(maxPos)<<8)/Abs(maxPosReal-minPosReal)); // here, by default, this will be around 1230 (or -1230)... meaning that 1230/256 steps is 1 unit
-        unitsToMove= muldiv(unitsToMove, maxPos, maxPosReal-minPosReal);     // transform to steps... Assumes no loss of data as we have large number of both...
-        if (unitsToMove<0) unitsToMove= -unitsToMove, unitsPerSteps= -unitsPerSteps;
+        unitsPerSteps= uint16_t((uint64_t(maxPos)<<8)/Abs(maxPosReal-minPosReal)); // here, by default, this will be around 1230 (or -1230)... meaning that 1230/256 steps is 1 unit
+        unitsToMove= muldiv(unitsToMove, maxPos, minPosReal-maxPosReal);     // transform to steps... Assumes no loss of data as we have large number of both... This number SHOULD be positive on a telescope!
         deltaBetweenUncountedSteps= muldiv(seconds, 1000000L, unitsToMove);  // delta, in micros between uncounted steps...
         batchExtraStepsOnMoveComplete= false;
-        sei();
+        pause= false;
     }
     int32_t nextGuideStep= 0, guideStepSize= 0;
     uint8_t skipNSteps= 0;
+    #define min(a,b) ((a)<(b)?(a):(b))
     // TODO: make division performed by PC, not me!!!
     void guide(int16_t steps, uint32_t speed) { cli(); guideStepSize= 1000000UL/speed; if (unitsPerSteps>0) steps= -steps; _guide= steps; nextGuideStep= Time::unow(); sei(); }
-    void step(uint32_t now)
+    void IRAM_ATTR step(uint32_t now)
     {
-        CMotor::step(now); 
-        if (currentSpd!=0) { batchExtraStepsOnMoveComplete= true; return; }
-        if (deltaBetweenUncountedSteps==0 || savedGotoForFlip.flipFlags!=0) return; // if moving, or no slow moves... just return...
+        if (CMotor::step(now)) { batchExtraStepsOnMoveComplete= true; return; }
+
+        if (deltaBetweenUncountedSteps==0 || savedGotoForFlip.flipFlags!=0) return; // no slow moves or flip planned or steps too large? just return...
 
         // Done slewing. Now back to sideral...
         if (batchExtraStepsOnMoveComplete) // do we need to handle missed steps? If yes, then we will use guiding system to do so...
         {
+            if (lnPulsesPerPulses!=0) return; // wait until a kill has been issued...
             batchExtraStepsOnMoveComplete= false;
-            //_guide= (now-NextUncountedSteps)/deltaBetweenUncountedSteps; // Number of misses steps is simply the delta time/time in between steps...
-            //guideStepSize= deltaBetweenUncountedSteps/32;  // we will issue guide steps at 32 times the sideral rate. So a 45second slew will result in a little bit over 1s of extra movement
-            //nextGuideStep= now;                            // starting now!
+            _guide= (now-NextUncountedSteps)/deltaBetweenUncountedSteps; // Number of misses steps is simply the delta time/time in between steps...
+            guideStepSize= deltaBetweenUncountedSteps/32;  // we will issue guide steps at 32 times the sideral rate. So a 45second slew will result in a little bit over 1s of extra movement
+            nextGuideStep= now;                   // starting now!
         }
+        if (pause) return; // since this is rare, better test it as late as possible
 
         if (guideStepSize!=0 && int32_t(now-nextGuideStep)>=0) 
         {
@@ -1087,42 +1197,23 @@ class CMotorUncounted : public CMotor { public:
 
         step:
         countAllUncountedSteps++; 
-        #ifdef TMC
-            // When we are here, a KILL MUST have been done, so dir and misrosteps HAVE to be the right way around, so this should NOT be needed...
-            //if (lnPulsesPerPulses!=0) microsteps(lnPulsesPerPulses=0); // if speed is not slow... slow down to max!
-        #endif
-        PORTDSET(stp); DoNotOptimize(stp);                              // step pulse up Minimum 1.9micros until down... or 31 cycles...
+        if (pos>=maxPos) { savedGotoForFlip.flipFlags= 2; return; } // flip if we are at the end of the run...
+        pos++;                                              // next position. We do count the movements!
+        STEP1(stp);                                         // step pulse up Minimum 1.9micros until down... or 31 cycles...
         unstep+=256; // 256microsteps per step...
-        // correct real min/max. unitsPerSteps sign indicate if the moves are in the same, or in the oposit direction as the real units
-        if (unitsPerSteps>0)
-        {   // in telescopes, we always are going the other way, so this is never used...
-            // so if memory needs to be gained, this could be commented out...
-            if (pos<=0) { savedGotoForFlip.flipFlags= 2; goto done; }
-            pos--;
-            while (unstep>=unitsPerSteps) 
-            { 
-                unstep-= unitsPerSteps; minPosReal--, maxPosReal--; 
-                if (minPosReal<0 || maxPosReal<0) minPosReal+= uncountedMaxRealVal, maxPosReal+= uncountedMaxRealVal; // Actually needs to check on 
-            }  
-        } else if (unitsPerSteps<0)
-        {
-            pos++;
-            if (pos>=maxPos) { savedGotoForFlip.flipFlags= 2; goto done; }
-            while (unstep>=-unitsPerSteps)
-            { 
-                unstep-= -unitsPerSteps; minPosReal++, maxPosReal++; 
-                if (min(maxPosReal, minPosReal)>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal;
-            }
+        while (unstep>=unitsPerSteps) // enough steps will mean changes in the min/max pos to keep synced...
+        { 
+            unstep-= unitsPerSteps; minPosReal++, maxPosReal++; 
+            if (min(maxPosReal, minPosReal)>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal; // loop around when the smallest of the 2 reaches 24h (will always be max post in reality...)
         }
-        done:
-        DoNotOptimize(stp); PORTDCLEAR(stp);                              // step pulse down. It takes 4 cycles for an out, 12 cycles to add/substract 1. comparisons of 2 16 bit numbers is 6 cycles
+        STEP2(stp);                                        // step pulse down. It takes 4 cycles for an out, 12 cycles to add/substract 1. comparisons of 2 16 bit numbers is 6 cycles
     }
 };
 
 // The 3 motors!
-static CMotorUncounted MRa(raDirPin, raStepPin, motorSerialRa, 31);  // full power on hold (anyhow, never stops)
-static CMotor MDec(decDirPin, decStepPin, motorSerialDec, 16);      // 1/2 power on hold
-static CMotor MFocus(focDirPin, focStepPin, motorSerialFocus, 7);   // 1/4 power on hold (assuming not off when not in use)
+static CMotorUncounted MRa(raDirPin, raStepPin, motorSerialRa, 31, raUartAddr);  // full power on hold (anyhow, never stops)
+static CMotor MDec(decDirPin, decStepPin, motorSerialDec, 16, decUartAddr);      // 1/2 power on hold
+static CMotor MFocus(focDirPin, focStepPin, motorSerialFocus, 7, focUartAddr);   // 1/4 power on hold (assuming not off when not in use)
 
 #ifdef TMC
     static int8_t MDecIsOn= 0;
@@ -1163,39 +1254,6 @@ class CI2C { public:
         d= nullptr; TWCR = (1<<TWINT)|(1<<TWEN)| (1<<TWSTO);    // Transmit STOP condition
         return true; // still buzy sending stop... on next 'next' it will be free...
     }
-} I2C;
-#elif defined (ESP)
-#include "driver/i2c_master.h"
-class CI2C { public:
-    i2c_master_bus_handle_t bus_handle; i2c_master_dev_handle_t dev_handle; bool hasBeenInitialize= false;
-    void begin()
-    { 
-        if (hasBeenInitialize) return; hasBeenInitialize= true;
-        i2c_master_bus_config_t bus_config = {
-            .i2c_port = I2C_NUM_0,
-            .sda_io_num = LCD_SDA,
-            .scl_io_num = LCD_SLC,
-            .clk_source = I2C_CLK_SRC_DEFAULT,
-            .glitch_ignore_cnt = 7,
-            .flags = { .enable_internal_pullup = 1 }
-        };
-        ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
-
-        i2c_device_config_t dev_config = {
-            .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-            .device_address = 0x3C, 
-            .scl_speed_hz = 200000, // 200khz...
-        };
-        ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &dev_handle));
-    }
-    void send(uint8_t *d, int nb) 
-    { 
-        // Assumes that d starts with chip address because that is how it used to work on arduino. So we skip it here...
-        d++, nb--;
-        i2c_master_transmit(dev_handle, d, nb, 1000 / portTICK_PERIOD_MS);
-        memset(d, 0, nb);
-    }
-    bool next() { return false; }
 } I2C;
 #endif
 
@@ -1393,7 +1451,7 @@ class CDisplay { public:
 #elif defined(ESP)
   static void EEPROM_update(uint8_t *d, int size) { alpaca->save("CdBEqControl", d, size); }
   static void EEPROM_read(uint8_t *d, int size) { if (!alpaca->load("CdBEqControl", d, size)) memset(d, 0xff, size); } // load data and set to FF if error
-#else // PC case...
+#else // PC case... Simulation...
   static uint32_t readHex(char *&s, int8_t cnt); // read an hex value from a string...
   static char EEPROM[]= "00906500E3200100C8000000AAA25400BDF00000C800000035110000F02319009C61020010049001420022001F0030752003C8000000F000191D01000000000000000000000000000000000026";
   static void EEPROM_update(uint8_t *d, int8_t size)  { }
@@ -1405,7 +1463,8 @@ class CDisplay { public:
 
 
 static uint32_t const sideralSpeeds[5]= {0, 23*3600UL+56*60+4, 24*3600UL+50*60, 24*3600UL, 1299188UL}; // King
-#pragma pack(1)
+
+#pragma pack(1) // This gets sent to PC so we need to ensure consistent data strucutre...
 class CSavedData { public:
     static CSavedData savedData;
     struct { 
@@ -1508,7 +1567,7 @@ class CSavedData { public:
 
 
 
-#if 1
+#if 1 // This can probably be updated to float on esp32! But this code is so beautifull on Arduino :-)
 #define hasPlanets
 namespace Planets {
 //////////////////////////////////////////////
@@ -1665,7 +1724,6 @@ static uint8_t const XImage[] PROGMEM = { 5, 10, 3, 51, 3, 3, 51, 3, 3};
 // state variables...
 enum { UIMain, UIMessier, UINgc, UIStars, UIPlanets, UICadwell, UIFocus, UIWifi};
 static uint8_t UI= 0; // UI will be one of the above and indicate the UI screen...
-static uint8_t UIConfig=0;                      // in config screen: indicates the selected parameter
 static int8_t findMessier= 0, findCadwell=0;    // last select messiers et cadwell
 static uint8_t findPlanet= 4, findPlanetUI= 0;  // last selected planet, and what is the current UI entry in this screen
 static uint8_t planetRecalc=0; int32_t planetra, planetdec; // cache for ra/dec calculation for planet. if recalc is 0, then it needs to be recalculated
@@ -1871,6 +1929,9 @@ static void testGoSync(uint16_t newKeyDown, int32_t ra, int32_t dec)
 }
 
 static bool lastpower= false; // true if power is on!
+#ifdef ESP
+static bool candisplay= false; // can not display unless fully initiialized;
+#endif
 
 
 
@@ -1908,6 +1969,9 @@ static void doUI() // Display takes around 5ms...
 	        return;
 	    }
 	#endif
+    #ifdef ESP
+        if (!candisplay) return; // no display if not initlialized...
+    #endif
 
     if (keys!=0) display.screenOn(), returnToScreen1= 20*10, timeToScreenOff= timeToScreenOffConst;   // if a key is pressed, we reset the returnToScreen1 timer...
     if (returnToScreen1==0) UI= UIMain; else returnToScreen1--; // at 0, reset UI. else tick down timer
@@ -1990,19 +2054,28 @@ static void doUI() // Display takes around 5ms...
     #else
         if (UI==UIWifi) // ESP32 setup: wifi...
         {
-            char adr[20]; sprintf(adr, "%ld.%ld.%ld.%ld", ipaddr&255, (ipaddr>>8)&255, (ipaddr>>16)&255, ipaddr>>24);
+            char adr[60]; sprintf(adr, "%ld.%ld.%ld.%ld", ipaddr&255, (ipaddr>>8)&255, (ipaddr>>16)&255, ipaddr>>24);
             display.text(adr, 0, 0);
             display.text2(alpaca->wifi, 0, 8);
             if ((CSavedData::savedData.guidingBits&0x40)==0)
             {
-                display.text("Station Down for Ap", 0, 24);
+                display.text("Station DownKey=ap", 0, 16);
                 if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
             } else {
-                display.text("AccessPnt Up for Sta", 0, 24);
+                display.text("AccessPnt UpKey=sta", 0, 16);
                 if ((newKeyDown&keyUp)!=0) { CSavedData::savedData.guidingBits&=~0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
             }
+            #ifdef HASGPS
+                // "-90:00 360:00 hhhhm" = 18 characters of a max of 21
+                float lad= CGPS::latitude*180/M_PI; int ladd= int(lad); int ladm= int((lad-ladd)*60); if (ladm<0) ladm= -ladm;
+                float lod= CGPS::longitude*180/M_PI; int lodd= int(lod); int lodm= int((lod-lodd)*60); if (lodm<0) lodm= -lodm;
+                sprintf(adr, "%d:%d %d:%d %dm", ladd, ladm, lodd, lodm, int(CGPS::altitude));
+                adr[21]= 0; /// make sure we do not over draw...
+                if (!CGPS::hasPosInfo) display.text("unknown gps", 0, 24);
+                display.text(adr, 0, 24);
+            #endif
         }
-        if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UISetup) UI= UIMain; else UI++; } // menu change
+        if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UIWifi) UI= UIMain; else UI++; } // menu change
     #endif
     if ((newKeyDown&keyEsc)!=0) UI= UIMain; // escape menu. Menu key itself is lower as there is a special handeling in the case of the setup menu
 
@@ -2137,32 +2210,23 @@ static uint32_t readHex(char *&s, int8_t cnt) // read an hex value from a string
 }
 
 
-static void timer2_init_10kHz()
-{
-    // Set Timer2 to CTC mode
-    TCCR2A = (1 << WGM21);    // CTC, OCR2A as top
-    TCCR2B = 0;               // stop timer for configuration
-    OCR2A = 24;               // colmpare value (16MHz / (64 * (24+1)) = 10kHz)
-    TIMSK2 = (1 << OCIE2A); // Enable interrupt on compare match A
-    TCCR2B |= (1 << CS22);    // / Start Timer2 with prescaler 64
-}
-
 static uint8_t volatile quantizeTime= 0; // quantizeTime will get to 0 every 10ms or 100 ticks at 0.1ms
-ISR(TIMER2_COMPA_vect)
-{
-  uint32_t now= Time::unow();
-  MRa.step(now); MDec.step(now); MFocus.step(now); // move motors as needed
-  if (quantizeTime!=0) quantizeTime--;
-}
 
 static char input[40];                         // stores serial input
 static uint8_t in= 0;                          // current char in serial input
-bool decGuiding= false; // will be set to true when a dec guiding command is sent. back to false when dec movement is stopped..
-uint8_t powercnt= 0;
-static void inline loop() 
+static bool decGuiding= false; // will be set to true when a dec guiding command is sent. back to false when dec movement is stopped..
+#ifdef HASADC
+    static bool power= false;  // is power on or off?
+#else
+    static bool const power= true;  // no adc, assumes on..
+#endif
+static uint8_t powercnt= 0;
+static void inline quantizePowerFlip() 
 {
+  MRa.quantize(); MDec.quantize(); MFocus.quantize(); // update motor speeds
+
   #ifdef HASADC
-    bool power= CADC::next()>90; if (lastpower!=power) // if power was applied, needs to reset the motors...
+    power= CADC::next()>90; if (lastpower!=power) // if power was applied, needs to reset the motors... Note that this is ok on arduino and represent 9.0V on esp32
     {
         udelay(10000); 
         lastpower= power;
@@ -2172,13 +2236,7 @@ static void inline loop()
             MRa.powerOn(); MDec.powerOn(); MFocus.powerOn(); MDecIsOn=0; MDecOn();
         }
     }
-  #else
-    bool const power= true;
   #endif
-  do { doUI(); } while (quantizeTime!=0);
-
-  MRa.quantize(); MDec.quantize(); MFocus.quantize(); // update motor speeds
-  quantizeTime= 100; // no issues is ISR as it wont change quantizeTime when 0 and it's 0 at the moment...
 
   if ((savedGotoForFlip.flipFlags&2)!=0) flip(); // Meridian swapping requested by low level...
   if (savedGotoForFlip.flipFlags!=0) // Meridian swapping in progress
@@ -2189,117 +2247,130 @@ static void inline loop()
       savedGotoForFlip.flipFlags= false;
       goTo(savedGotoForFlip.ra, savedGotoForFlip.dec);
     }
+}
 
-
+void processSerial(char *C, int8_t nb)
+{
   ///////////////////////////////////////////
   // serial input processing
   // ! -> returns 56 hex characters. pos in Dec(6), Ra(6), focusser(6), 1 byte (2 chr) of status bits, millis_timer(6), meridian_value(6), uncounted_steps(6), raPos(8), decPos(8), power and sideralspeed(2). Then a #
   // & -> returns SavedData as a hex sequence ending with #. The last byte is the CRC...
   // @Hex# is the reverse to set the settings... crc HAS to be correct!
   // For all other commands, lines start with ':' and end with '#' or '\n' Go look at them, they are not that many of them!!!!
-
-  while (true)
-  {
-    int16_t c= MSerial::read(); if (c==-1) break;            // no data...
-    if (c<=' ') continue;                                    // ignore blanks
-    if (c=='!')   // get info command
+    while (--nb>=0)
     {
-        printHex2(MDec.posInReal(), 6); printHex2(MRaposInReal(), 6); printHex2(MFocus.pos>>8, 6);
-        bool decMove= MDec.isMoving(); if (!decMove) decGuiding= false; 
-        // bit 0: moving, bit 1: focus moving, bit 2: side of pier, bit 3: meridian swapping, bit 4: flip disabled,
-        //   bit 5: tracking disabled, bit 6: power, bit 7: guiding
-        printHex2(((decMove||MRa.isMoving())?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
-                   (isRaFlipEnabled()?0:16) | (MRa.deltaBetweenUncountedSteps==0?32:0) | (power?64:0) | ((decGuiding||(MRa._guide!=0))?128:0), 2);
-        printHex2(Time::mnow(), 6);                         // this allows to verify time drift
-        printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
-        printHex2(MRa.countAllUncountedSteps, 6);           // this is also a time drift check
-        printHex2(MRa.pos, 8); printHex2(MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
-        printHex2((powercnt&0x1f) | (MRa.sideralMove<<5), 2); 
-        MSerial::flush('#');
-        continue;
-    }
-    if (c=='&') 
-    { // serial write hex represenation of CSavedData (get settings)
-        CSavedData::savedData.crc= CSavedData::savedData.calcCrc(); uint8_t *d= (uint8_t*)&CSavedData::savedData;
-        for (uint8_t i=0; i<sizeof(CSavedData::savedData); i++) printHex2(*d++, 2);
-        #ifdef ESP
-            uint8_t *p= (uint8_t*)alpaca->wifi;
-            for (uint8_t i=0; i<2*sizeof(alpaca->wifi); i++) printHex2(p[i], 2);
-            printHex2(ipaddr, 8);
-        #endif
-        MSerial::flush('#');
-        continue;
-    }
-    if (c=='@')
-    { // serial read hex representation of CSavedData (save settings)
-        #ifndef ESP
-            uint32_t now= Time::mnow()+1000; // 1s timeout...
-            for (uint8_t i=0; i<sizeof(CSavedData); i++)
-            {
-                char t[2]; for (int8_t p=0; p<2; p++)  // read 2 chars (1 byte)
-				  while (true) { if (now<Time::mnow()) goto er; int c= MSerial::read(); if (c<0) continue; t[p]= c; break; }
-                char *T= t; ((uint8_t*)&CSavedData::savedData)[i]= readHex(T,2);
-            }
-            if (CSavedData::savedData.testCrc()) CSavedData::savedData.save(); else { er: CSavedData::savedData.load(); } // verify crc!
-        #else
-            uint8_t buf[2*(sizeof(CSavedData)+sizeof(alpaca->wifi)+sizeof(alpaca->wifip))]; int pos= 0; // buff for inbound data...
-            // copy data that we already have in buffer...
-            if (nb<=sizeof(buf)) { pos= nb; memcpy(buf, d, nb); nb= 0; } else { pos= sizeof(buf); memcpy(buf, d, sizeof(buf)); nb-= sizeof(buf); d+= sizeof(buf); }
-            // get missing data...
-            while (pos<sizeof(buf)) if ((nb= MSerial.read(buf+pos, sizeof(buf)-pos))!=0) pos+=nb; else goto er;
-            {
-                char *t= (char*)buf; for (uint8_t i=0; i<sizeof(buf)/2; i++) buf[i]= readHex(t,2); // To binary...
-                if (((CSavedData*)buf)->testCrc()) // check crc and save data if valid...
-                { 
-                    memcpy(&CSavedData::savedData, buf, sizeof(CSavedData)); CSavedData::savedData.save(); 
-                    memcpy(alpaca->wifi, buf+sizeof(CSavedData), sizeof(alpaca->wifi)+sizeof(alpaca->wifip)); 
-                    alpaca->save("wifi", alpaca->wifi);
-                    alpaca->save("wifip", alpaca->wifip);
+        char c= *C++;
+        if (c<=' ') continue;                                    // ignore blanks
+        if (c=='!')   // get info command
+        {
+            printHex2(MDec.posInReal(), 6); printHex2(MRaposInReal(), 6); printHex2(MFocus.pos>>8, 6);
+            bool decMove= MDec.isMoving(); if (!decMove) decGuiding= false; 
+            // bit 0: moving, bit 1: focus moving, bit 2: side of pier, bit 3: meridian swapping, bit 4: flip disabled,
+            //   bit 5: tracking disabled, bit 6: power, bit 7: guiding
+            printHex2(((decMove||MRa.isMoving())?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
+                    (isRaFlipEnabled()?0:16) | (MRa.deltaBetweenUncountedSteps==0?32:0) | (power?64:0) | ((decGuiding||(MRa._guide!=0))?128:0), 2);
+            printHex2(Time::mnow(), 6);                         // this allows to verify time drift
+            printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
+            printHex2(MRa.countAllUncountedSteps, 6);           // this is also a time drift check
+            printHex2(MRa.pos, 8); printHex2(MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
+            printHex2((powercnt&0x1f) | (MRa.sideralMove<<5), 2); 
+            MSerial::flush('#');
+            continue;
+        }
+        if (c=='&') 
+        { // serial write hex represenation of CSavedData (get settings)
+            CSavedData::savedData.crc= CSavedData::savedData.calcCrc(); uint8_t *d= (uint8_t*)&CSavedData::savedData;
+            for (uint8_t i=0; i<sizeof(CSavedData::savedData); i++) printHex2(*d++, 2);
+            #ifdef ESP
+                uint8_t *p= (uint8_t*)alpaca->wifi;
+                for (uint8_t i=0; i<2*sizeof(alpaca->wifi); i++) printHex2(p[i], 2);
+                printHex2(ipaddr, 8);
+            #endif
+            MSerial::flush('#');
+            continue;
+        }
+        if (c=='@')
+        { // serial read hex representation of CSavedData (save settings)
+            #ifndef ESP
+                uint32_t now= Time::mnow()+1000; // 1s timeout...
+                for (uint8_t i=0; i<sizeof(CSavedData); i++)
+                {
+                    char t[2]; for (int8_t p=0; p<2; p++)  // read 2 chars (1 byte)
+                    while (true) { if (now<Time::mnow()) goto er; int c= MSerial::read(); if (c<0) continue; t[p]= c; break; }
+                    char *T= t; ((uint8_t*)&CSavedData::savedData)[i]= readHex(T,2);
                 }
-            } er: 
-        #endif
-		reboot(); // reboot the system!
-    }
+                if (CSavedData::savedData.testCrc()) CSavedData::savedData.save(); else { er: CSavedData::savedData.load(); } // verify crc!
+            #else
+                uint8_t buf[2*(sizeof(CSavedData)+sizeof(alpaca->wifi)+sizeof(alpaca->wifip))]; int pos= 0; // buff for inbound data...
+                // copy data that we already have in buffer...
+                if (nb<=sizeof(buf)) { pos= nb; memcpy(buf, C, nb); nb= 0; } else { pos= sizeof(buf); memcpy(buf, C, sizeof(buf)); nb-= sizeof(buf); C+= sizeof(buf); }
+                // get missing data...
+                while (pos<sizeof(buf)) if ((nb= MSerial::read(buf+pos, sizeof(buf)-pos))!=0) pos+=nb; else goto er;
+                {
+                    char *t= (char*)buf; for (uint8_t i=0; i<sizeof(buf)/2; i++) buf[i]= readHex(t,2); // To binary...
+                    if (((CSavedData*)buf)->testCrc()) // check crc and save data if valid...
+                    { 
+                        memcpy(&CSavedData::savedData, buf, sizeof(CSavedData)); CSavedData::savedData.save(); 
+                        memcpy(alpaca->wifi, buf+sizeof(CSavedData), sizeof(alpaca->wifi)+sizeof(alpaca->wifip)); 
+                        alpaca->save("wifi", alpaca->wifi);
+                        alpaca->save("wifip", alpaca->wifip);
+                    }
+                } er: 
+            #endif
+            reboot(); // reboot the system!
+        }
 
-    if (in==0 && c!=':') continue;                         // nothing until ':' (line start)...
-    input[in++]= char(c); if (in==sizeof(input)) { in= 0; continue; } // save new character and overflow detection...
-    if (c!='#' && c!='\n') continue;                       // not end of line... get next character
-    in=0;                                                  // reset line
-    char *s= input+3; // in most cases, numbers start at input+3. init once only
-    // now look for commands in line...
-#define t1(c) input[1]==c
-#define t2(c1,c2) input[1]==c1 && input[2]==c2
-    if (t2('$', 'P')) { flipDec(); continue; }
-    if (t2('$', 'f')) { enableFlip(input[3]!='0'); continue; } // flip on/off
-    if (t1('Q')) { savedGotoForFlip.flipFlags= 0; MFocus.stop(); MDec.stop(); MRa.stop(); continue; } // :Q# stop driven movements (including focusser)
+        if (in==0 && c!=':') continue;                         // nothing until ':' (line start)...
+        input[in++]= char(c); if (in==sizeof(input)) { in= 0; continue; } // save new character and overflow detection...
+        if (c!='#' && c!='\n') continue;                       // not end of line... get next character
+        in=0;                                                  // reset line
+        char *s= input+3; // in most cases, numbers start at input+3. init once only
+        // now look for commands in line...
+    #define t1(c) input[1]==c
+    #define t2(c1,c2) input[1]==c1 && input[2]==c2
+        if (t2('$', 'P')) { flipDec(); continue; }
+        if (t2('$', 'f')) { enableFlip(input[3]!='0'); continue; } // flip on/off
+        if (t1('Q')) { savedGotoForFlip.flipFlags= 0; MFocus.stop(); MDec.stop(); MRa.stop(); continue; } // :Q# stop driven movements (including focusser)
 
-    if (t1('T')) // track. provides dst in ra/dec as int24, time to be there in ms as int16. then a crc as int8
-    { s--;
-      int32_t ra= readHex(s,6); int32_t dec= readHex(s,6); if ((dec&0x800000)!=0) dec|= 0xff000000; // negative extend.
-      int16_t time= readHex(s,4);
-      uint8_t crc= readHex(s,2);
-      uint8_t tcrc= uint8_t(ra)+uint8_t(ra>>8)+uint8_t(ra>>16) + uint8_t(dec)+uint8_t(dec>>8)+uint8_t(dec>>16) + uint8_t(time)+uint8_t(time>>8);
-      if (tcrc!=crc) continue;
-      goTo2(ra, dec, time); continue;
+        if (t1('T')) // track. provides dst in ra/dec as int24, time to be there in ms as int16. then a crc as int8
+        { s--;
+        int32_t ra= readHex(s,6); int32_t dec= readHex(s,6); if ((dec&0x800000)!=0) dec|= 0xff000000; // negative extend.
+        int16_t time= readHex(s,4);
+        uint8_t crc= readHex(s,2);
+        uint8_t tcrc= uint8_t(ra)+uint8_t(ra>>8)+uint8_t(ra>>16) + uint8_t(dec)+uint8_t(dec>>8)+uint8_t(dec>>16) + uint8_t(time)+uint8_t(time>>8);
+        if (tcrc!=crc) continue;
+        goTo2(ra, dec, time); continue;
+        }
+        if (t2('M', 'R')) reboot(); // reboot the system!
+        // All the commands from there on will take 1 or 2 inputs. In 8 char hex form most significant nible first in our input... We read them...
+        int32_t n1= readHex(s,8); int32_t n2= readHex(s,8); 
+        if (t2('M', 'G')) { goTo(n1, n2); continue; } // MOVE:  :MS# (slew) // after sending Sr and Sd, will ask to move!. print(0)= slew is possible 
+        if (t2('M', 'g')) { MRa.goToSteps(n1); MDec.goToSteps(n2); stopMovingOnKeyRelease= false; continue; } // go to steps
+        if (t2('M', 'S')) { sync(n1, n2); continue; } // :CM# assumes Sr and Sd have been processed sync current position with input
+        if (t2('M', 'd')) { MDecOn(); MDec.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mdspd(8)# (move dec in direction at speed)
+        if (t2('M', 'r')) { MRa.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mrspd(8)# (move ra in direction at speed)
+        if (t2('M', 'f')) { flip(); continue; } // // force a meridian flip (assumes that the user has verified that it was possible!)
+        if (t2('p', 'r')) { MRa.guide(n1, n2); stopMovingOnKeyRelease= false; continue; } // :prstp(8)spd(8)# pulse guide ra for step count at speed
+        if (t2('p', 'd')) { MDecOn(); decGuiding= true; MDec.guide(n1, n2); stopMovingOnKeyRelease= false; continue; } // :pdstp(8)spd(8)# pulse guide dec for step count at speed
+        if (t2('$', 'T')) { CSavedData::savedData.initUncountedStep2(n1); continue; } // Track at speed to allow lunar/solar... parameter is second per full turn...
+        // Focusser commands
+        if (t2('F', 'G')) { MFocusOn(); MFocus.goToSteps(n1<<8, MFocus.spdMax); stopMovingOnKeyRelease= false; continue; } // -> start the motor toward destination
+        if (t2('F', 'M')) { MFocusOn(); MFocus.goUp(n1<<8); stopMovingOnKeyRelease= false; continue; } // :FMxxxxxxxx# move out if x is >0, else in. x is 8 hex chars
     }
-    if (t2('M', 'R')) reboot(); // reboot the system!
-    // All the commands from there on will take 1 or 2 inputs. In 8 char hex form most significant nible first in our input... We read them...
-    int32_t n1= readHex(s,8); int32_t n2= readHex(s,8); 
-    if (t2('M', 'G')) { goTo(n1, n2); continue; } // MOVE:  :MS# (slew) // after sending Sr and Sd, will ask to move!. print(0)= slew is possible 
-    if (t2('M', 'g')) { MRa.goToSteps(n1); MDec.goToSteps(n2); stopMovingOnKeyRelease= false; continue; } // go to steps
-    if (t2('M', 'S')) { sync(n1, n2); continue; } // :CM# assumes Sr and Sd have been processed sync current position with input
-    if (t2('M', 'd')) { MDecOn(); MDec.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mdspd(8)# (move dec in direction at speed)
-    if (t2('M', 'r')) { MRa.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mrspd(8)# (move ra in direction at speed)
-    if (t2('M', 'f')) { flip(); continue; } // // force a meridian flip (assumes that the user has verified that it was possible!)
-    if (t2('p', 'r')) { MRa.guide(n1, n2); stopMovingOnKeyRelease= false; continue; } // :prstp(8)spd(8)# pulse guide ra for step count at speed
-    if (t2('p', 'd')) { MDecOn(); decGuiding= true; MDec.guide(n1, n2); stopMovingOnKeyRelease= false; continue; } // :pdstp(8)spd(8)# pulse guide dec for step count at speed
-    if (t2('$', 'T')) { CSavedData::savedData.initUncountedStep2(n1); continue; } // Track at speed to allow lunar/solar... parameter is second per full turn...
-    // Focusser commands
-    if (t2('F', 'G')) { MFocusOn(); MFocus.goToSteps(n1<<8, MFocus.spdMax); stopMovingOnKeyRelease= false; continue; } // -> start the motor toward destination
-    if (t2('F', 'M')) { MFocusOn(); MFocus.goUp(n1<<8); stopMovingOnKeyRelease= false; continue; } // :FMxxxxxxxx# move out if x is >0, else in. x is 8 hex chars
-  }
 }
 
+#ifndef ESP
+static void inline loop()
+{
+    do { doUI(); } while (quantizeTime!=0);
+    quantizeTime= 100; // no issues is ISR as it wont change quantizeTime when 0 and it's 0 at the moment...
+    quantizePowerFlip();
+    while (true)
+    {
+        int16_t c= MSerial::read(); if (c==-1) return;            // no data...
+        processSerial((char*)&c, 1);
+    }
+}
 static void setup()
 {
     #ifdef HASADC
@@ -2310,12 +2381,29 @@ static void setup()
     MSerial::begin();
     display.begin();
     CSavedData::savedData.load(); // motors are initialized here..
-    timer2_init_10kHz();
 }
 #ifndef PC
+static void timer2_init_10kHz()
+{
+    // Set Timer2 to CTC mode
+    TCCR2A = (1 << WGM21);    // CTC, OCR2A as top
+    TCCR2B = 0;               // stop timer for configuration
+    OCR2A = 24;               // colmpare value (16MHz / (64 * (24+1)) = 10kHz)
+    TIMSK2 = (1 << OCIE2A); // Enable interrupt on compare match A
+    TCCR2B |= (1 << CS22);    // / Start Timer2 with prescaler 64
+}
+
+ISR(TIMER2_COMPA_vect)
+{
+  uint32_t now= Time::unow();
+  MRa.step(now); MDec.step(now); MFocus.step(now); // move motors as needed
+  if (quantizeTime!=0) quantizeTime--;
+}
 int main() 
 {
     setup();
+    timer2_init_10kHz();
     while (true) loop();
 }
+#endif
 #endif
