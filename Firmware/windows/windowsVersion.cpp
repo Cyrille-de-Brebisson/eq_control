@@ -22,6 +22,7 @@
 #include <stdio.h>
 #pragma comment(lib, "ws2_32.lib")
 
+#include "../main/alpaca.h"
 
 #define PC // building for PC!!!
 #define IRAM_ATTR // not used on windows...
@@ -68,7 +69,7 @@ namespace MSerial {
                 int bytesReceived = recv(clientSocket, buffer, sizeof(t)-pos, 0);
                 if (bytesReceived <= 0) break; 
                 buffer[bytesReceived]= 0;
-                 printf("Received: %s\n", buffer);
+                 printf("\r\nTCP Received: %s\n", buffer);
                 EnterCriticalSection(&(cs));
                 memcpy(t+pos, buffer, bytesReceived), pos+= bytesReceived;
                 LeaveCriticalSection(&(cs));
@@ -104,7 +105,7 @@ namespace MSerial {
         LeaveCriticalSection(&cs);
         return r;
     }
-    void print(char const *s) { sockSend(s,strlen(s)); while (*s!=0) { if (*s=='\n') printf("\r\n"); else printf("%c", *s); *s++; } }
+    void print(char const *s) { sockSend(s, int(strlen(s))); while (*s!=0) { if (*s=='\n') printf("\r\n"); else printf("%c", *s); *s++; } }
     void print(char s) { sockSend(&s,1); if (s=='\n') printf("\r\n"); else printf("%c", s); }
     void flush(char s) { print(s); }
     void flush(char const *s) { print(s); }
@@ -186,10 +187,8 @@ static const int8_t raUartAddr= 3;
 static const int8_t decUartAddr= 1;
 static const int8_t focUartAddr= 2; 
 void esp_restart() {}
-void xTaskCreate(void (*cb)(void*), char const*, int, void *p, int, void*)
-{
-    CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)cb, p, 0, nullptr);
-}
+extern void xTaskCreate(void (*cb)(void*), char const*, int, void *p, int, void*);
+
 // windows simulation of GPS module... Will always return the same data...
 int gpspos= 0;
 int gpsGetData(char *b, int size) 
@@ -197,7 +196,7 @@ int gpsGetData(char *b, int size)
     static char const gr[]=
         "$GNGGA,102758.000,4544.96195,N,00450.25286,E,1,08,1.2,147.6,M,50.2,M,,*4A\n"
         "$GNZDA,111557.000,04,11,2025,00,00*4F\n";
-    int l= strlen(gr);
+    int l= int(strlen(gr));
     if (size+gpspos>l) size= l-gpspos;
     memcpy(b, gr+gpspos, l); gpspos+= size; if (gpspos>=l) gpspos= 0;
     return l;
@@ -207,6 +206,21 @@ void gpsDone() { ExitThread(0); }
 bool gpsBegin() { return true; }
 
 #include "../eqControl_Ino/eqControl_Ino.ino"
+
+CAlpaca* alpaca = nullptr;
+#include "../main/localAlpaca.h"
+
+void startAlpaca()
+{
+    alpaca = new CAlpaca("CdBTelescopeServer", "CdB", "Alpaca CdB eq telescope", "Ardeche"); // done here as it initializes the storage and provides access facilities for CSavedData::savedData.load()
+
+    MRa.powerOn(); MDec.powerOn(); MFocus.powerOn(); MDecIsOn = -1; MDecOn(); // This works when power is off because the DC-DC back powers from the ESP32 5V! But this might not be true in next version! It also initializes the serial port...
+    CSavedData::savedData.load(); // motors are initialized here.. This includes a "begin" which will include serial comuncations... which is a problem with 
+
+    alpaca->addDevice(new CMyTelescope(0));
+    alpaca->addDevice(new CMyFocuser(0));
+    alpaca->start(80);
+}
 
 class CMyWin : public CFBWindow { public:
     CMyWin(): CFBWindow(L"CB focusser", 800, 600) { }
@@ -300,6 +314,7 @@ int main()
 {
     Time::begin();
     setup();
+    startAlpaca();
     CreateThread(nullptr, 0, motorThread, nullptr, 0, nullptr);
     CMyWin fb; fb.setFps(20); fb.run();
 }
@@ -2329,3 +2344,128 @@ Ta()
     printf("\r\n\r\n");
 } 
 } aaaa;
+
+
+
+
+static struct { char name[5]; float rah, ram, decd, decm; } const mess[] = {
+{"M1  ",  5.0f, 34.5f, +22.0f,  1.0f},
+{"M2  ", 21.0f, 33.5f,   0.0f, -49.0f},
+{"M3  ", 13.0f, 42.2f, +28.0f, 23.0f},
+{"M4  ", 16.0f, 23.6f, -26.0f, 32.0f},
+{"M5  ", 15.0f, 18.6f, + 2.0f,  5.0f},
+{"M6  ", 17.0f, 40.1f, -32.0f, 13.0f},
+{"M7  ", 17.0f, 53.9f, -34.0f, 49.0f},
+{"M8  ", 18.0f,  3.8f, -24.0f, 23.0f},
+{"M9  ", 17.0f, 19.2f, -18.0f, 31.0f},
+{"M10 ", 16.0f, 57.1f, - 4.0f,  6.0f},
+{"M11 ", 18.0f, 51.1f, - 6.0f, 16.0f},
+{"M12 ", 16.0f, 47.2f, - 1.0f, 57.0f},
+{"M13 ", 16.0f, 41.7f, +36.0f, 28.0f},
+{"M14 ", 17.0f, 37.6f, - 3.0f, 15.0f},
+{"M15 ", 21.0f, 30.0f, +12.0f, 10.0f},
+{"M16 ", 18.0f, 18.8f, -13.0f, 47.0f},
+{"M17 ", 18.0f, 20.8f, -16.0f, 11.0f},
+{"M18 ", 18.0f, 19.9f, -17.0f,  8.0f},
+{"M19 ", 17.0f,  2.6f, -26.0f, 16.0f},
+{"M20 ", 18.0f,  2.6f, -23.0f,  2.0f},
+{"M21 ", 18.0f,  4.6f, -22.0f, 30.0f},
+{"M22 ", 18.0f, 36.4f, -23.0f, 54.0f},
+{"M23 ", 17.0f, 56.8f, -19.0f,  1.0f},
+{"M24 ", 18.0f, 16.9f, -18.0f, 30.0f},
+{"M25 ", 18.0f, 31.6f, -19.0f, 15.0f},
+{"M26 ", 18.0f, 45.2f, - 9.0f, 24.0f},
+{"M27 ", 19.0f, 59.6f, +22.0f, 43.0f},
+{"M28 ", 18.0f, 24.5f, -24.0f, 52.0f},
+{"M29 ", 20.0f, 23.9f, +38.0f, 32.0f},
+{"M30 ", 21.0f, 40.4f, -23.0f, 11.0f},
+{"M31 ",  0.0f, 41.8f, +41.0f, 16.0f},
+{"M32 ",  0.0f, 42.8f, +40.0f, 52.0f},
+{"M33 ",  1.0f, 33.9f, +30.0f, 39.0f},
+{"M34 ",  2.0f, 42.0f, +42.0f, 47.0f},
+{"M35 ",  6.0f,  8.9f, +24.0f, 20.0f},
+{"M36 ",  5.0f, 36.1f, +34.0f,  8.0f},
+{"M37 ",  5.0f, 52.4f, +32.0f, 33.0f},
+{"M38 ",  5.0f, 28.7f, +35.0f, 50.0f},
+{"M39 ", 21.0f, 32.2f, +48.0f, 26.0f},
+{"M40 ", 12.0f, 22.4f, +58.0f,  5.0f},
+{"M41 ",  6.0f, 47.0f, -20.0f, 44.0f},
+{"M42 ",  5.0f, 35.4f, - 5.0f, 27.0f},
+{"M43 ",  5.0f, 35.6f, - 5.0f, 16.0f},
+{"M44 ",  8.0f, 40.1f, +19.0f, 59.0f},
+{"M45 ",  3.0f, 47.0f, +24.0f,  7.0f},
+{"M46 ",  7.0f, 41.8f, -14.0f, 49.0f},
+{"M47 ",  7.0f, 36.6f, -14.0f, 30.0f},
+{"M48 ",  8.0f, 13.8f, - 5.0f, 48.0f},
+{"M49 ", 12.0f, 29.8f, + 8.0f,  0.0f},
+{"M50 ",  7.0f,  3.2f, - 8.0f, 20.0f},
+{"M51 ", 13.0f, 30.0f, +47.0f, 11.0f},
+{"M52 ", 23.0f, 24.2f, +61.0f, 35.0f},
+{"M53 ", 13.0f, 12.9f, +18.0f, 10.0f},
+{"M54 ", 18.0f, 55.1f, -30.0f, 29.0f},
+{"M55 ", 19.0f, 40.0f, -30.0f, 58.0f},
+{"M56 ", 19.0f, 16.6f, +30.0f, 11.0f},
+{"M57 ", 18.0f, 53.6f, +33.0f,  2.0f},
+{"M58 ", 12.0f, 37.7f, +11.0f, 49.0f},
+{"M59 ", 12.0f, 42.0f, +11.0f, 39.0f},
+{"M60 ", 12.0f, 43.7f, +11.0f, 33.0f},
+{"M61 ", 12.0f, 21.9f, + 4.0f, 28.0f},
+{"M62 ", 17.0f,  1.2f, -30.0f,  7.0f},
+{"M63 ", 13.0f, 15.8f, +42.0f,  2.0f},
+{"M64 ", 12.0f, 56.7f, +21.0f, 41.0f},
+{"M65 ", 11.0f, 18.9f, +13.0f,  5.0f},
+{"M66 ", 11.0f, 20.2f, +12.0f, 59.0f},
+{"M67 ",  8.0f, 50.4f, +11.0f, 49.0f},
+{"M68 ", 12.0f, 39.5f, -26.0f, 45.0f},
+{"M69 ", 18.0f, 31.4f, -32.0f, 21.0f},
+{"M70 ", 18.0f, 43.2f, -32.0f, 18.0f},
+{"M71 ", 19.0f, 53.8f, +18.0f, 47.0f},
+{"M72 ", 20.0f, 53.5f, -12.0f, 32.0f},
+{"M73 ", 20.0f, 59.0f, -12.0f, 38.0f},
+{"M74 ",  1.0f, 36.7f, +15.0f, 47.0f},
+{"M75 ", 20.0f,  6.1f, -21.0f, 55.0f},
+{"M76 ",  1.0f, 42.4f, +51.0f, 34.0f},
+{"M77 ",  2.0f, 42.7f, + 0.0f,  2.0f},
+{"M78 ",  5.0f, 46.7f, + 0.0f,  3.0f},
+{"M79 ",  5.0f, 24.5f, -24.0f, 33.0f},
+{"M80 ", 16.0f, 17.0f, -22.0f, 59.0f},
+{"M81 ",  9.0f, 55.6f, +69.0f,  4.0f},
+{"M82 ",  9.0f, 55.8f, +69.0f, 41.0f},
+{"M83 ", 13.0f, 37.0f, -29.0f, 52.0f},
+{"M84 ", 12.0f, 25.1f, +12.0f, 53.0f},
+{"M85 ", 12.0f, 25.5f, +18.0f, 12.0f},
+{"M86 ", 12.0f, 26.2f, +12.0f, 57.0f},
+{"M87 ", 12.0f, 30.8f, +12.0f, 24.0f},
+{"M88 ", 12.0f, 32.1f, +14.0f, 26.0f},
+{"M89 ", 12.0f, 35.7f, +12.0f, 33.0f},
+{"M90 ", 12.0f, 36.8f, +13.0f, 10.0f},
+{"M91 ", 12.0f, 35.5f, +14.0f, 30.0f},
+{"M92 ", 17.0f, 17.1f, +43.0f,  8.0f},
+{"M93 ",  7.0f, 44.6f, -23.0f, 52.0f},
+{"M94 ", 12.0f, 50.9f, +41.0f,  8.0f},
+{"M95 ", 10.0f, 44.0f, +11.0f, 42.0f},
+{"M96 ", 10.0f, 46.8f, +11.0f, 49.0f},
+{"M97 ", 11.0f, 14.8f, +55.0f,  1.0f},
+{"M98 ", 12.0f, 13.9f, +14.0f, 55.0f},
+{"M99 ", 12.0f, 18.9f, +14.0f, 26.0f},
+{"M100", 12.0f, 23.0f, +15.0f, 50.0f},
+{"M101", 14.0f,  3.2f, +54.0f, 21.0f},
+{"M102", 15.0f,  6.5f, +55.0f, 46.0f},
+{"M103",  1.0f, 33.2f, +60.0f, 42.0f},
+{"M104", 12.0f, 40.0f, -11.0f, 37.0f},
+{"M105", 10.0f, 47.8f, +12.0f, 35.0f},
+{"M106", 12.0f, 18.9f, +47.0f, 19.0f},
+{"M107", 16.0f, 32.5f, -13.0f,  3.0f},
+{"M108", 11.0f, 11.5f, +55.0f, 40.0f},
+{"M109", 11.0f, 57.6f, +53.0f, 23.0f},
+{"M110",  0.0f, 40.4f, +41.0f, 41.0f}};
+class TcreateMListMatarhon { public:
+    TcreateMListMatarhon()
+    {
+        for (int i=0; i<110; i++)
+        {
+            float dec= fabs(mess[i].decd) + mess[i].decm/60; if (mess[i].decd<0) dec= -dec;
+            printf("mra[%i]=%f\r\nmdec[%d]=%f\r\n", i, (mess[i].rah+mess[i].ram/60)*M_PI/12.0f, i, dec*M_PI/180.0f);
+        }
+    }
+};

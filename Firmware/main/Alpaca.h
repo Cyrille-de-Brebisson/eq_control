@@ -40,6 +40,7 @@
 * For testing, you can of course compile and run this under windows!
 * You will see some #ifndef _WIN32 throughout these files which are designed exactly for that...
 ****************************************************************/
+#define HASMilisecondTime // define this if you have a function called Milisecond which will return a time counter in milisecond. This is used for UTCTime in CTelescope.
 
 #define _CRT_SECURE_NO_WARNINGS // allows windows compilation
 #include <stdint.h>
@@ -85,7 +86,9 @@ class CAlpaca { public:
     void saveLoadEnd();
     void save(char const *key, char const *v);
     void save(char const *key, int32_t v);
+#ifndef _WIN32 // on win32, int and int32_t are the same and it causes conflicts
     void save(char const *key, int v) { save(key, int32_t(v)); }
+#endif
     void save(char const *key, float v);
     void save(char const *key, uint8_t const *v, int size);
     // These are the same, but they handle a key spread on 2 strings. For example a "header" and "key"
@@ -95,7 +98,9 @@ class CAlpaca { public:
     char *load(char const *key, char const *def, char *buf, size_t buflen); // put data in buf. return it also for convinience... buf MUST be large enough for def
     bool load(char const *key, uint8_t *buf, size_t buflen); // load data in buf. return true if successful
     int32_t load(char const *key, int32_t def);
+#ifndef _WIN32
     int load(char const *key, int def) { return load(key, int32_t(def)); }
+#endif
     float load(char const *key, float def);
     // These are the same, but they handle a key spread on 2 strings. For example a "header" and "key"
     template <typename T> T load(char const *key1, char const *key2, T v) { char t[100]; strcpy(t, key1); strcat(t, key2); return load(t, v); }
@@ -442,14 +447,14 @@ class CSwitch : public CAlpacaDevice { public: CSwitch(int id, char const *drive
     virtual TAlpacaErr get_getswitchdescription(int32_t id, char *buf, size_t len) 
     { 
         if (!init(id)) return ALPACA_ERR_INVALID_VALUE; 
-        strncpy2(buf, switches[id].switchdescription, len); 
+        strncpy2(buf, switches[id].switchdescription, int(len)); 
         char t[20]; sprintf(t, "%ldName", id); alpaca->load(keyHeader, t, buf, buf, len);
         return ALPACA_OK; 
     }
     virtual TAlpacaErr get_getswitchname(int32_t id, char *buf, size_t len) 
     { 
         if (!init(id)) return ALPACA_ERR_INVALID_VALUE; 
-        strncpy2(buf, switches[id].switchdescription, len); 
+        strncpy2(buf, switches[id].switchdescription, int(len));
         char t[20]; sprintf(t, "%ldDesc", id); alpaca->load(keyHeader, t, buf, buf, len);
         return ALPACA_OK; 
     }
@@ -505,7 +510,8 @@ protected:
 };
 
 // This been tested and works :-) for once!
-class CTelescope : public CAlpacaDevice { public: CTelescope(int id, char const *driverInfo, char const *driverVersion, char const *defaultName, char const *defaultDescription): CAlpacaDevice(id, driverInfo, driverVersion, defaultName, defaultDescription) { }
+class CTelescope : public CAlpacaDevice { 
+    public: CTelescope(int id, char const* driverInfo, char const* driverVersion, char const* defaultName, char const* defaultDescription) : CAlpacaDevice(id, driverInfo, driverVersion, defaultName, defaultDescription) { }
 protected:
     uint32_t get_interfaceversion() override { return 4; }
     char const *get_type() override { return "Telescope"; }
@@ -606,8 +612,13 @@ protected:
     virtual int destinationsideofpier(float ra, float dec) { return -1; } // Predicts the pointing state after a German equatorial mount slews to given $RightAscension $Declination coordinates. 0: east, 1: west: -1: unknown
 
     virtual TAlpacaErr siderealtime(float &v) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the local apparent sidereal time.
-    virtual TAlpacaErr get_utcdate(char *b) { b[0]= 0; return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the UTC date/time of the telescope's internal clock. b will be at least 20chrs... "8910-91-19T25:83:67Z"
-    virtual TAlpacaErr set_utcdate(char const *b) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Sets the UTC date/time of the telescope's internal clock.
+    #ifndef HASMilisecondTime
+        virtual TAlpacaErr get_utcdate(char *b) { b[0]= 0; ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the UTC date/time of the telescope's internal clock. b will be at least 20chrs... "8910-91-19T25:83:67Z"
+        virtual TAlpacaErr set_utcdate(char const *b) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Sets the UTC date/time of the telescope's internal clock.
+    #else
+        virtual TAlpacaErr get_utcdate(char* b);
+        virtual TAlpacaErr set_utcdate(char const* b);
+    #endif
 
     virtual TAlpacaErr axisrates(int axis, char *b) { b[0]= 0; return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the rates at which the telescope may be moved about the specified $Axis  returns [{"Maximum": 0,"Minimum": 0}] in b (b will be 30 chr long)
     virtual bool canmoveaxis(int axis) { return false; } // Indicates whether the telescope can move the requested $Axis.
@@ -628,3 +639,4 @@ char *floatToRa(float ra, char *b); // b must be long enough. b is returned...
 static char inline *floatToDec(float dec, char *b) { return floatToRa(dec /**15.0f*/, b); } // b must be long enough. b is returned...
 bool RaToFloat(char const *b, float &ra);  // return true if no error
 bool DecToFloat(char const *b, float &ra); // return true if no error
+char *getHtmlString(char const *in, char *buf, size_t buflen); // html string decyphering...

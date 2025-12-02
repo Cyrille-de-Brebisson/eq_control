@@ -120,7 +120,7 @@ static int readInt(T *&s)
     return res;
 }
 // read a positive int from s, and moves s to the end of the int.... return false if there is no number to read
-static bool readInt(char const *b, int &v)
+static bool readInt(char const *&b, int &v)
 {
     v= 0;
     if (*b<'0' || *b>'9') return false;
@@ -502,6 +502,7 @@ static bool putErVal(CMyStr *s, TAlpacaErr er, bool v)
 }
 static bool putErVal(CMyStr *s, TAlpacaErr er, char const * v, bool transformquotes=false)
 {
+    if (v==nullptr) v= "";
     s->printf("\"ErrorNumber\":%d,\"ErrorMessage\":\"%s\",\"Value\":\"%s\"", er, msgFromEr(er), v);
     return true;
 }
@@ -694,6 +695,47 @@ bool CTelescope::dispatch(bool get, char const *url, char *data, CMyStr *s)
 
     return CAlpacaDevice::dispatch(get, url, data, s);
 }
+#ifdef HASMilisecondTime  // define this if you have a function called Milisecond which will return a time counter in milisecond. This is used for UTCTime in CTelescope.
+uint32_t Milisecond(); // Must be defined elsewhere! else do not #def HASMilisecondTime
+static uint64_t UTCTimeDelta= 0;
+// format is: 2025-12-02T16:13:09.0146526Z
+static int8_t const dpm[]={31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+TAlpacaErr CTelescope::set_utcdate(char const* B) // Here we save the time given by the PC (accurate to 1s for the moment) and make a delta with our ms clock...
+{
+    char b2[100]; getHtmlString(B, b2, int(sizeof(b2))); char const *b= b2;
+    int Y, M, D, h, m, s, ms;
+    if (!readInt(b, Y)) return ALPACA_ERR_INVALID_VALUE; if (*b++!='-') return ALPACA_ERR_INVALID_VALUE; if (Y<2024 || Y>2099) return ALPACA_ERR_INVALID_VALUE; Y-=2024;
+    if (!readInt(b, M)) return ALPACA_ERR_INVALID_VALUE; if (*b++!='-') return ALPACA_ERR_INVALID_VALUE; if (M<1 || M>12) return ALPACA_ERR_INVALID_VALUE;
+    if (!readInt(b, D)) return ALPACA_ERR_INVALID_VALUE; if (*b++!='T') return ALPACA_ERR_INVALID_VALUE; if (D<1 || D>31) return ALPACA_ERR_INVALID_VALUE;
+    if (!readInt(b, h)) return ALPACA_ERR_INVALID_VALUE; if (*b++!=':') return ALPACA_ERR_INVALID_VALUE; if (h<0 || h>23) return ALPACA_ERR_INVALID_VALUE;
+    if (!readInt(b, m)) return ALPACA_ERR_INVALID_VALUE; if (*b++!=':') return ALPACA_ERR_INVALID_VALUE; if (m<0 || m>59) return ALPACA_ERR_INVALID_VALUE;
+    if (!readInt(b, s)) return ALPACA_ERR_INVALID_VALUE; if (*b++!='.') return ALPACA_ERR_INVALID_VALUE; if (s<0 || s>59) return ALPACA_ERR_INVALID_VALUE;
+    h= h*3600+m*60+s;
+    while (Y>=4) D+= 365*4+1, Y-=4; if (M>2 && Y==0) D++; while (Y>0) D+= 365, Y--;
+    for (int i=0; i<M-1; i++) D+= dpm[i];
+    UTCTimeDelta= uint64_t(D)*24*3600+h-Milisecond()/1000;
+    return ALPACA_OK;
+}
+TAlpacaErr CTelescope::get_utcdate(char* b) // here we add our ms clock to the delta given by the PC and generate UTC time...
+{
+    if (UTCTimeDelta==0) { b[0]= 0; return ALPACA_ERR_VALUE_NOT_SET; } // not yet set, return an error...
+    uint64_t now= UTCTimeDelta*1000+Milisecond();
+    int Y, M, D, h, m, s, ms;
+    h= now%(24*3600*1000);
+    D= now/(24*3600*1000);
+    ms= h%1000; h/= 1000;
+    s= h%60; h/=60;
+    m= h%60; h/=60;
+    Y= 2024;
+    while (D>=((Y%3)==0?366:365)) D-=(Y%3)==0?366:365, Y++;
+    M= 1;
+    while (D>=dpm[M-1]+((M==2 && (Y%3)==0)?1:0))
+        D-= dpm[M-1]+((M==2 && (Y%3)==0)?1:0), M++;
+    D++;
+    sprintf(b, "%04d-%02d-%02dT%02d:%02d:%02d.%04d000Z", Y, M, D, h, m, s, ms);
+    return ALPACA_OK;
+}
+#endif
 
 // These is the http handeling for Focuser.The basic dispatch for all commands
 bool CFocuser::dispatch(bool get, char const *url, char *data, CMyStr *s)
@@ -729,7 +771,7 @@ bool CFilterWheel::dispatch(bool get, char const *url, char *data, CMyStr *s)
 // These is the http handeling for rotator.The basic dispatch for all commands
 bool CRotator::dispatch(bool get, char const *url, char *data, CMyStr *s)
 {
-    bool b; double v;
+    bool b=false; double v=0.0;
     if (get && strcmp(url, "canreverse") == 0) return putErVal(s, get_canreverse(&b), b);
     if (get && strcmp(url, "reverse") == 0) return putErVal(s, get_reverse(&b), b);
     if (!get && strcmp(url, "reverse") == 0) return putEr(s, put_reverse(getBoolData(data, "Reverse")));
@@ -749,7 +791,7 @@ bool CRotator::dispatch(bool get, char const *url, char *data, CMyStr *s)
 // These is the http handeling for switches.The basic dispatch for all commands
 bool CSwitch::dispatch(bool get, char const *url, char *data, CMyStr *s)
 {
-    int32_t id=getIntData(data, "Id"), vi; bool vb; double vd;
+    int32_t id=getIntData(data, "Id"), vi=0; bool vb=false; double vd=0.0;
     char b[256];
     if (get && strcmp(url, "maxswitch") == 0) return putErVal(s, get_maxswitch(&vi), vi);
 
@@ -780,7 +822,7 @@ bool CSwitch::dispatch(bool get, char const *url, char *data, CMyStr *s)
 // These is the http handeling for switches.The basic dispatch for all commands
 bool CSafetyMonitor::dispatch(bool get, char const *url, char *data, CMyStr *s)
 {
-    bool v;
+    bool v= false;
     if (get && strcmp(url, "issafe") == 0) return putErVal(s, get_issafe(&v), v);
     return CAlpacaDevice::dispatch(get, url, data, s);
 }
@@ -788,7 +830,7 @@ bool CSafetyMonitor::dispatch(bool get, char const *url, char *data, CMyStr *s)
 // These is the http handeling for CoverCalibrator.The basic dispatch for all commands
 bool CCoverCalibrator::dispatch(bool get, char const *url, char *data, CMyStr *s)
 {
-    uint32_t vi; bool vb; TAlpacaErr er;
+    uint32_t vi=0; bool vb=false; TAlpacaErr er;
     if (get && strcmp(url, "brightness") == 0) return putErVal(s, get_brightness(&vi), vi);
     if (get && strcmp(url, "calibratorchanging") == 0) return putErVal(s, get_calibratorchanging(&vb), vb);
     if (get && strcmp(url, "calibratorstate") == 0) { CalibratorState v; er= get_calibratorstate(&v); return putErVal(s, er, int(v)); }
@@ -810,7 +852,7 @@ bool CCoverCalibrator::dispatch(bool get, char const *url, char *data, CMyStr *s
 // These is the http handeling for ObservingConditions.The basic dispatch for all commands
 bool CObservingConditions::dispatch(bool get, char const *url, char *data, CMyStr *s)
 {
-    double v; 
+    double v= 0.0; 
     if (get && strcmp(url, "averageperiod") == 0) return putErVal(s, get_averageperiod(&v), v);
     if (!get && strcmp(url, "averageperiod") == 0) return putEr(s, put_averageperiod(getFloatData(data, "AveragePeriod")));
 
@@ -829,7 +871,7 @@ bool CObservingConditions::dispatch(bool get, char const *url, char *data, CMySt
     if (get && strcmp(url, "windspeed") == 0) return putErVal(s, get_windspeed(&v), v);
     if (get && strcmp(url, "timesincelastupdate") == 0) return putErVal(s, get_timesincelastupdate(&v), v);
     if (!get && strcmp(url, "refresh") == 0) return putEr(s, put_refresh());
-    if (get && strcmp(url, "sensordescription") == 0)  { char *d= getStrData(data, "SensorName"); char const *b; return putErVal(s, get_sensordescription(d, b), b); }
+    if (get && strcmp(url, "sensordescription") == 0)  { char *d= getStrData(data, "SensorName"); char const *b=nullptr; return putErVal(s, get_sensordescription(d, b), b); }
 
     return CAlpacaDevice::dispatch(get, url, data, s);
 }

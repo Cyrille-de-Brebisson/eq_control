@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\main\Alpaca.cpp" />
     <ClCompile Include="MiniFB.cpp" />
     <ClCompile Include="windowsVersion.cpp" />
   </ItemGroup>

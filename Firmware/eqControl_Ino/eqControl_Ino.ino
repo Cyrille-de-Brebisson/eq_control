@@ -518,10 +518,7 @@ static uint16_t kbdValue()
     if (v[2]<1000) keys|= keyRight;
     else if (v[2]<2400) keys|= keyDown;
     else if (v[2]<3500) keys|= keyLeft;
-    if (cnt--==0) 
-    {
-        printf("%ld %ld %ld\n", CADC::res[0], CADC::res[1], CADC::res[2]); cnt= 10;
-    }
+    //if (cnt--==0)  { printf("%ld %ld %ld\n", CADC::res[0], CADC::res[1], CADC::res[2]); cnt= 10; }
     if (keys==lastkbdValue1 && keys==lastkbdValue2) return lastValid= keys; // only return a stable value that has been read thrice...
     lastkbdValue1= lastkbdValue2; lastkbdValue2= keys; return lastValid;
 }
@@ -1085,7 +1082,7 @@ class CMotor : public Ctmc2209 { public:
         else {
             int8_t changeSign;
             int32_t stepsLeft= dst-pos;
-            if (Abs(stepsLeft)<(1<<lnPulsesPerPulses) && Abs(futureSpeed)<=accMax*2) return kill();    // We have arrived and are going slow enough to stop. do it
+            if (Abs(stepsLeft)<(1UL<<lnPulsesPerPulses) && Abs(futureSpeed)<=accMax*2) return kill();    // We have arrived and are going slow enough to stop. do it
             else if (stepsLeft<0 && futureSpeed>0) changeSign= -2;           // past or at destination and going the wrong direction. we need to decelerate agressively...
             else if (stepsLeft>0 && futureSpeed<0) changeSign= 2;            // same the other way around!
             else {
@@ -1102,7 +1099,7 @@ class CMotor : public Ctmc2209 { public:
         }
         if (currentSpd==futureSpeed) return; // no change in speed...
         // make sure that we have a minimum speed of one pulse per second!
-        if (Abs(futureSpeed)<(1<<lnPulsesPerPulses)) futureSpeed= (1<<lnPulsesPerPulses)*(futureSpeed>=0?1:-1);
+        if (Abs(futureSpeed)<(1UL<<lnPulsesPerPulses)) futureSpeed= (1<<lnPulsesPerPulses)*(futureSpeed>=0?1:-1);
         // Handle direction
         uint32_t newDeltaBetweenSteps= 1000000UL / (Abs(futureSpeed)>>lnPulsesPerPulses); // Calculate new interval
         pause= true;
@@ -1121,7 +1118,7 @@ class CMotor : public Ctmc2209 { public:
     {
         if (currentSpd==0) return false;
         if (int32_t(now-nextStepmus)<0) return true;    // nothing to do. we wait
-        if (Abs(pos-dst)<(1<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) return true; // destination reached!
+        if (Abs(pos-dst)<(1UL<<lnPulsesPerPulses) && Abs(currentSpd)<=accMax*2) return true; // destination reached!
         if (pause) return true; // since this is rare, better test it as late as possible
         STEP1(stp);            // step pulse up Minimum 1.9micros until down... or 31 cycles... Mesured at 7µs using logic... so WAY more... why?
         nextStepmus+= deltaBetweenSteps;           // program allarm
@@ -1464,7 +1461,7 @@ class CDisplay { public:
 
 static uint32_t const sideralSpeeds[5]= {0, 23*3600UL+56*60+4, 24*3600UL+50*60, 24*3600UL, 1299188UL}; // King
 
-#pragma pack(1) // This gets sent to PC so we need to ensure consistent data strucutre...
+#pragma pack(push, 1) // This gets sent to PC so we need to ensure consistent data strucutre...
 class CSavedData { public:
     static CSavedData savedData;
     struct { 
@@ -1552,6 +1549,7 @@ class CSavedData { public:
         MDec.backlash= savedData.decBacklash;
     }
 } CSavedData::savedData;
+#pragma pack(pop) // This gets sent to PC so we need to ensure consistent data strucutre...
 
 
 

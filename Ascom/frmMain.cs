@@ -1132,7 +1132,7 @@ namespace ASCOM.LocalServer
             if (TrackingInfos!=null && TrackingInfos.Count > 0 )
             {
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string filePath = Path.Combine(desktopPath, "iss"+DateTime.Now.ToString()+".txt");
+                string filePath = Path.Combine(desktopPath, "iss_"+DateTime.Now.ToString("yyyy-MM-dd_HH_mm_ss") +".txt");
                 string content = "ra\tdec\tcor ra\tcordec\r\n";
                 for (int i= 0; i < TrackingInfos.Count; i++)
                     content+= TrackingInfos[i].ra.ToString("N6")+"\t"+TrackingInfos[i].dec.ToString("N6")+"\t"+TrackingInfos[i].cra.ToString("N6")+"\t"+TrackingInfos[i].cdec.ToString("N6")+"\r\n";
