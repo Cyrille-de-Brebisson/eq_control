@@ -27,4 +27,7 @@ in the Firmware\windows directory you will find a windows solution that uses onc
 the Ascom directory contains the Ascom driver for the system (need visual studio and ascom tools installed)
 
 
+HW project can be found here:  https://oshwlab.com/cyrille.de.brebisson/sheet_copy_copy_copy_copy_copy_copy_copy_copy
 
+The Hwardware and mechanicals directory has the Gerber and schematics.
+I still need to put the files for making the laser cut box
