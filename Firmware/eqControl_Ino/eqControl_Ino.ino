@@ -240,24 +240,25 @@ namespace MSerial {
 	// always 38400 bauds, 64bytes buffers
 	static uint8_t const BUFFER_SIZE= 64;
 	static volatile char rxBuffer[BUFFER_SIZE];
-    static volatile uint8_t rxHead= 0, rxTail= 0;
+        static uint8_t rxHead= 0, rxTail= 0;
 	static volatile char txBuffer[BUFFER_SIZE];
-	static volatile uint8_t txHead= 0, txTail= 0;
+	static uint8_t txHead= 0; static uint8_t volatile txTail= 0;
 
 	// USART Receive Complete interrupt. i.e: data in
 	ISR(USART_RX_vect) 
 	{
 	  char c= UDR0;
-	  uint8_t nextHead= (rxHead+1) % BUFFER_SIZE;
+	  uint8_t nextHead= (rxHead+1) & (BUFFER_SIZE-1);
 	  if (nextHead==rxTail) return;  // Buffer full
 	  rxBuffer[rxHead]= c; rxHead= nextHead;
 	}
 	// USART Data Register Empty interrupt. I.e: ready to send next byte
 	ISR(USART_UDRE_vect) 
 	{
-	  if (txHead==txTail) { UCSR0B&= ~(1<<UDRIE0); return; } // Nothing to send, disable UDRE interrupt
-	  UDR0= txBuffer[txTail];
-	  txTail= (txTail+1) % BUFFER_SIZE;
+          uint8_t ttxTail= txTail;
+	  if (txHead==ttxTail) { UCSR0B&= ~(1<<UDRIE0); return; } // Nothing to send, disable UDRE interrupt
+	  UDR0= txBuffer[ttxTail];
+	  txTail= (ttxTail+1) & (BUFFER_SIZE-1);
 	}
     void begin() 
     {
@@ -270,12 +271,12 @@ namespace MSerial {
 	{
 	  if (rxHead==rxTail) return -1; // No data
 	  char c= rxBuffer[rxTail];
-	  rxTail= (rxTail+1) % BUFFER_SIZE;
+	  rxTail= (rxTail+1) & (BUFFER_SIZE-1);
 	  return c;
 	}
 	void print(char c) // add to send buffer and send as soon as possible
 	{
-	  uint8_t nextHead= (txHead+1) % BUFFER_SIZE;
+	  uint8_t nextHead= (txHead+1) & (BUFFER_SIZE-1);
 	  while (nextHead==txTail); // Wait if buffer is full
 	  txBuffer[txHead]= c; txHead= nextHead;
 	  UCSR0B|= 1<<UDRIE0; 	  // Enable UDRE interrupt
@@ -497,7 +498,7 @@ namespace CADC {
         adc_continuous_evt_cbs_t cbs = { .on_conv_done = s_conv_done_cb, }; ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
         ESP_ERROR_CHECK(adc_continuous_start(handle));
         while (res[3]!=0) vTaskDelay(1); // forces a read to init power!
-        power= res[3]/33; // /330 = *5.4/1780
+        power= res[3]/33; // I get a reading of 1780 for 5.4V. Since the value is in deci volts a division by /33 (1780/54) gives the value
     }
 };
 int cnt=0;
@@ -505,7 +506,7 @@ static uint16_t lastkbdValue1= 0, lastkbdValue2= 0, lastValid= 0;
 // Keyboard is set as 3 analog inputs with 3 keys on each line using resistance ladder
 static uint16_t kbdValue()
 {
-    CADC::power= CADC::res[3]/33; // /330 = *5.4/1780
+    CADC::power= res[3]/33; // I get a reading of 1780 for 5.4V. Since the value is in deci volts a division by /33 (1780/54) gives the value
     uint32_t *v= CADC::res; 
     // Adc values are: 2800 for col 1, 2000 for col 2 and 0 for col 3
     uint16_t keys= 0;
@@ -1503,12 +1504,12 @@ class CSavedData { public:
       memset(this, 0, sizeof(*this));
       ra={130UL*200*microSteps, 200*microSteps*4, 200 }; 
       dec={65UL*200*microSteps*20/12, 200*microSteps*4, 200}; 
-      timeComp= 0; Latitude=45*3600ULL, Longitude=4*3600, Altitude=1040, FocalLength=400, Diameter_mm=66, Area_cm2= 34, FocStepdum= 31; 
+      timeComp= 0; Latitude=45*3600UL, Longitude=4*3600L, Altitude=1040, FocalLength=400, Diameter_mm=66, Area_cm2= 34, FocStepdum= 31; 
       focMaxStp=65532; focMaxSpd=200*4; focAcc= 200;
       decBacklash= 0;
       raAmplitude= 195; // plus 30mn on each side...
-      guideRateRA= (130UL*200*microSteps)*7/(360*3600ULL);
-      guideRateDec= (65UL*200*microSteps*20/12)*7/(360*3600ULL);
+      guideRateRA= (130UL*200*microSteps)*7/(360*3600UL);
+      guideRateDec= (65UL*200*microSteps*20/12)*7/(360*3600UL);
       save();
     } 
     bool testCrc() { return crc==calcCrc(); }
@@ -1540,7 +1541,7 @@ class CSavedData { public:
     {
         // the /2 are because we only use 1/2 of the range of the motor!
         MDec.init(savedData.dec.maxPos>>1, savedData.dec.maxSpd, savedData.dec.msToSpd, -90*3600L, 90*3600L, 90*3600L, (CSavedData::savedData.invertAxes&1)!=0);
-        int32_t amp= 6*3600L/180*savedData.raAmplitude;
+        int32_t amp= (6*3600L/180)*savedData.raAmplitude;
         MRa.init(int64_t(savedData.ra.maxPos)*savedData.raAmplitude/360,  savedData.ra.maxSpd,  savedData.ra.msToSpd, 6*3600L+amp, 6*3600L-amp, 6*3600L, (CSavedData::savedData.invertAxes&2)!=0);
         initUncountedStep2(23*3600UL+56*60+4);
         MFocus.init(uint32_t(savedData.focMaxStp)<<8, uint32_t(savedData.focMaxSpd)<<8,  savedData.focAcc, -int32_t(savedData.focMaxStp)*savedData.FocStepdum/20, int32_t(savedData.focMaxStp)*savedData.FocStepdum/20, 0, (CSavedData::savedData.invertAxes&4)!=0);
@@ -1863,7 +1864,7 @@ static void enableFlip(bool en)
         MRa.pos-= amp/2;
         if (MRa.pos<0) MRa.pos= 0; if (MRa.pos>int32_t(MRa.maxPos-1)) MRa.pos= MRa.maxPos-1;
     } else { // disable meridian flip. maxr/minr are mid+/-12 max from saved data, pos+= (newMax-currentMax)/2
-        MRa.maxPosReal= mid-12*3600LL; MRa.minPosReal= mid+12*3600LL;
+        MRa.maxPosReal= mid-12*3600L; MRa.minPosReal= mid+12*3600L;
         MRa.pos+= (CSavedData::savedData.ra.maxPos-MRa.maxPos)/2;
         MRa.maxPos= CSavedData::savedData.ra.maxPos;
     } 
@@ -2041,13 +2042,13 @@ static void doUI() // Display takes around 5ms...
         } else { blockSync= false; spiralDD= MDec.pos; spiralDR= MRa.pos; spiralI= 0; }
 
         // if move was started from keyboard and no keys. stop. If Esc, stop...
-        if ((stopMovingOnKeyRelease && (keys&(keyUp|keyDown|keyRight|keyLeft|keySync))==0) || (keys&keyEsc)!=0) { MRa.stop(); MDec.stop(); }
+        if ((stopMovingOnKeyRelease && (keys&(keyUp|keyDown|keyRight|keyLeft|keySync))==0) || (keys&keyEsc)!=0) { savedGotoForFlip.flipFlags= 0; MRa.stop(); MDec.stop(); }
     }
 
 
 
 
-    #ifndef ESP
+    #ifndef ALPACA
         if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UIFocus) UI= UIMain; else UI++; } // menu change
     #else
         if (UI==UIWifi) // ESP32 setup: wifi...
