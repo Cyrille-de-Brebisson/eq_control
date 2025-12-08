@@ -62,7 +62,6 @@ namespace ASCOM.LocalServer
             this.textBox3 = new System.Windows.Forms.TextBox();
             this.labelDec = new System.Windows.Forms.Label();
             this.labelRa = new System.Windows.Forms.Label();
-            this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.checkBox12 = new System.Windows.Forms.CheckBox();
             this.button10 = new System.Windows.Forms.Button();
@@ -162,24 +161,27 @@ namespace ASCOM.LocalServer
             this.checkBox3 = new System.Windows.Forms.CheckBox();
             this.label18 = new System.Windows.Forms.Label();
             this.groupBox7 = new System.Windows.Forms.GroupBox();
-            this.NbResponses = new System.Windows.Forms.Label();
-            this.FreezeLastResponse = new System.Windows.Forms.CheckBox();
-            this.lastRep2 = new System.Windows.Forms.TextBox();
+            this.groupBox17 = new System.Windows.Forms.GroupBox();
             this.lastRep1 = new System.Windows.Forms.TextBox();
-            this.checkBox16 = new System.Windows.Forms.CheckBox();
-            this.checkBox15 = new System.Windows.Forms.CheckBox();
+            this.lastRep2 = new System.Windows.Forms.TextBox();
+            this.FreezeLastResponse = new System.Windows.Forms.CheckBox();
+            this.NbResponses = new System.Windows.Forms.Label();
+            this.groupBox16 = new System.Windows.Forms.GroupBox();
             this.checkBox8 = new System.Windows.Forms.CheckBox();
+            this.checkboxlogsystem = new System.Windows.Forms.CheckBox();
+            this.checkboxascom = new System.Windows.Forms.CheckBox();
+            this.checkBox15 = new System.Windows.Forms.CheckBox();
+            this.checkBox16 = new System.Windows.Forms.CheckBox();
+            this.groupBox9 = new System.Windows.Forms.GroupBox();
+            this.button26 = new System.Windows.Forms.Button();
+            this.button31 = new System.Windows.Forms.Button();
+            this.button32 = new System.Windows.Forms.Button();
+            this.button33 = new System.Windows.Forms.Button();
             this.groupBox15 = new System.Windows.Forms.GroupBox();
             this.label42 = new System.Windows.Forms.Label();
             this.label52 = new System.Windows.Forms.Label();
             this.label41 = new System.Windows.Forms.Label();
-            this.checkboxascom = new System.Windows.Forms.CheckBox();
             this.label37 = new System.Windows.Forms.Label();
-            this.button33 = new System.Windows.Forms.Button();
-            this.button32 = new System.Windows.Forms.Button();
-            this.button31 = new System.Windows.Forms.Button();
-            this.button26 = new System.Windows.Forms.Button();
-            this.checkboxlogsystem = new System.Windows.Forms.CheckBox();
             this.button14 = new System.Windows.Forms.Button();
             this.button13 = new System.Windows.Forms.Button();
             this.logBox = new System.Windows.Forms.TextBox();
@@ -244,11 +246,7 @@ namespace ASCOM.LocalServer
             this.label43 = new System.Windows.Forms.Label();
             this.checkBox13 = new System.Windows.Forms.CheckBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.groupBox9 = new System.Windows.Forms.GroupBox();
-            this.groupBox16 = new System.Windows.Forms.GroupBox();
-            this.groupBox17 = new System.Windows.Forms.GroupBox();
             this.groupMount.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.groupBox5.SuspendLayout();
@@ -257,6 +255,9 @@ namespace ASCOM.LocalServer
             this.groupBox13.SuspendLayout();
             this.groupBox12.SuspendLayout();
             this.groupBox7.SuspendLayout();
+            this.groupBox17.SuspendLayout();
+            this.groupBox16.SuspendLayout();
+            this.groupBox9.SuspendLayout();
             this.groupBox15.SuspendLayout();
             this.groupBox8.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -264,9 +265,6 @@ namespace ASCOM.LocalServer
             this.groupBox14.SuspendLayout();
             this.groupBox11.SuspendLayout();
             this.groupBox3.SuspendLayout();
-            this.groupBox9.SuspendLayout();
-            this.groupBox16.SuspendLayout();
-            this.groupBox17.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -676,17 +674,6 @@ namespace ASCOM.LocalServer
             this.labelRa.Size = new System.Drawing.Size(83, 13);
             this.labelRa.TabIndex = 0;
             this.labelRa.Text = "Right Assension";
-            // 
-            // pictureBox2
-            // 
-            this.pictureBox2.Location = new System.Drawing.Point(11, 41);
-            this.pictureBox2.Margin = new System.Windows.Forms.Padding(2);
-            this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(491, 310);
-            this.pictureBox2.TabIndex = 58;
-            this.pictureBox2.TabStop = false;
-            this.pictureBox2.Visible = false;
-            this.pictureBox2.DoubleClick += new System.EventHandler(this.pictureBox2_DoubleClick);
             // 
             // groupBox2
             // 
@@ -1815,7 +1802,6 @@ namespace ASCOM.LocalServer
             // groupBox7
             // 
             this.groupBox7.BackColor = System.Drawing.SystemColors.WindowText;
-            this.groupBox7.Controls.Add(this.pictureBox2);
             this.groupBox7.Controls.Add(this.groupBox17);
             this.groupBox7.Controls.Add(this.groupBox16);
             this.groupBox7.Controls.Add(this.groupBox9);
@@ -1834,41 +1820,23 @@ namespace ASCOM.LocalServer
             this.groupBox7.TabStop = false;
             this.groupBox7.Text = "Log";
             // 
-            // NbResponses
+            // groupBox17
             // 
-            this.NbResponses.AutoSize = true;
-            this.NbResponses.ForeColor = System.Drawing.Color.White;
-            this.NbResponses.Location = new System.Drawing.Point(434, 44);
-            this.NbResponses.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.NbResponses.Name = "NbResponses";
-            this.NbResponses.Size = new System.Drawing.Size(26, 13);
-            this.NbResponses.TabIndex = 61;
-            this.NbResponses.Text = "Cnt:";
-            // 
-            // FreezeLastResponse
-            // 
-            this.FreezeLastResponse.AutoSize = true;
-            this.FreezeLastResponse.Location = new System.Drawing.Point(437, 22);
-            this.FreezeLastResponse.Margin = new System.Windows.Forms.Padding(2);
-            this.FreezeLastResponse.Name = "FreezeLastResponse";
-            this.FreezeLastResponse.Size = new System.Drawing.Size(58, 17);
-            this.FreezeLastResponse.TabIndex = 48;
-            this.FreezeLastResponse.Text = "Freeze";
-            this.FreezeLastResponse.UseVisualStyleBackColor = true;
-            // 
-            // lastRep2
-            // 
-            this.lastRep2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.lastRep2.BackColor = System.Drawing.SystemColors.WindowText;
-            this.lastRep2.ForeColor = System.Drawing.SystemColors.Window;
-            this.lastRep2.Location = new System.Drawing.Point(6, 41);
-            this.lastRep2.Margin = new System.Windows.Forms.Padding(2);
-            this.lastRep2.Name = "lastRep2";
-            this.lastRep2.Size = new System.Drawing.Size(427, 20);
-            this.lastRep2.TabIndex = 60;
-            this.lastRep2.WordWrap = false;
+            this.groupBox17.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.groupBox17.BackColor = System.Drawing.SystemColors.WindowText;
+            this.groupBox17.Controls.Add(this.lastRep1);
+            this.groupBox17.Controls.Add(this.lastRep2);
+            this.groupBox17.Controls.Add(this.FreezeLastResponse);
+            this.groupBox17.Controls.Add(this.NbResponses);
+            this.groupBox17.ForeColor = System.Drawing.SystemColors.Window;
+            this.groupBox17.Location = new System.Drawing.Point(6, 402);
+            this.groupBox17.Margin = new System.Windows.Forms.Padding(2);
+            this.groupBox17.Name = "groupBox17";
+            this.groupBox17.Padding = new System.Windows.Forms.Padding(2);
+            this.groupBox17.Size = new System.Drawing.Size(501, 68);
+            this.groupBox17.TabIndex = 63;
+            this.groupBox17.TabStop = false;
+            this.groupBox17.Text = "HW raw comunication";
             // 
             // lastRep1
             // 
@@ -1884,21 +1852,108 @@ namespace ASCOM.LocalServer
             this.lastRep1.TabIndex = 59;
             this.lastRep1.WordWrap = false;
             // 
-            // checkBox16
+            // lastRep2
             // 
-            this.checkBox16.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox16.AutoSize = true;
-            this.checkBox16.BackColor = System.Drawing.SystemColors.WindowText;
-            this.checkBox16.Checked = true;
-            this.checkBox16.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox16.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox16.Location = new System.Drawing.Point(8, 88);
-            this.checkBox16.Margin = new System.Windows.Forms.Padding(2);
-            this.checkBox16.Name = "checkBox16";
-            this.checkBox16.Size = new System.Drawing.Size(83, 17);
-            this.checkBox16.TabIndex = 57;
-            this.checkBox16.Text = "show iss log";
-            this.checkBox16.UseVisualStyleBackColor = false;
+            this.lastRep2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.lastRep2.BackColor = System.Drawing.SystemColors.WindowText;
+            this.lastRep2.ForeColor = System.Drawing.SystemColors.Window;
+            this.lastRep2.Location = new System.Drawing.Point(6, 41);
+            this.lastRep2.Margin = new System.Windows.Forms.Padding(2);
+            this.lastRep2.Name = "lastRep2";
+            this.lastRep2.Size = new System.Drawing.Size(427, 20);
+            this.lastRep2.TabIndex = 60;
+            this.lastRep2.WordWrap = false;
+            // 
+            // FreezeLastResponse
+            // 
+            this.FreezeLastResponse.AutoSize = true;
+            this.FreezeLastResponse.Location = new System.Drawing.Point(437, 22);
+            this.FreezeLastResponse.Margin = new System.Windows.Forms.Padding(2);
+            this.FreezeLastResponse.Name = "FreezeLastResponse";
+            this.FreezeLastResponse.Size = new System.Drawing.Size(58, 17);
+            this.FreezeLastResponse.TabIndex = 48;
+            this.FreezeLastResponse.Text = "Freeze";
+            this.FreezeLastResponse.UseVisualStyleBackColor = true;
+            // 
+            // NbResponses
+            // 
+            this.NbResponses.AutoSize = true;
+            this.NbResponses.ForeColor = System.Drawing.Color.White;
+            this.NbResponses.Location = new System.Drawing.Point(434, 44);
+            this.NbResponses.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.NbResponses.Name = "NbResponses";
+            this.NbResponses.Size = new System.Drawing.Size(26, 13);
+            this.NbResponses.TabIndex = 61;
+            this.NbResponses.Text = "Cnt:";
+            // 
+            // groupBox16
+            // 
+            this.groupBox16.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+            this.groupBox16.BackColor = System.Drawing.SystemColors.WindowText;
+            this.groupBox16.Controls.Add(this.checkBox8);
+            this.groupBox16.Controls.Add(this.checkboxlogsystem);
+            this.groupBox16.Controls.Add(this.checkboxascom);
+            this.groupBox16.Controls.Add(this.checkBox15);
+            this.groupBox16.Controls.Add(this.checkBox16);
+            this.groupBox16.ForeColor = System.Drawing.SystemColors.Window;
+            this.groupBox16.Location = new System.Drawing.Point(15, 288);
+            this.groupBox16.Margin = new System.Windows.Forms.Padding(2);
+            this.groupBox16.Name = "groupBox16";
+            this.groupBox16.Padding = new System.Windows.Forms.Padding(2);
+            this.groupBox16.Size = new System.Drawing.Size(167, 112);
+            this.groupBox16.TabIndex = 63;
+            this.groupBox16.TabStop = false;
+            this.groupBox16.Text = "Log filtering";
+            // 
+            // checkBox8
+            // 
+            this.checkBox8.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.checkBox8.AutoSize = true;
+            this.checkBox8.BackColor = System.Drawing.SystemColors.WindowText;
+            this.checkBox8.ForeColor = System.Drawing.SystemColors.Window;
+            this.checkBox8.Location = new System.Drawing.Point(8, 53);
+            this.checkBox8.Margin = new System.Windows.Forms.Padding(2);
+            this.checkBox8.Name = "checkBox8";
+            this.checkBox8.Size = new System.Drawing.Size(144, 17);
+            this.checkBox8.TabIndex = 55;
+            this.checkBox8.Text = "show frequent ascom log";
+            this.checkBox8.UseVisualStyleBackColor = false;
+            // 
+            // checkboxlogsystem
+            // 
+            this.checkboxlogsystem.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.checkboxlogsystem.AutoSize = true;
+            this.checkboxlogsystem.BackColor = System.Drawing.SystemColors.WindowText;
+            this.checkboxlogsystem.Checked = true;
+            this.checkboxlogsystem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkboxlogsystem.ForeColor = System.Drawing.SystemColors.Window;
+            this.checkboxlogsystem.Location = new System.Drawing.Point(8, 18);
+            this.checkboxlogsystem.Margin = new System.Windows.Forms.Padding(2);
+            this.checkboxlogsystem.Name = "checkboxlogsystem";
+            this.checkboxlogsystem.Size = new System.Drawing.Size(105, 17);
+            this.checkboxlogsystem.TabIndex = 49;
+            this.checkboxlogsystem.Text = "Show system log";
+            this.checkboxlogsystem.UseVisualStyleBackColor = false;
+            this.checkboxlogsystem.CheckedChanged += new System.EventHandler(this.logGuideOnly_CheckedChanged);
+            // 
+            // checkboxascom
+            // 
+            this.checkboxascom.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.checkboxascom.AutoSize = true;
+            this.checkboxascom.BackColor = System.Drawing.SystemColors.WindowText;
+            this.checkboxascom.Checked = true;
+            this.checkboxascom.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkboxascom.ForeColor = System.Drawing.SystemColors.Window;
+            this.checkboxascom.Location = new System.Drawing.Point(8, 36);
+            this.checkboxascom.Margin = new System.Windows.Forms.Padding(2);
+            this.checkboxascom.Name = "checkboxascom";
+            this.checkboxascom.Size = new System.Drawing.Size(102, 17);
+            this.checkboxascom.TabIndex = 54;
+            this.checkboxascom.Text = "show ascom log";
+            this.checkboxascom.UseVisualStyleBackColor = false;
+            this.checkboxascom.CheckedChanged += new System.EventHandler(this.StepsPerSecond_CheckedChanged);
             // 
             // checkBox15
             // 
@@ -1916,19 +1971,95 @@ namespace ASCOM.LocalServer
             this.checkBox15.Text = "show phd2 log";
             this.checkBox15.UseVisualStyleBackColor = false;
             // 
-            // checkBox8
+            // checkBox16
             // 
-            this.checkBox8.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox8.AutoSize = true;
-            this.checkBox8.BackColor = System.Drawing.SystemColors.WindowText;
-            this.checkBox8.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox8.Location = new System.Drawing.Point(8, 53);
-            this.checkBox8.Margin = new System.Windows.Forms.Padding(2);
-            this.checkBox8.Name = "checkBox8";
-            this.checkBox8.Size = new System.Drawing.Size(144, 17);
-            this.checkBox8.TabIndex = 55;
-            this.checkBox8.Text = "show frequent ascom log";
-            this.checkBox8.UseVisualStyleBackColor = false;
+            this.checkBox16.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.checkBox16.AutoSize = true;
+            this.checkBox16.BackColor = System.Drawing.SystemColors.WindowText;
+            this.checkBox16.Checked = true;
+            this.checkBox16.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox16.ForeColor = System.Drawing.SystemColors.Window;
+            this.checkBox16.Location = new System.Drawing.Point(8, 88);
+            this.checkBox16.Margin = new System.Windows.Forms.Padding(2);
+            this.checkBox16.Name = "checkBox16";
+            this.checkBox16.Size = new System.Drawing.Size(83, 17);
+            this.checkBox16.TabIndex = 57;
+            this.checkBox16.Text = "show iss log";
+            this.checkBox16.UseVisualStyleBackColor = false;
+            // 
+            // groupBox9
+            // 
+            this.groupBox9.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+            this.groupBox9.BackColor = System.Drawing.SystemColors.WindowText;
+            this.groupBox9.Controls.Add(this.button26);
+            this.groupBox9.Controls.Add(this.button31);
+            this.groupBox9.Controls.Add(this.button32);
+            this.groupBox9.Controls.Add(this.button33);
+            this.groupBox9.ForeColor = System.Drawing.SystemColors.Window;
+            this.groupBox9.Location = new System.Drawing.Point(187, 288);
+            this.groupBox9.Margin = new System.Windows.Forms.Padding(2);
+            this.groupBox9.Name = "groupBox9";
+            this.groupBox9.Padding = new System.Windows.Forms.Padding(2);
+            this.groupBox9.Size = new System.Drawing.Size(147, 112);
+            this.groupBox9.TabIndex = 62;
+            this.groupBox9.TabStop = false;
+            this.groupBox9.Text = "Guide Pulse (1s)";
+            // 
+            // button26
+            // 
+            this.button26.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.button26.BackColor = System.Drawing.SystemColors.WindowText;
+            this.button26.ForeColor = System.Drawing.SystemColors.Window;
+            this.button26.Location = new System.Drawing.Point(55, 18);
+            this.button26.Margin = new System.Windows.Forms.Padding(2);
+            this.button26.Name = "button26";
+            this.button26.Size = new System.Drawing.Size(44, 25);
+            this.button26.TabIndex = 50;
+            this.button26.Text = "North";
+            this.button26.UseVisualStyleBackColor = false;
+            this.button26.Click += new System.EventHandler(this.button26_Click);
+            // 
+            // button31
+            // 
+            this.button31.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.button31.BackColor = System.Drawing.SystemColors.WindowText;
+            this.button31.ForeColor = System.Drawing.SystemColors.Window;
+            this.button31.Location = new System.Drawing.Point(98, 50);
+            this.button31.Margin = new System.Windows.Forms.Padding(2);
+            this.button31.Name = "button31";
+            this.button31.Size = new System.Drawing.Size(40, 23);
+            this.button31.TabIndex = 51;
+            this.button31.Text = "East";
+            this.button31.UseVisualStyleBackColor = false;
+            this.button31.Click += new System.EventHandler(this.button31_Click);
+            // 
+            // button32
+            // 
+            this.button32.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.button32.BackColor = System.Drawing.SystemColors.WindowText;
+            this.button32.ForeColor = System.Drawing.SystemColors.Window;
+            this.button32.Location = new System.Drawing.Point(8, 47);
+            this.button32.Margin = new System.Windows.Forms.Padding(2);
+            this.button32.Name = "button32";
+            this.button32.Size = new System.Drawing.Size(40, 24);
+            this.button32.TabIndex = 52;
+            this.button32.Text = "West";
+            this.button32.UseVisualStyleBackColor = false;
+            this.button32.Click += new System.EventHandler(this.button32_Click);
+            // 
+            // button33
+            // 
+            this.button33.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.button33.BackColor = System.Drawing.SystemColors.WindowText;
+            this.button33.ForeColor = System.Drawing.SystemColors.Window;
+            this.button33.Location = new System.Drawing.Point(56, 77);
+            this.button33.Margin = new System.Windows.Forms.Padding(2);
+            this.button33.Name = "button33";
+            this.button33.Size = new System.Drawing.Size(43, 21);
+            this.button33.TabIndex = 53;
+            this.button33.Text = "South";
+            this.button33.UseVisualStyleBackColor = false;
+            this.button33.Click += new System.EventHandler(this.button33_Click);
             // 
             // groupBox15
             // 
@@ -1980,23 +2111,6 @@ namespace ASCOM.LocalServer
             this.label41.TabIndex = 55;
             this.label41.Text = "Motor RA";
             // 
-            // checkboxascom
-            // 
-            this.checkboxascom.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkboxascom.AutoSize = true;
-            this.checkboxascom.BackColor = System.Drawing.SystemColors.WindowText;
-            this.checkboxascom.Checked = true;
-            this.checkboxascom.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkboxascom.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkboxascom.Location = new System.Drawing.Point(8, 36);
-            this.checkboxascom.Margin = new System.Windows.Forms.Padding(2);
-            this.checkboxascom.Name = "checkboxascom";
-            this.checkboxascom.Size = new System.Drawing.Size(102, 17);
-            this.checkboxascom.TabIndex = 54;
-            this.checkboxascom.Text = "show ascom log";
-            this.checkboxascom.UseVisualStyleBackColor = false;
-            this.checkboxascom.CheckedChanged += new System.EventHandler(this.StepsPerSecond_CheckedChanged);
-            // 
             // label37
             // 
             this.label37.AutoSize = true;
@@ -2006,79 +2120,6 @@ namespace ASCOM.LocalServer
             this.label37.Name = "label37";
             this.label37.Size = new System.Drawing.Size(0, 13);
             this.label37.TabIndex = 13;
-            // 
-            // button33
-            // 
-            this.button33.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button33.BackColor = System.Drawing.SystemColors.WindowText;
-            this.button33.ForeColor = System.Drawing.SystemColors.Window;
-            this.button33.Location = new System.Drawing.Point(56, 77);
-            this.button33.Margin = new System.Windows.Forms.Padding(2);
-            this.button33.Name = "button33";
-            this.button33.Size = new System.Drawing.Size(43, 21);
-            this.button33.TabIndex = 53;
-            this.button33.Text = "South";
-            this.button33.UseVisualStyleBackColor = false;
-            this.button33.Click += new System.EventHandler(this.button33_Click);
-            // 
-            // button32
-            // 
-            this.button32.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button32.BackColor = System.Drawing.SystemColors.WindowText;
-            this.button32.ForeColor = System.Drawing.SystemColors.Window;
-            this.button32.Location = new System.Drawing.Point(8, 47);
-            this.button32.Margin = new System.Windows.Forms.Padding(2);
-            this.button32.Name = "button32";
-            this.button32.Size = new System.Drawing.Size(40, 24);
-            this.button32.TabIndex = 52;
-            this.button32.Text = "West";
-            this.button32.UseVisualStyleBackColor = false;
-            this.button32.Click += new System.EventHandler(this.button32_Click);
-            // 
-            // button31
-            // 
-            this.button31.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button31.BackColor = System.Drawing.SystemColors.WindowText;
-            this.button31.ForeColor = System.Drawing.SystemColors.Window;
-            this.button31.Location = new System.Drawing.Point(98, 50);
-            this.button31.Margin = new System.Windows.Forms.Padding(2);
-            this.button31.Name = "button31";
-            this.button31.Size = new System.Drawing.Size(40, 23);
-            this.button31.TabIndex = 51;
-            this.button31.Text = "East";
-            this.button31.UseVisualStyleBackColor = false;
-            this.button31.Click += new System.EventHandler(this.button31_Click);
-            // 
-            // button26
-            // 
-            this.button26.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button26.BackColor = System.Drawing.SystemColors.WindowText;
-            this.button26.ForeColor = System.Drawing.SystemColors.Window;
-            this.button26.Location = new System.Drawing.Point(55, 18);
-            this.button26.Margin = new System.Windows.Forms.Padding(2);
-            this.button26.Name = "button26";
-            this.button26.Size = new System.Drawing.Size(44, 25);
-            this.button26.TabIndex = 50;
-            this.button26.Text = "North";
-            this.button26.UseVisualStyleBackColor = false;
-            this.button26.Click += new System.EventHandler(this.button26_Click);
-            // 
-            // checkboxlogsystem
-            // 
-            this.checkboxlogsystem.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkboxlogsystem.AutoSize = true;
-            this.checkboxlogsystem.BackColor = System.Drawing.SystemColors.WindowText;
-            this.checkboxlogsystem.Checked = true;
-            this.checkboxlogsystem.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkboxlogsystem.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkboxlogsystem.Location = new System.Drawing.Point(8, 18);
-            this.checkboxlogsystem.Margin = new System.Windows.Forms.Padding(2);
-            this.checkboxlogsystem.Name = "checkboxlogsystem";
-            this.checkboxlogsystem.Size = new System.Drawing.Size(105, 17);
-            this.checkboxlogsystem.TabIndex = 49;
-            this.checkboxlogsystem.Text = "Show system log";
-            this.checkboxlogsystem.UseVisualStyleBackColor = false;
-            this.checkboxlogsystem.CheckedChanged += new System.EventHandler(this.logGuideOnly_CheckedChanged);
             // 
             // button14
             // 
@@ -2911,61 +2952,6 @@ namespace ASCOM.LocalServer
             this.toolTip1.InitialDelay = 4000;
             this.toolTip1.ReshowDelay = 400;
             // 
-            // groupBox9
-            // 
-            this.groupBox9.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
-            this.groupBox9.BackColor = System.Drawing.SystemColors.WindowText;
-            this.groupBox9.Controls.Add(this.button26);
-            this.groupBox9.Controls.Add(this.button31);
-            this.groupBox9.Controls.Add(this.button32);
-            this.groupBox9.Controls.Add(this.button33);
-            this.groupBox9.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox9.Location = new System.Drawing.Point(187, 288);
-            this.groupBox9.Margin = new System.Windows.Forms.Padding(2);
-            this.groupBox9.Name = "groupBox9";
-            this.groupBox9.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox9.Size = new System.Drawing.Size(147, 112);
-            this.groupBox9.TabIndex = 62;
-            this.groupBox9.TabStop = false;
-            this.groupBox9.Text = "Guide Pulse (1s)";
-            // 
-            // groupBox16
-            // 
-            this.groupBox16.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
-            this.groupBox16.BackColor = System.Drawing.SystemColors.WindowText;
-            this.groupBox16.Controls.Add(this.checkBox8);
-            this.groupBox16.Controls.Add(this.checkboxlogsystem);
-            this.groupBox16.Controls.Add(this.checkboxascom);
-            this.groupBox16.Controls.Add(this.checkBox15);
-            this.groupBox16.Controls.Add(this.checkBox16);
-            this.groupBox16.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox16.Location = new System.Drawing.Point(15, 288);
-            this.groupBox16.Margin = new System.Windows.Forms.Padding(2);
-            this.groupBox16.Name = "groupBox16";
-            this.groupBox16.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox16.Size = new System.Drawing.Size(167, 112);
-            this.groupBox16.TabIndex = 63;
-            this.groupBox16.TabStop = false;
-            this.groupBox16.Text = "Log filtering";
-            // 
-            // groupBox17
-            // 
-            this.groupBox17.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.groupBox17.BackColor = System.Drawing.SystemColors.WindowText;
-            this.groupBox17.Controls.Add(this.lastRep1);
-            this.groupBox17.Controls.Add(this.lastRep2);
-            this.groupBox17.Controls.Add(this.FreezeLastResponse);
-            this.groupBox17.Controls.Add(this.NbResponses);
-            this.groupBox17.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox17.Location = new System.Drawing.Point(6, 402);
-            this.groupBox17.Margin = new System.Windows.Forms.Padding(2);
-            this.groupBox17.Name = "groupBox17";
-            this.groupBox17.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox17.Size = new System.Drawing.Size(501, 68);
-            this.groupBox17.TabIndex = 63;
-            this.groupBox17.TabStop = false;
-            this.groupBox17.Text = "HW raw comunication";
-            // 
             // FrmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -2985,9 +2971,9 @@ namespace ASCOM.LocalServer
             this.Controls.Add(this.groupMount);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.groupBox10);
             this.Controls.Add(this.groupBox8);
             this.Controls.Add(this.groupBox7);
+            this.Controls.Add(this.groupBox10);
             this.ForeColor = System.Drawing.Color.White;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -2997,7 +2983,6 @@ namespace ASCOM.LocalServer
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmMain_FormClosing);
             this.groupMount.ResumeLayout(false);
             this.groupMount.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             this.groupBox4.ResumeLayout(false);
@@ -3014,6 +2999,11 @@ namespace ASCOM.LocalServer
             this.groupBox12.PerformLayout();
             this.groupBox7.ResumeLayout(false);
             this.groupBox7.PerformLayout();
+            this.groupBox17.ResumeLayout(false);
+            this.groupBox17.PerformLayout();
+            this.groupBox16.ResumeLayout(false);
+            this.groupBox16.PerformLayout();
+            this.groupBox9.ResumeLayout(false);
             this.groupBox15.ResumeLayout(false);
             this.groupBox15.PerformLayout();
             this.groupBox8.ResumeLayout(false);
@@ -3027,11 +3017,6 @@ namespace ASCOM.LocalServer
             this.groupBox11.PerformLayout();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
-            this.groupBox9.ResumeLayout(false);
-            this.groupBox16.ResumeLayout(false);
-            this.groupBox16.PerformLayout();
-            this.groupBox17.ResumeLayout(false);
-            this.groupBox17.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -3224,7 +3209,6 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.TextBox textBox22;
         private System.Windows.Forms.CheckBox checkBox16;
         private System.Windows.Forms.CheckBox checkBox15;
-        private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.TextBox textBox23;
         private System.Windows.Forms.Label label51;
         private System.Windows.Forms.Button button39;
