@@ -41,6 +41,7 @@
 * You will see some #ifndef _WIN32 throughout these files which are designed exactly for that...
 ****************************************************************/
 #define HASMilisecondTime // define this if you have a function called Milisecond which will return a time counter in milisecond. This is used for UTCTime in CTelescope.
+#define ALPACA
 
 #define _CRT_SECURE_NO_WARNINGS // allows windows compilation
 #include <stdint.h>

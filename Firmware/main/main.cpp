@@ -95,7 +95,7 @@ void startWifi(const char *net, const char *pass, const char *hostname, bool acc
 extern "C" void app_main()
 {
     Time::begin(); // these are needed for UI
-    #ifdef HASGPS // This one will setup the uart system... which will not be used after...
+    #ifdef HASADC // This one will setup the uart system... which will not be used after...
         CADC::begin();
     #endif
     xTaskCreate(UITask, "UI", 3048, NULL, 2, NULL);
@@ -116,7 +116,8 @@ extern "C" void app_main()
     MRa.powerOn(); MDec.powerOn(); MFocus.powerOn(); MDecIsOn=-1; MDecOn(); // This works when power is off because the DC-DC back powers from the ESP32 5V! But this might not be true in next version! It also initializes the serial port...
     CSavedData::savedData.load(); // motors are initialized here.. This includes a "begin" which will include serial comuncations... which is a problem with 
 
-    startWifi(alpaca->wifi, alpaca->wifip, "eqControl", (CSavedData::savedData.guidingBits&0x40)!=0);
+    if (alpaca->wifi[0]==0) { strcpy(alpaca->wifi, "EqControl"); alpaca->wifip[0]= 0; CSavedData::savedData.guidingBits&= ~0x40; } // Make sure we have connection..
+    startWifi(alpaca->wifi, alpaca->wifip, "eqControl", (CSavedData::savedData.guidingBits&0x40)==0);
     alpaca->addDevice(new CMyTelescope(0));
     alpaca->addDevice(new CMyFocuser(0));
     alpaca->start(80);
