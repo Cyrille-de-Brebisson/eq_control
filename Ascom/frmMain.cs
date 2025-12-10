@@ -43,8 +43,8 @@ namespace ASCOM.LocalServer
             tver= TelescopeHardware.DriverVersion;
             resetHWSetupFields();
             SharedResources.log= this;
-            rbMessier.Checked= true;
-            Width= groupBox2.Width+groupBox2.Left*2+Width-ClientSize.Width;
+            rbMessier.Checked= true; rbMessier_CheckedChanged(null, null);
+            Width = groupBox2.Width+groupBox2.Left*2+Width-ClientSize.Width;
             Height= groupBox2.Height+groupBox2.Top+groupBox2.Left+Height-ClientSize.Height;
             calcSteps();
             checkBox7.Checked= SharedResources.guideAfterSlew;
@@ -511,13 +511,20 @@ namespace ASCOM.LocalServer
             timeComp.Text= ((((Int64)(SharedResources.timeSpanPC-SharedResources.timeSpanHW))<<24)/SharedResources.timeSpanPC).ToString();
         }
 
+        public class CatalogListItem
+        {
+            string text;
+            public int ra, dec;
+            public override string ToString() { return text; }
+            public CatalogListItem(string _text, int _ra, int _dec) { text= _text; ra= _ra; dec= _dec; }
+        }
         private void rbMessier_CheckedChanged(object sender, EventArgs e)
         {
             if (!rbMessier.Checked) return;
             rbPlanets.Checked= rbC.Checked= rbNgc.Checked= rbStars.Checked= false;
             catalog.Items.Clear();
             for (int i=0; i<Ngcs.Messier.Length; i++)
-                catalog.Items.Add("M" + Ngcs.Messier[i].id.ToString()+" ("+Ngcs.Messier[i].ra.ToString()+","+Ngcs.Messier[i].dec.ToString()+")");
+                catalog.Items.Add(new CatalogListItem("M" + Ngcs.Messier[i].id.ToString(), Ngcs.Messier[i].ra, Ngcs.Messier[i].dec));
         }
 
         private void rbC_CheckedChanged(object sender, EventArgs e)
@@ -526,7 +533,7 @@ namespace ASCOM.LocalServer
             rbPlanets.Checked= rbMessier.Checked= rbNgc.Checked= rbStars.Checked= false;
             catalog.Items.Clear();
             for (int i=0; i<Ngcs.Cadwell.Length; i++)
-                catalog.Items.Add("C" + Ngcs.Cadwell[i].id.ToString()+" ("+Ngcs.Cadwell[i].ra.ToString()+","+Ngcs.Cadwell[i].dec.ToString()+")");
+                catalog.Items.Add(new CatalogListItem("C" + Ngcs.Cadwell[i].id.ToString(), Ngcs.Cadwell[i].ra, Ngcs.Cadwell[i].dec));
         }
 
         private void rbNgc_CheckedChanged(object sender, EventArgs e)
@@ -535,7 +542,7 @@ namespace ASCOM.LocalServer
             rbPlanets.Checked= rbMessier.Checked= rbC.Checked= rbStars.Checked= false;
             catalog.Items.Clear();
             for (int i=0; i<Ngcs.Ngc.Length; i++)
-                catalog.Items.Add("Ngc" + Ngcs.Ngc[i].id.ToString()+" ("+Ngcs.Ngc[i].ra.ToString()+","+Ngcs.Ngc[i].dec.ToString()+")");
+                catalog.Items.Add(new CatalogListItem("Ngc" + Ngcs.Ngc[i].id.ToString(), Ngcs.Ngc[i].ra, Ngcs.Ngc[i].dec));
         }
 
         private void rbStars_CheckedChanged(object sender, EventArgs e)
@@ -544,7 +551,7 @@ namespace ASCOM.LocalServer
             rbPlanets.Checked= rbMessier.Checked= rbC.Checked= rbNgc.Checked= false;
             catalog.Items.Clear();
             for (int i=0; i<Ngcs.Stars.Length; i++)
-                catalog.Items.Add(Ngcs.Stars[i].id+" ("+Ngcs.Stars[i].ra.ToString()+","+Ngcs.Stars[i].dec.ToString()+")");
+                catalog.Items.Add(new CatalogListItem(Ngcs.Stars[i].id, Ngcs.Stars[i].ra, Ngcs.Stars[i].dec));
         }
         private void rbPlanets_CheckedChanged(object sender, EventArgs e)
         {
@@ -557,22 +564,24 @@ namespace ASCOM.LocalServer
             {
                 int ra, dec;
                 Ngcs.planetPos(i, out ra, out dec);
-                catalog.Items.Add(Ngcs.planetNames[i]+" ("+ra.ToString()+","+dec.ToString()+")");
+                catalog.Items.Add(new CatalogListItem(Ngcs.planetNames[i], ra, dec));
             }
         }
 
         private bool catalogCoord(out double ra, out double dec)
         {
             ra= dec= 0.0;
-            if (catalog.SelectedItem==null) return false;
-            string it= catalog.SelectedItem.ToString();
-            int i1= it.IndexOf('('); if (i1<0) return false;
-            int i2= it.IndexOf(','); if (i2<0) return false;
-            int i3= it.IndexOf(')'); if (i3<0) return false;
-            if (!double.TryParse(it.Substring(i1+1, i2-i1-1), out ra)) return false;
-            if (!double.TryParse(it.Substring(i2+1, i3-i2-1), out dec)) return false;
-            ra/= 3600.0; dec/= 3600.0;
-            return true;
+            if (catalog.SelectedItem!=null)
+            { 
+                CatalogListItem item = (CatalogListItem)catalog.SelectedItem; 
+                if (item!=null)
+                { 
+                    ra= item.ra/3600.0; dec= item.dec/3600.0;
+                    return true;
+                }
+            }
+            if (label40.Text!="" && av.clickra!=-100000 && av.clickdec!=-100000) { ra= av.clickra/3600.0; dec= av.clickdec/3600.0; return true; }
+            return false;
         }
         private void button18_Click(object sender, EventArgs e) // Goto catalog
         {
@@ -833,6 +842,10 @@ namespace ASCOM.LocalServer
         {
             av.penEvent(e.X, e.Y, true);
             label40.Text= av.displayText;
+            if (label40.Text!="" && av.clickra!=-100000 && av.clickdec!=-100000)
+            { 
+                catalog.SelectedIndex= -1;
+            }
         }
 
         private void pictureBox1_MouseLeave(object sender, EventArgs e)
@@ -925,19 +938,22 @@ namespace ASCOM.LocalServer
                 }
                 catch { ISSErr = "exception on ISS load"; log(ISSErr, 4); }
                 log("ISS: use saved tle", 4);
-                issl1= SharedResources.isstle1;
+                ISSErr = "ISS use saved TLE";
+                issl1 = SharedResources.isstle1;
                 issl2= SharedResources.isstle2;
-            } else { // satellite
+                if (issl1 == null || issl1.Length == 0) { ISSErr = "ISS TLE not found."; checkBox13.Checked = false; }
+            }
+            else { // satellite
                 try
                 {
                     var client = new WebClient();
                     string data = client.DownloadString("https://celestrak.org/NORAD/elements/gp.php?CATNR="+textBox23.Text+"&FORMAT=TLE");
                     var lines = data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    if (lines.Length>=3) { issl1= lines[1]; issl2= lines[2]; log(data, 4); }
+                    if (lines.Length>=3) { issl1= lines[1]; issl2= lines[2]; log(data, 4); ISSErr = textBox23.Text + " TLE OK!"; return true;  }
                     ISSErr = textBox23.Text+" TLE not found.";
                     log(ISSErr, 4);
                 }
-                catch { ISSErr = "exception on TLE load"; log(ISSErr, 4); }
+                catch { ISSErr = "exception on TLE load"; log(ISSErr, 4); checkBox13.Checked = false; } // could not find. uncheck check box...
             }
             return issl1!=null && issl1.Length!=0;
         }
@@ -1086,10 +1102,6 @@ namespace ASCOM.LocalServer
             if (e.KeyCode == Keys.Left) keyState&= ~8;
         }
 
-        void resetPictureBox()
-        {
-            pictureBox2.Image = null;
-        }
 
         int issTrackMode = 0; // 0: no tracking. 1: first goto was sent. 2: regular tracking
 
@@ -1118,14 +1130,8 @@ namespace ASCOM.LocalServer
         double lastDelayToISSPass = 1; // last time we checked in how long the ISS will pass overhead. used to find 5mn warning...
         bool hasStartedTracking = false;
 
-        struct TTrackingInfo { public double ra, dec, cra, cdec; public TTrackingInfo(double pra, double pdec, double pcra, double pcdec) {  ra= pra; dec= pdec; cra= pcra; cdec= pcdec; }  }
+        struct TTrackingInfo { public double ra, dec, cra, cdec, az, alt; public TTrackingInfo(double pra, double pdec, double pcra, double pcdec, double _az, double _alt) {  ra= pra; dec= pdec; cra= pcra; cdec= pcdec; az = _az; alt = _alt;  }  }
         List<TTrackingInfo> TrackingInfos;
-
-        private void pictureBox2_DoubleClick(object sender, EventArgs e)
-        {
-            pictureBox2.Visible= false;
-            writeISSLog();
-        }
 
         void writeISSLog()
         {
@@ -1259,14 +1265,27 @@ namespace ASCOM.LocalServer
 
         }
 
+        SateliteTrack sateliteTrack = new SateliteTrack();
         void updateIssImage()
         {
-            int w= pictureBox2.Width, h= pictureBox2.Height;
+            int w= sateliteTrack.pictureBox2.Width, h= sateliteTrack.pictureBox2.Height;
             Bitmap b= new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
             Graphics g = Graphics.FromImage(b);
-            for (int i = 0; i < TrackingInfos.Count-1; i++)
+            g.FillRectangle(new SolidBrush(Color.Black), 0, 0, w, h);
+            g.DrawEllipse(new Pen(Color.Yellow), 0, 0, w, h);
+            if (TrackingInfos.Count>=2)
             {
-                g.DrawLine(new Pen(Color.Yellow, 2), new PointF((float)TrackingInfos[i].ra*w/24, (float)(90-TrackingInfos[i].dec)*h/180), new PointF((float)TrackingInfos[i+1].ra*w/24, (float)(90-TrackingInfos[i+1].dec)*h/180));
+                double fx = Math.Cos(-(TrackingInfos[0].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[0].alt*Math.PI/180)*w/2+w/2;
+                double fy = Math.Sin(-(TrackingInfos[0].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[0].alt*Math.PI/180) *h/2+h/2;
+                PointF p = new PointF((float)fx, (float)fy);
+                for (int i = 0; i < TrackingInfos.Count-1; i++)
+                {
+                    fx = Math.Cos(-(TrackingInfos[i+1].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[i+1].alt*Math.PI/180) * w / 2 + w / 2;
+                    fy = Math.Sin(-(TrackingInfos[i+1].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[i+1].alt*Math.PI/180) * h / 2 + h / 2;
+                    PointF p2 = new PointF((float)fx, (float)fy);
+                    g.DrawLine(new Pen(Color.Yellow, 2), p, p2);
+                    p = p2;
+                }
             }
 
             for (int i = 0; i < TrackingInfos.Count-1; i++)
@@ -1283,8 +1302,8 @@ namespace ASCOM.LocalServer
                 float cdec= ((float)TrackingInfos[i].cdec+4)*h/8; g.FillRectangle(new SolidBrush(Color.Red), x, cdec, 1, 1);
             }
 
-            pictureBox2.Image= b;
-            pictureBox2.Visible= true;
+            sateliteTrack.pictureBox2.Image= b;
+            sateliteTrack.Visible= true;
         }
 
         private void issUpdate()
@@ -1327,7 +1346,7 @@ namespace ASCOM.LocalServer
                                 TelescopeHardware.SlewToCoordinatesAsync(r.ra, r.dec);
                                 TrackingInfos= new List<TTrackingInfo>(); 
                                 lastTrackingInfo= utc;
-                                TrackingInfos.Add(new TTrackingInfo(r.ra, r.dec, 0, 0));
+                                TrackingInfos.Add(new TTrackingInfo(r.ra, r.dec, 0, 0, r.az, r.alt));
                             }
                         } else { // tracking. to to new coordinates at speed equal to the delta between the last 2 coordinates...
                             double nra= r.ra+issTrackDeltaRa, ndec= r.dec+issTrackDeltaDec;
@@ -1348,7 +1367,7 @@ namespace ASCOM.LocalServer
                             if (utc.Subtract(lastTrackingInfo).TotalMilliseconds>1000)
                             { 
                                 lastTrackingInfo= utc;
-                                TrackingInfos.Add(new TTrackingInfo(nra, ndec, issTrackDeltaRa, issTrackDeltaDec));
+                                TrackingInfos.Add(new TTrackingInfo(nra, ndec, issTrackDeltaRa, issTrackDeltaDec, r.az, r.alt));
                                 updateIssImage();
                             }
                         }
@@ -1360,7 +1379,7 @@ namespace ASCOM.LocalServer
                 }
             } else { 
                 issTrackMode= 0;
-                if (issev.Interval!= 500) issev.Interval= 500;
+                if (issev!=null && issev.Interval!= 500) issev.Interval= 500;
             }
             if (textBox22.Visible != (issTrackMode!=0)) 
             {

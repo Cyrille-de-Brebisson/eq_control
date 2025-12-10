@@ -1,4 +1,4 @@
-// LET US BE VERY CLEAR!!!!
+﻿// LET US BE VERY CLEAR!!!!
 // THIS CODE IS CRAP! It's only purpose is to allow testing of the main code on windows...
 // It is also full of things used to generate ngc and other star data..
 // Note that it will open a tcp socket that the ascom driver can connect to!
@@ -205,10 +205,12 @@ int gpsGetData(char *b, int size)
 void gpsDone() { ExitThread(0); }
 bool gpsBegin() { return true; }
 
-#include "../eqControl_Ino/eqControl_Ino.ino"
-
 CAlpaca* alpaca = nullptr;
+uint32_t ipaddr= 0;
+
+#include "../eqControl_Ino/eqControl_Ino.ino"
 #include "../main/localAlpaca.h"
+
 
 void startAlpaca()
 {
@@ -220,6 +222,48 @@ void startAlpaca()
     alpaca->addDevice(new CMyTelescope(0));
     alpaca->addDevice(new CMyFocuser(0));
     alpaca->start(80);
+}
+
+#include <stdio.h>
+#include <stdint.h>
+
+CFBWindow::TSFBColor cols[]= { 
+CFBWindow::ClBlack, 
+CFBWindow::ClRed,
+CFBWindow::ClGreen,
+CFBWindow::ClBlue,
+0x7F7F7F,
+CFBWindow::ClCyan,
+};
+
+// 6 manual speeds...
+void drawSpirale(CFBWindow *w)
+{
+    for (int manualSpeed=0; manualSpeed<5; manualSpeed+=1)
+    {
+        int32_t spiralT= 0, spiralLNT= 0;
+        // posx= t*v*cos(t*v)+startx (sin for y)
+        // 32 calls par secondes sur Arduino... so spiralT add with manualSpeed(arc"/s)*32 per second or 1920-460800 units per second...
+        // We would like to be linear in speed. Which makes things harder... Basically as the radius grows, the perimeter also grows, so the angle needs to grow less and less with time...
+        // As a mater of fact, it needs to grow logarithmically and not linearily.
+        // good thing, we have this formula: ln(T+n)≈ln(T)+n/T​−n²/2T² allowing us to go from T to T+1. We could use first or second order versions depending on needs..
+        w->lrect(w->w/2-60, w->h/2-60, 120, 120, 0);
+        for (int i=0; i<10*32; i++)
+        {
+            // cos and sin takes a 16 bit value which represents a full turn and returns a value * 1<<24 
+            int scs1= 1;         // spiralLNT to degree shift
+            int scs= 34;         // sin/cos to useable units...
+
+            spiralT+= (manualSpeed+1)*16;
+            spiralLNT= Planets::sqrt(int64_t(spiralT)<<24);
+            // here, spiralLNT is the turn count <<24. 
+            int64_t r= (spiralLNT*(manualSpeed+1)); // r the radius <<16
+            int x= r*Planets::cos(spiralLNT<<1)>>34, y= r*Planets::sin(spiralLNT<<1)>>34;
+            x/=8; y/=8;
+            w->rect(x+w->w/ 2, y+w->h/2, 2, 2, cols[manualSpeed]);
+            // d= a*r with a small and in radians... as r grows, a needs to grow as 1/r
+        }
+    }
 }
 
 class CMyWin : public CFBWindow { public:
@@ -270,7 +314,12 @@ class CMyWin : public CFBWindow { public:
         while (!closed)
         {
             loop();
+            Sleep(10);
             if (lastFrame==frameCount) continue;
+
+            // drawSpirale(this); continue; test for spiral key
+            //rect(lastdx/10+200, lastdy/10+400, 2, 2, 0xff0000);
+
             lastFrame=frameCount;
 
             for (int y=0; y<32; y++)
@@ -284,9 +333,6 @@ class CMyWin : public CFBWindow { public:
             text(310, 5*3*8, 500, print("Dec Invert:%s", MDec.invertDir?"True":"False"), ClBlack, ClWhite, 3);
             text(310, 6*3*8, 500, print("Decsdst:%d", MDec.dst), ClBlack, ClWhite, 3);
             text(310, 7*3*8, 500, print("Dec spd:%d", MDec.currentSpd), ClBlack, ClWhite, 3);
-            text(310, 8*3*8, 500, print("spiralI:%d", spiralI), ClBlack, ClWhite, 3);
-            text(310, 9*3*8, 500, print("SpiralDD:%d", spiralDD), ClBlack, ClWhite, 3);
-            text(310,10*3*8, 500, print("SpiralDR:%d", spiralDR), ClBlack, ClWhite, 3);
             text(310,11*3*8, 500, print("keys:%x", keys), ClBlack, ClWhite, 3);
             text(310,12*3*8, 500, print("usteps:%d %d", MRa.countAllUncountedSteps/2, MRa.countAllUncountedSteps/2*1000/Time::mnow()), ClBlack, ClWhite, 3);
             text(310,13*3*8, 500, print("RA m:0 pos:%d M:%d", MRa.pos, MRa.maxPos), ClBlack, ClWhite,2);

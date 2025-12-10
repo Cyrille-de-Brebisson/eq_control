@@ -319,10 +319,11 @@ void CAlpaca::start(int port)
 CAlpaca::CAlpaca(char const *Manufacturer, char const *ManufacturerVersion, char const *DefaultServerName, char const *DefaultLocation) 
 {
     strncpy2(this->ServerName, DefaultServerName ,sizeof(this->ServerName));
+    strncpy2(this->wifi, DefaultServerName ,sizeof(this->wifi));
+    wifip[0]= 0;
     strncpy2(this->Manufacturer, Manufacturer ,sizeof(this->Manufacturer));
     strncpy2(this->ManufacturerVersion, ManufacturerVersion ,sizeof(this->ManufacturerVersion));
     strncpy2(this->Location, DefaultLocation , sizeof(this->Location));
-    wifi[0]= wifip[0]= 0;
     uniqueid[0]= 0; 
     saveLoadBegin();
     char t[sizeof(this->Location)];

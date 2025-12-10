@@ -506,7 +506,7 @@ static uint16_t lastkbdValue1= 0, lastkbdValue2= 0, lastValid= 0;
 // Keyboard is set as 3 analog inputs with 3 keys on each line using resistance ladder
 static uint16_t kbdValue()
 {
-    CADC::power= res[3]/33; // I get a reading of 1780 for 5.4V. Since the value is in deci volts a division by /33 (1780/54) gives the value
+    CADC::power= CADC::res[3]/33; // I get a reading of 1780 for 5.4V. Since the value is in deci volts a division by /33 (1780/54) gives the value
     uint32_t *v= CADC::res; 
     // Adc values are: 2800 for col 1, 2000 for col 2 and 0 for col 3
     uint16_t keys= 0;
@@ -630,7 +630,7 @@ class CI2C { public:
         i2c_device_config_t dev_config = {
             .dev_addr_length = I2C_ADDR_BIT_LEN_7,
             .device_address = 0x3C, 
-            .scl_speed_hz = 200000, // 200khz...
+            .scl_speed_hz = 125000, // 125khz... Screen is around 530 bytes with control ~= 33fps
         };
         ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_config, &dev_handle));
     }
@@ -1576,6 +1576,7 @@ Cartesian Cmul(Cartesian v1, Cartesian v2) { return Cartesian((int64_t(v1)*v2)>>
 Cartesian Cmul(Cartesian v1, Cartesian v2, Cartesian v3) { return Cartesian((((int64_t(v1)*v2)>>24)*v3)>>24); }
 Cartesian Cdiv(Cartesian v1, Cartesian v2) { return Cartesian((int64_t(v1)<<24)/v2); }
 
+Cartesian sqrt(int64_t v);
 Cartesian sqrt(Cartesian a, Cartesian b, bool sign=false) // return sqrt a*a+/-b*b (substract b if sign = true)
 {
     int64_t v= int64_t(b)*b; // do the multiplication in 64 bit mode...
@@ -1583,8 +1584,12 @@ Cartesian sqrt(Cartesian a, Cartesian b, bool sign=false) // return sqrt a*a+/-b
     v+= int64_t(a)*a;
     if (v<=0) return 0;
     // Here, v is a^2+/-b^2 with 48 bit precision...
+    return sqrt(v); // let us hope for a compiler reorder and fall through!
+}
+Cartesian sqrt(int64_t v) // return sqrt v with 48 bit precision
+{
     uint32_t t= uint32_t(v>>48); uint8_t bits= 0; while (t!=0) { bits++; t>>=1; } // count the number of bits of ip to generate the initial value close to the sqrt(v)
-    int64_t x= v>>((bits>>1)+24); // remove the extra 24 bits of precision from the mul and shift by bits/2 bits as first guess on sqrt..
+    int64_t x= v>>((bits>>1)+24); if (x==0) x= 1; // remove the extra 24 bits of precision from the mul and shift by bits/2 bits as first guess on sqrt..
     for (int8_t i=10; --i>=0; ) x= (x+v/x)>>1; // 10 iterations of newton for sqrt
     return int32_t(x);
 }
@@ -1729,12 +1734,12 @@ static uint8_t planetRecalc=0; int32_t planetra, planetdec; // cache for ra/dec 
 static uint8_t countToNextSelect; int8_t delayToNextSelect= 15; // to accelerate when press&hold keys in messier/ngc selection
 static uint8_t returnToScreen1= 0;             // down counter to go back to screen 0 UI (ticks every screen refresh)
 static int16_t lastkbd= 0;                     // status of last keyboard scann for debounce
-static bool stopMovingOnKeyRelease= false;     // if true, then once no key is pressed, stop moving... records who said move/don't move
-static uint32_t spiralI= 0; static int32_t spiralDD=0, spiralDR=0; // used to handle the spiral key...
+static uint32_t spiralA= 0; static int32_t spiralra=0, spiraldec=0;             // spiralA is the spiral Angle with 1<<16 = 1 full turn (so 16 bit precision) the 2 others are the "center of the spiral"
 static bool blockSync= false;                  // if true, do not execute sync key (used to avoid exit from star menu with sync leads to sync going on...)
 static const uint32_t UIDelay= 50000;           // Pool time of keyboard. UI unit of time. 20 times per second...
 static const uint16_t timeToScreenOffConst= 10*20;   // 10s timout on the screen. The 20 is the UI delay unit of time...
 static uint16_t timeToScreenOff= timeToScreenOffConst; // countdown to screen off...
+static bool stopMovingOnKeyRelease= true;     // if true, then once no key is pressed, stop moving... records who said move/don't move
 static const int8_t nbSpeeds= 6;
 static uint8_t manualSpeed= 3;                 // current speed in manualSpeeds
 static int16_t const manualSpeeds[]= { 60, 60*15, 60*30, 60*60, 2*60*60, 4*60*60 }; // list of possible speed in manual mode in deg per second. WARNING, RA is in h, not deg units!
@@ -2023,23 +2028,36 @@ static void doUI() // Display takes around 5ms...
 
         if ((keys&keySync)!=0)  // Sync = spiral... BUT, should not start on sync from menu!!!!
         { 
-            if (!blockSync)
+            if (!blockSync) // Sync does not cause spiralling if sync key was just used to do a sync!!!!!
             {
+              // The bais parametric equation of a spiral is (x,y)=r*(cos(angle),sin(angle))
+              // I want constant speed on the perimeter of the elipse.
+              // At any time T, the radius is R and the perimeter is 2*PI*R, so I need to move by speed/2*PI*R fraction of turn per second
+              // so my angle needt to grow by speed/(2*PI*R*movements_per_second) fraction of a circle per interval.
+              // 
+              // The radius will be growing in a constant way. The spacing between 2 successive point on the same "angle" of the elipse has to be the same
+              // some value proportional to the 2^speed_modifier. So that if at speed=0, we have a spacing of 60 arc", at speed=1, we have 120, and at speed=4 we have 16*60~= 1/4°
+              // so we take the last used angle, expressed in turns, and we multiply it by 2^speed and by our 60arc" to get the radius.
+              // 
+              // So, we first calculate radius based on last angle. Then we calculate new angle, then we calculate 
+
+              // spiralA in 16.16 format. trig takes 16 bit number for turn and return val<<24 precision result
+              //int32_t spiralR= ((spiralA>>8)*(1<<manualSpeed)*60)>>8; // in arc". the >>16 is because spiralA is in turn<<16
+              int32_t spiralR= spiralA>>(10-manualSpeed); // This line is equivalent to the line above, with the 60 replaced by a 64 (the 60 being the arc" separatinon from circle to circle). But this saves 24 bytes!
+              #ifdef PC
+                #define fps 6
+                uint const fpsFactor= int(2*3.14f*fps);
+              #else // for AVR and ESP, they are both tunned at 30 fps or so
+                #define fps 32
+                #define fpsFactor 207
+              #endif
+              spiralA+= (uint32_t(manualSpeeds[manualSpeed])<<16)/(fpsFactor*spiralR); // increment on angle to get constant speed... This could be partially precomputed, but the division would still be there :-(
+              int32_t nra= (spiralR*(Planets::cos(spiralA)>>8))>>16, ndec= (spiralR*(Planets::sin(spiralA)>>8))>>16; // next x/y of spiral
+              nra= MRa.stepsFromRealNoAbs(nra/16)+spiralra, ndec= MDec.stepsFromRealNoAbs(ndec)+spiraldec; // convert to steps. Note that ra is in 24 units, not 360! so the /16 (which is close enough to the nominal 15)
+              MRa.goUp((nra-MRa.pos)*fps), MDec.goUp((ndec-MDec.pos)*fps); // go in the direction that is needed... Note that we probably should add some ra offset for lost stellar movement!
               stopMovingOnKeyRelease= true;
-              if (!MDec.isMoving() && !MRa.isMoving()) 
-              {
-                  spiralI++;
-                  // spiralI%4 = 0:up, 1:left, 2:down, 3:right
-                  // destination is spiralI/2 away
-                  if ((spiralI&3)==1)      spiralDD-= (1+spiralI)/2*MDec.stepsFromReal(manualSpeeds[manualSpeed]/4);
-                  else if ((spiralI&3)==2) spiralDR+= (1+spiralI)/2*MRa.stepsFromReal(manualSpeeds[manualSpeed]/60);
-                  else if ((spiralI&3)==3) spiralDD+= (1+spiralI)/2*MDec.stepsFromReal(manualSpeeds[manualSpeed]/4);
-                  else if ((spiralI&3)==0) spiralDR-= (1+spiralI)/2*MRa.stepsFromReal(manualSpeeds[manualSpeed]/60);
-                  MDecOn(); MDec.goToSteps(spiralDD); spiralDD= MDec.dst;
-                  MRa.goToSteps(spiralDR); spiralDR= MRa.dst;
-              }
             }
-        } else { blockSync= false; spiralDD= MDec.pos; spiralDR= MRa.pos; spiralI= 0; }
+        } else { blockSync= false; spiralra= MRa.pos; spiraldec= MDec.pos; spiralA= 1U<<15; } // if sync key not pressed. Save current position and init angle at 1/2 turn (could be 1/4), can not be 0 as it would cause a /0 error.
 
         // if move was started from keyboard and no keys. stop. If Esc, stop...
         if ((stopMovingOnKeyRelease && (keys&(keyUp|keyDown|keyRight|keyLeft|keySync))==0) || (keys&keyEsc)!=0) { savedGotoForFlip.flipFlags= 0; MRa.stop(); MDec.stop(); }
@@ -2055,8 +2073,8 @@ static void doUI() // Display takes around 5ms...
         {
             char adr[60]; sprintf(adr, "%ld.%ld.%ld.%ld", ipaddr&255, (ipaddr>>8)&255, (ipaddr>>16)&255, ipaddr>>24);
             display.text(adr, 0, 0);
-            display.text2(alpaca->wifi, 0, 8);
-            if ((CSavedData::savedData.guidingBits&0x40)==0)
+            display.text(alpaca->wifi, 0, 8);
+            if ((CSavedData::savedData.guidingBits&0x40)!=0)
             {
                 display.text("Station DownKey=ap", 0, 16);
                 if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes

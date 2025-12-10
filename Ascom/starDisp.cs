@@ -298,6 +298,7 @@ unsafe public void textClip(uint *fb, int32_t x, int32_t Y, string t, TPixel fg)
 		displayObjs[nbDisplayObjs].index= index; displayObjs[nbDisplayObjs++].type= type;
 	}
 	public string displayText=""; // text to display at the bottom of the screen
+    public int clickra=-100000, clickdec=-100000;
 	int nbDisplayObjs=0;
 	int penInitx=0, penInity=0; public bool penDrag=false, penDown=false;
 
@@ -342,6 +343,7 @@ bool XYToraDec(int32_t x, int32_t y, out double ra, out double dec)
 
 void click(int32_t x, int32_t y)
 {
+    clickra=-100000; clickdec=-100000;
     if (x==-1) return;
     XYToraDec(x, y, out skydownra, out skydowndec);
     displayText= "";
@@ -358,11 +360,13 @@ void click(int32_t x, int32_t y)
     {  
         TStarMore sm= TStarMore.fromStarIndex((int)d.index); if (sm==null) return;
         displayText= sm.name+bayerGreek[sm.bayerGreek]+bayerConst[sm.bayerConst]+ " "+sm.dist.ToString() + "ly mag:"+sm.iabsMag.ToString();
+        clickra=(int)(stars[d.index].ra()*12*3600/Math.PI); clickdec=(int)(stars[d.index].dec()*180*3600/Math.PI);
         return;
     }
     TSkyCatalog sk= null; string name=""; char prefix=' ';
     if (d.type==1) { sk= messier[d.index]; name= sk.getString(ref CStars.messierStrings); prefix= 'M'; }
     if (d.type==2) { sk= caldwell[d.index]; name= sk.getString(ref CStars.cadwellStrings); prefix= 'C'; }
+    clickra=(int)(sk.getra()*12*3600/Math.PI); clickdec=(int)(sk.getdec()*180*3600/Math.PI);
     double fp= sk.getSze(); string t1= fp.ToString();
     if (name=="")
         displayText= (prefix+d.index+1).ToString()+" "+sk.getDst()+"ly mag:"+sk.mag.ToString()+ t1+"min";
