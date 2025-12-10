@@ -1,6 +1,7 @@
 # eq_control
 
 Eq control is an esp32/arduino based equatorial telescop mount controler system.
+This also has an additional focuser controler (or rotator if you want, but focus is the most useful)
 
 This system was originally designed for an EQ3, but has been sucessfully used on EQ5 and other az mounts.
 
