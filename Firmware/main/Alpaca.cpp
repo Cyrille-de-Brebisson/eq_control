@@ -690,7 +690,7 @@ bool CTelescope::dispatch(bool get, char const *url, char *data, CMyStr *s)
     if (get && strcmp(url, "utcdate")==0) { char b[30]; return putErVal(s, get_utcdate(b), b); }
     if (!get && strcmp(url, "utcdate")==0) return putEr(s, set_utcdate(getStrData(data, "UTCDate")));
 
-    if (get && strcmp(url, "axisrates")==0) { char b[50]; return putErVal(s, axisrates(getIntData(data, "Axis"), b), b); }
+    if (get && strcmp(url, "axisrates")==0) { char b[50]; return putErValRaw(s, axisrates(getIntData(data, "Axis"), b), b); }
     if (get && strcmp(url, "canmoveaxis")==0) return putErVal(s, ALPACA_OK, canmoveaxis(getIntData(data, "Axis")));
     if (!get && strcmp(url, "moveaxis")==0) return putEr(s, moveaxis(getIntData(data, "Axis"), getFloatData(data, "Rate")));
 

@@ -1974,7 +1974,7 @@ static void doUI() // Display takes around 5ms...
 	    }
 	#endif
     #ifdef ESP
-        if (!candisplay) return; // no display if not initlialized...
+        if (!candisplay) return; // no display if system not initlialized (GPS comes before)...
     #endif
 
     if (keys!=0) display.screenOn(), returnToScreen1= 20*10, timeToScreenOff= timeToScreenOffConst;   // if a key is pressed, we reset the returnToScreen1 timer...
@@ -1993,6 +1993,9 @@ static void doUI() // Display takes around 5ms...
         if ((newKeyDown&keyEsc)!=0) { savedGotoForFlip.flipFlags= 0; } // esc key. stop where we are...
         return;
     }
+
+    if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UIFocus) UI= UIMain; else UI++; } // menu change
+    if ((newKeyDown&keyEsc)!=0) UI= UIMain; // escape menu.
 
     if (UI==UIMain) // Main screen. move, speed, menu and spiral
     {
@@ -2046,7 +2049,7 @@ static void doUI() // Display takes around 5ms...
               int32_t spiralR= spiralA>>(10-manualSpeed); // This line is equivalent to the line above, with the 60 replaced by a 64 (the 60 being the arc" separatinon from circle to circle). But this saves 24 bytes!
               #ifdef PC
                 #define fps 6
-                uint const fpsFactor= int(2*3.14f*fps);
+                int const fpsFactor= int(2*3.14f*fps);
               #else // for AVR and ESP, they are both tunned at 30 fps or so
                 #define fps 32
                 #define fpsFactor 207
@@ -2061,40 +2064,38 @@ static void doUI() // Display takes around 5ms...
 
         // if move was started from keyboard and no keys. stop. If Esc, stop...
         if ((stopMovingOnKeyRelease && (keys&(keyUp|keyDown|keyRight|keyLeft|keySync))==0) || (keys&keyEsc)!=0) { savedGotoForFlip.flipFlags= 0; MRa.stop(); MDec.stop(); }
+        return;
     }
 
 
 
 
-    #ifndef ALPACA
-        if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UIFocus) UI= UIMain; else UI++; } // menu change
-    #else
-        if (UI==UIWifi) // ESP32 setup: wifi...
+    #ifdef ALPACA
+    if (UI==UIWifi) // ESP32 setup: wifi...
+    {
+        char adr[60]; sprintf(adr, "%ld.%ld.%ld.%ld", ipaddr&255, (ipaddr>>8)&255, (ipaddr>>16)&255, ipaddr>>24);
+        display.text(adr, 0, 0);
+        display.text(alpaca->wifi, 0, 8);
+        if ((CSavedData::savedData.guidingBits&0x40)!=0)
         {
-            char adr[60]; sprintf(adr, "%ld.%ld.%ld.%ld", ipaddr&255, (ipaddr>>8)&255, (ipaddr>>16)&255, ipaddr>>24);
-            display.text(adr, 0, 0);
-            display.text(alpaca->wifi, 0, 8);
-            if ((CSavedData::savedData.guidingBits&0x40)!=0)
-            {
-                display.text("Station DownKey=ap", 0, 16);
-                if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
-            } else {
-                display.text("AccessPnt UpKey=sta", 0, 16);
-                if ((newKeyDown&keyUp)!=0) { CSavedData::savedData.guidingBits&=~0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
-            }
-            #ifdef HASGPS
-                // "-90:00 360:00 hhhhm" = 18 characters of a max of 21
-                float lad= CGPS::latitude*180/M_PI; int ladd= int(lad); int ladm= int((lad-ladd)*60); if (ladm<0) ladm= -ladm;
-                float lod= CGPS::longitude*180/M_PI; int lodd= int(lod); int lodm= int((lod-lodd)*60); if (lodm<0) lodm= -lodm;
-                sprintf(adr, "%d:%d %d:%d %dm", ladd, ladm, lodd, lodm, int(CGPS::altitude));
-                adr[21]= 0; /// make sure we do not over draw...
-                if (!CGPS::hasPosInfo) display.text("unknown gps", 0, 24);
-                display.text(adr, 0, 24);
-            #endif
+            display.text("Station DownKey=ap", 0, 16);
+            if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
+        } else {
+            display.text("AccessPnt UpKey=sta", 0, 16);
+            if ((newKeyDown&keyUp)!=0) { CSavedData::savedData.guidingBits&=~0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
         }
-        if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UIWifi) UI= UIMain; else UI++; } // menu change
+        #ifdef HASGPS
+            // "-90:00 360:00 hhhhm" = 18 characters of a max of 21
+            float lad= CGPS::latitude*180/M_PI; int ladd= int(lad); int ladm= int((lad-ladd)*60); if (ladm<0) ladm= -ladm;
+            float lod= CGPS::longitude*180/M_PI; int lodd= int(lod); int lodm= int((lod-lodd)*60); if (lodm<0) lodm= -lodm;
+            sprintf(adr, "%d:%d %d:%d %dm", ladd, ladm, lodd, lodm, int(CGPS::altitude));
+            adr[21]= 0; /// make sure we do not over draw...
+            if (!CGPS::hasPosInfo) display.text("unknown gps", 0, 24);
+            display.text(adr, 0, 24);
+        #endif
+        return;
+    }
     #endif
-    if ((newKeyDown&keyEsc)!=0) UI= UIMain; // escape menu. Menu key itself is lower as there is a special handeling in the case of the setup menu
 
 
 
@@ -2142,6 +2143,7 @@ static void doUI() // Display takes around 5ms...
         }
         display.text2(t, x, 0);
         testGoSync(newKeyDown, ra, dec);
+        return;
     }
 
 
@@ -2149,8 +2151,8 @@ static void doUI() // Display takes around 5ms...
 
     if (UI==UIFocus) // focusser
     { 
-        if (CSavedData::savedData.focMaxSpd==0) returnToScreen1= 0; 
-        else {
+        if (CSavedData::savedData.focMaxSpd!=0) 
+        {
             display.text2("Focusser", 0, 0);
             int32_t v= MFocus.posInReal();
             strcpy(t, "+00.000mm"); if (v<0) t[0]='-', v= -v;
@@ -2164,7 +2166,8 @@ static void doUI() // Display takes around 5ms...
             else if ((newKeyDown&keyRight)!=0) MFocus.goUp(MFocus.spdMax), stopMovingOnKeyRelease= true;
             if ((stopMovingOnKeyRelease && (keys&(keyUp|keyDown|keyRight|keyLeft))==0) || (keys&keyEsc)!=0) MFocus.stop(); 
             returnToScreen1= 1; // This is a "never timeout" feature here
-        }
+            return;
+        } else { UI++; return; } // not supported. Move to next thing!
     }
 
 
@@ -2202,8 +2205,10 @@ static void doUI() // Display takes around 5ms...
         if (findPlanetUI<3) display.hline(findPlanetUI*18, 12, 8); else display.hline(x+4, x2-x-4, 8);
 
         testGoSync(newKeyDown, planetra, planetdec);
+        return;
     }
     #endif
+    UI= UIMain; // did not find anything to display, so back to square one!
 }
 
 // From here, we find mostly what is needed to talk to the ASCOM driver through the serial port...

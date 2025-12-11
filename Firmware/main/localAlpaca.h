@@ -29,12 +29,12 @@ protected:
     TAlpacaErr slewtocoordinatesasync(float ra, float dec) override { goTo(int32_t(ra*3600.0f), int32_t(dec*3600.0f)); return ALPACA_OK; } // Asynchronously slew to the given equatorial $RightAscension $Declination coordinates.
     TAlpacaErr synctocoordinates(float ra, float dec) override { sync(int32_t(ra*3600.0f), int32_t(dec*3600.0f)); return ALPACA_OK; } // Syncs to the given $RightAscension $Declination coordinates.
 
-    TAlpacaErr axisrates(int axis, char *b) override { strcpy(b, "[{\"Maximum\": 0,\"Minimum\": 4}]"); return ALPACA_OK; } // Returns the rates at which the telescope may be moved about the specified $Axis  returns [{"Maximum": 0,"Minimum": 0}] in b (b will be 30 chr long)
+    TAlpacaErr axisrates(int axis, char *b) override { strcpy(b, "[{\"Maximum\": 4.001,\"Minimum\": 0.001}]"); return ALPACA_OK; } // Returns the rates at which the telescope may be moved about the specified $Axis  returns [{"Maximum": 0,"Minimum": 0}] in b (b will be 30 chr long)
     bool canmoveaxis(int axis) override { return true; } // Indicates whether the telescope can move the requested $Axis.
     TAlpacaErr moveaxis(int axis, float rate) override   // Moves a telescope $Axis at the given $Rate.
     { 
-        if (axis==0) MRa.goUpRealNoAbs(int(rate*3600.0f));
-        else if (axis==1) MDec.goUpRealNoAbs(int(rate*(3600.0f/15.0f)));
+        if (axis==0) MRa.goUpRealNoAbs(int(rate*(3600.0f/15.0f)));
+        else if (axis==1) MDec.goUpRealNoAbs(int(rate*(3600.0f)));
         return ALPACA_OK; 
     }
 

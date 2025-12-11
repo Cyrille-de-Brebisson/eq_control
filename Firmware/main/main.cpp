@@ -98,7 +98,7 @@ extern "C" void app_main()
     #ifdef HASADC // This one will setup the uart system... which will not be used after...
         CADC::begin();
     #endif
-    xTaskCreate(UITask, "UI", 3048, NULL, 2, NULL);
+    xTaskCreate(UITask, "UI", 4096, NULL, 2, NULL);
 
     #ifdef HASGPS // This one will setup the uart system... which will not be used after...
         CGPS::waitGPS= true;
