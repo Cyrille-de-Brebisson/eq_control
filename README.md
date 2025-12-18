@@ -9,7 +9,7 @@ It consist of a CPU that can control 3 stepper motors for RA, Dec and focus, a L
 
 It can be used "in hand" as an offline controler.
 It can be connected to a computer with Ascom or Alpaca for more complex astro (like astro photography).
-The controler is a 6*7*1.7cm box which does everything!
+The controler is a 6x7x1.7cm box which does everything!
 
 ![](eq3_0.jpg)
 
