@@ -7,11 +7,11 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 //
 // TODO - Add your authorship information here
-[assembly: AssemblyTitle("ASCOM.BrebissonV1.Focuser")]
-[assembly: AssemblyDescription("ASCOM Local Server Focuser driver for BrebissonV1")]
+[assembly: AssemblyTitle("ASCOM.EQControl.Focuser.V1")]
+[assembly: AssemblyDescription("ASCOM Local Server mount/Focus driver for EQControlV1")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Brebisson")]
-[assembly: AssemblyProduct("ASCOM Local Server Focuser driver for BrebissonV1")]
+[assembly: AssemblyProduct("ASCOM Local Server mount/Focus driver for EQControlV1")]
 [assembly: AssemblyCopyright("Copyright © 2022 Brebisson")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

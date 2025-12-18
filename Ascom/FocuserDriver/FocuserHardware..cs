@@ -4,7 +4,7 @@ using System;
 using System.Globalization;
 using System.Windows.Forms;
 
-namespace ASCOM.BrebissonV1.Focuser
+namespace ASCOM.EQControl.Focuser.V1
 {
     [HardwareClass()] // Class attribute flag this as a device hardware class that needs to be disposed by the local server when it exits.
     internal static class FocuserHardware
@@ -31,7 +31,7 @@ namespace ASCOM.BrebissonV1.Focuser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.BrebissonV1.Focuser", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.EQControl.Focuser.V1", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 throw;
             }
         }
@@ -67,11 +67,11 @@ namespace ASCOM.BrebissonV1.Focuser
             get { return Connected; } // Direct function to the connected method, the Link method is just here for backwards compatibility
             set { Connected = value; } // Direct function to the connected method, the Link method is just here for backwards compatibility
         }
-        public static string Description { get { return "Brebisson combined mount focusser"; } }
-        public static string DriverInfo { get { return "Information about the driver itself. Version: 1.0"; } }
+        public static string Description { get { return "EQControl focusser v1 driver"; } }
+        public static string DriverInfo { get { return "Version: 1.0"; } }
         public static string DriverVersion { get { return "1.0"; } }
         public static short InterfaceVersion { get { return 3; } }
-        public static string Name { get { return "Brebisson Combined Mount Focus V1"; } }
+        public static string Name { get { return "EQControl focusser v1 driver"; } }
         internal static bool Absolute { get { return true; } } // This is an absolute focuser
         internal static void Halt() { SharedResources.SendSerialCommand(":Q#", 0); SharedResources.doLog("Foc stop", 0); } /// Immediately stop any focuser motion due to a previous <see cref="Move" /> method call.
         internal static bool IsMoving { get { return SharedResources.FocusMoving; } } /// True if the focuser is currently moving to a new position. False if the focuser is stationary.

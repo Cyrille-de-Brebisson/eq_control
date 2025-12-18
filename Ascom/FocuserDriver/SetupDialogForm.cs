@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace ASCOM.BrebissonV1.Focuser
+namespace ASCOM.EQControl.Focuser.V1
 {
     [ComVisible(false)] // Form not registered for COM!
     public partial class SetupDialogForm : Form

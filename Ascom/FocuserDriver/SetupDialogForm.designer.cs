@@ -1,4 +1,4 @@
-namespace ASCOM.BrebissonV1.Focuser
+namespace ASCOM.EQControl.Focuser.V1
 {
     partial class SetupDialogForm
     {
@@ -71,7 +71,7 @@ namespace ASCOM.BrebissonV1.Focuser
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(313, 20);
             this.label1.TabIndex = 4;
-            this.label1.Text = "Driver for Brebisson eq3/5 control focusser.";
+            this.label1.Text = "Driver for focuser on eqControl.";
             // 
             // label2
             // 
@@ -98,7 +98,7 @@ namespace ASCOM.BrebissonV1.Focuser
             this.Name = "SetupDialogForm";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "BrebissonV1 Setup";
+            this.Text = "EQControl V1";
             this.Load += new System.EventHandler(this.SetupDialogForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).EndInit();
             this.ResumeLayout(false);

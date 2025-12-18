@@ -11,7 +11,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.ComTypes;
-using ASCOM.BrebissonV1.Telescope;
+using ASCOM.EQControl.Telescope.V1;
 
 namespace ASCOM.LocalServer
 {

@@ -2,7 +2,7 @@ using ASCOM;
 using ASCOM.Astrometry;
 using ASCOM.Astrometry.AstroUtils;
 using ASCOM.Astrometry.NOVAS;
-using ASCOM.BrebissonV1.Focuser;
+using ASCOM.EQControl.Telescope.V1;
 using ASCOM.DeviceInterface;
 using ASCOM.LocalServer;
 using ASCOM.Utilities;
@@ -16,14 +16,14 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 
-namespace ASCOM.BrebissonV1.Telescope
+namespace ASCOM.EQControl.Telescope.V1
 {
     // This code is mostly a presentation layer for the functionality in the TelescopeHardware class. You should not need to change the contents of this file very much, if at all.
     // Most customisation will be in the TelescopeHardware class, which is shared by all instances of the driver, and which must handle all aspects of communicating with your device.
     [ComVisible(true)]
     [Guid("9cfbd404-ad34-45da-839b-c1c216e1c93b")]
-    [ProgId("ASCOM.BrebissonV1.Telescope")]
-    [ServedClassName("ASCOM Telescope Driver for BrebissonV1")] // Driver description that appears in the Chooser, customise as required
+    [ProgId("ASCOM.EQControl.Telescope.V1")]
+    [ServedClassName("Telescope on EQControl (V1)")] // Driver description that appears in the Chooser, customise as required
     [ClassInterface(ClassInterfaceType.None)]
     public class Telescope : ReferenceCountedObjectBase, ITelescopeV3, IDisposable
     {
@@ -47,7 +47,7 @@ namespace ASCOM.BrebissonV1.Telescope
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.BrebissonV1.Telescope", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.EQControl.Telescope.V1", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         ~Telescope(){ }

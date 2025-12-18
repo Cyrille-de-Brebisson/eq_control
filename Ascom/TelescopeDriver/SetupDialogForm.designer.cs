@@ -1,4 +1,4 @@
-namespace ASCOM.BrebissonV1.Telescope
+namespace ASCOM.EQControl.Telescope.V1
 {
     partial class SetupDialogForm
     {
@@ -98,7 +98,7 @@ namespace ASCOM.BrebissonV1.Telescope
             this.Name = "SetupDialogForm";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "BrebissonV1 Setup";
+            this.Text = "EQControlV1 Setup";
             this.Load += new System.EventHandler(this.SetupDialogForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).EndInit();
             this.ResumeLayout(false);

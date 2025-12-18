@@ -274,7 +274,7 @@ namespace ASCOM.LocalServer
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(140, 33);
             this.label1.TabIndex = 0;
-            this.label1.Text = "Ascom driver for Brebisson compound mount/focusser";
+            this.label1.Text = "Ascom driver and main control and setup window fo EQControl";
             // 
             // label2
             // 

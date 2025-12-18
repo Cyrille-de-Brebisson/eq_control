@@ -5,14 +5,14 @@ using System.Collections;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace ASCOM.BrebissonV1.Focuser
+namespace ASCOM.EQControl.Focuser.V1
 {
     // This code is mostly a presentation layer for the functionality in the FocuserHardware class. You should not need to change the contents of this file very much, if at all.
     // Most customisation will be in the FocuserHardware class, which is shared by all instances of the driver, and which must handle all aspects of communicating with your device.
     [ComVisible(true)]
     [Guid("ea8f2e77-6a97-4c38-a769-2a1b2123ae38")]
-    [ProgId("ASCOM.BrebissonV1.Focuser")]
-    [ServedClassName("ASCOM Focuser Driver for BrebissonV1")] // Driver description that appears in the Chooser, customise as required
+    [ProgId("ASCOM.EQControl.Focuser.V1")]
+    [ServedClassName("Focuser on EQControl (V1)")] // Driver description that appears in the Chooser, customise as required
     [ClassInterface(ClassInterfaceType.None)]
     public class Focuser : ReferenceCountedObjectBase, IFocuserV3, IDisposable
     {
@@ -33,7 +33,7 @@ namespace ASCOM.BrebissonV1.Focuser
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.BrebissonV1.Focuser", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.EQControl.Focuser.V1", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
         ~Focuser() { }

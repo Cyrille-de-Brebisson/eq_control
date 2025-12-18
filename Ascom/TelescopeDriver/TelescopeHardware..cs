@@ -12,7 +12,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Windows.Forms;
 
-namespace ASCOM.BrebissonV1.Telescope
+namespace ASCOM.EQControl.Telescope.V1
 {
     /// ASCOM Telescope hardware class for BrebissonV1.
     [HardwareClass()] // Class attribute flag this as a device hardware class that needs to be disposed by the local server when it exits.
@@ -50,7 +50,7 @@ namespace ASCOM.BrebissonV1.Telescope
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.BrebissonV1.Telescope", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"{ex.Message}", "Exception creating ASCOM.EQControl.Telescope.V1", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 throw;
             }
         }
@@ -117,7 +117,7 @@ namespace ASCOM.BrebissonV1.Telescope
         }
         public static string DriverVersion { get { return "1.0"; } }
         public static short InterfaceVersion { get { return 3; } }
-        public static string Name { get { return "Brebisson Combined Mount Focus V1"; } }
+        public static string Name { get { return "EQControl Telescope V1"; } }
         internal static void AbortSlew() { SharedResources.SendSerialCommand(":Q#", 0); SharedResources.doLog("Mount stop", 0); }
         internal static AlignmentModes AlignmentMode { get{ return AlignmentModes.algPolar; } } /// The alignment mode of the mount (Alt/Az, Polar, German Polar).
         internal static void FindHome() { throw new MethodNotImplementedException("FindHome"); }

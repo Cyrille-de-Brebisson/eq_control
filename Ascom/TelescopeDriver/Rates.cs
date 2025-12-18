@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-namespace ASCOM.BrebissonV1.Telescope
+namespace ASCOM.EQControl.Telescope.V1
 {
     #region Rate class
     //

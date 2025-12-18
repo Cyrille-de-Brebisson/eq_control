@@ -1,5 +1,5 @@
-﻿using ASCOM.BrebissonV1.Focuser;
-using ASCOM.BrebissonV1.Telescope;
+﻿using ASCOM.EQControl.Focuser.V1;
+using ASCOM.EQControl.Telescope.V1;
 using ASCOM.DeviceInterface;
 using ASCOM.Utilities;
 using System;
