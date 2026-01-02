@@ -37,6 +37,7 @@ namespace ASCOM.EQControl.Telescope.V1
                     SharedResources.guideAfterSlew = driverProfile.GetValue(DriverProgId, "guideAfterSlew", "", "0")!="0";
                     SharedResources.yellOnPower= driverProfile.GetValue(DriverProgId, "yellOnPower", "", "0")!="0";
                     SharedResources.focusInmm= driverProfile.GetValue(DriverProgId, "focusInmm", "", "0")!="0";
+                    SharedResources.reconnectOnDrop= driverProfile.GetValue(DriverProgId, "reconnectOnDrop", "", "0")!="0";
                     double v;
                     if (double.TryParse(driverProfile.GetValue(DriverProgId, "guideRaAgressivity", "", "1.0"), NumberStyles.Float, CultureInfo.InvariantCulture, out v))
                         SharedResources.guideRaAgressivity = v;
@@ -65,6 +66,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 driverProfile.WriteValue(DriverProgId, "focusInmm", SharedResources.focusInmm ? "1" : "0");
                 driverProfile.WriteValue(DriverProgId, "guideRaAgressivity", SharedResources.guideRaAgressivity.ToString(CultureInfo.InvariantCulture));
                 driverProfile.WriteValue(DriverProgId, "guideDecAgressivity", SharedResources.guideDecAgressivity.ToString(CultureInfo.InvariantCulture));
+                driverProfile.WriteValue(DriverProgId, "reconnectOnDrop", SharedResources.reconnectOnDrop? "1" : "0");
             }
         }
         public static void saveisstls(string isstle1, string isstle2)

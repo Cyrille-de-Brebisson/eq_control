@@ -48,11 +48,14 @@ namespace ASCOM.LocalServer
             Height= groupBox2.Height+groupBox2.Top+groupBox2.Left+Height-ClientSize.Height;
             calcSteps();
             checkBox7.Checked= SharedResources.guideAfterSlew;
+            checkBox19.Checked= SharedResources.reconnectOnDrop;
             updateLocations();  posCB.Text= "";
         }
         ~FrmMain() { SharedResources.log= null; SharedResources.finish= true;  }
         private int lastFocusPos= 0x7fffffff;
         bool lastPowerBit= false; int lastPowerCount= 1;
+        bool no_send_track_change= false;
+
         private void updateConnectedLabel() // every 500ms, update UI based on driver's data
         {
             try
@@ -99,9 +102,14 @@ namespace ASCOM.LocalServer
                         button24.Enabled = true;
                         button25.Enabled = true;
                         button12.Text = "Mount " + (TelescopeHardware.SideOfPier == PierSide.pierEast ? "East" : "West");
-                        if (SideralSelect.SelectedIndex==-1) SideralSelect.SelectedIndex= SharedResources.TrackingDisabled?0:(SharedResources.ascomtrackspd+1);
-                        if (SharedResources.TrackingDisabled) if (SideralSelect.SelectedIndex!=0) SideralSelect.SelectedIndex= 0;
-                        if (!SharedResources.TrackingDisabled) if (SideralSelect.SelectedIndex==0) SideralSelect.SelectedIndex= SharedResources.ascomtrackspd+1;
+                        if (!SideralSelect.DroppedDown)
+                        { 
+                            no_send_track_change= true;
+                            if (SideralSelect.SelectedIndex==-1) SideralSelect.SelectedIndex= SharedResources.TrackingDisabled?0:(SharedResources.ascomtrackspd+1);
+                            if (SharedResources.TrackingDisabled) if (SideralSelect.SelectedIndex!=0) SideralSelect.SelectedIndex= 0;
+                            if (!SharedResources.TrackingDisabled) if (SideralSelect.SelectedIndex!=SharedResources.ascomtrackspd+1) SideralSelect.SelectedIndex= SharedResources.ascomtrackspd+1;
+                            no_send_track_change= false;
+                        }
                         button21.Text= SharedResources.FlipDisabled ? "Flip disabled" : "Flip enable";
                         if (!hasHWPos) label50.Visible= SharedResources.meridianFlip;
                         else {
@@ -190,6 +198,16 @@ namespace ASCOM.LocalServer
                         label41.Text = "N/A";
                         label42.Text = "N/A";
                         label21.Text = "N/A";
+                        if (SharedResources.serialCrahed && SharedResources.reconnectOnDrop)
+                        {
+                            var l= (new Serial()).AvailableCOMPorts;
+                            if (l.Contains(SharedResources.comPort))
+                            { 
+                                SharedResources.Connected = true;
+                                log("Try reconnecting to "+SharedResources.comPort, 0);
+                            }
+
+                        }
                     }
                     resetHWSetupFields();
                 });
@@ -309,9 +327,9 @@ namespace ASCOM.LocalServer
                     decMsToSpd.Text = SharedResources.decmsToSpeed.ToString();
                     timeComp.Text= SharedResources.timeComp.ToString();
 
-                    SiteLatitude.Text = SharedResources.raToText(SharedResources.Latitude/10);
+                    SiteLatitude.Text = SharedResources.raToText(((Double)SharedResources.Latitude)/10);
                     SiteElevation.Text = SharedResources.SiteAltitude.ToString();
-                    SiteLongitude.Text = SharedResources.raToText(SharedResources.Longitude/10);
+                    SiteLongitude.Text = SharedResources.raToText(((Double)SharedResources.Longitude)/10);
                     FocalLength.Text = SharedResources.FocalLength.ToString();
                     Area.Text = SharedResources.Area_cm2.ToString();
                     Aperture.Text = SharedResources.Diameter_mm.ToString();
@@ -403,8 +421,8 @@ namespace ASCOM.LocalServer
                 int.TryParse(this.timeComp.Text, out timeComp))
             {
                 bool b1, b2;
-                Latitude = SharedResources.fromHms(SiteLatitude.Text, out b1) * 10;
-                Longitude = SharedResources.fromHms(SiteLongitude.Text, out b2) * 10;
+                Latitude = (int)(SharedResources.fromHms2(SiteLatitude.Text, out b1) * 10);
+                Longitude = (int)(SharedResources.fromHms2(SiteLongitude.Text, out b2) * 10);
                 double foxstp, decGuideRate, raGuideRate;
                 if (b1 && b2)
                 {
@@ -494,6 +512,7 @@ namespace ASCOM.LocalServer
                         (source==-1 && checkboxlogsystem.Checked) ||
                         (source==0 && checkboxascom.Checked) ||
                         (source==1 && checkBox8.Checked) ||   // frequent ascom
+                        (source==2 && checkBox1.Checked) ||   // serial commands
                         (source==3 && checkBox15.Checked) ||  // phd2
                         (source==4 && checkBox16.Checked))    // iss
                      BeginInvoke((MethodInvoker)delegate () { logBox.AppendText(message + "\r\n"); });
@@ -597,6 +616,7 @@ namespace ASCOM.LocalServer
 
         private void SideralSelect_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (no_send_track_change) return;
             if (SideralSelect.SelectedIndex==0) SharedResources.Track(false, SharedResources.ascomtrackspd); // stopped
             if (SideralSelect.SelectedIndex==1) SharedResources.Track(true, 0); // sideral
             if (SideralSelect.SelectedIndex==2) SharedResources.Track(true, 1); // moon 
@@ -1211,8 +1231,8 @@ namespace ASCOM.LocalServer
                 Aperture.Text= allItems[5];
                 Area.Text= allItems[6];
                 bool b1, b2;
-                int Latitude = SharedResources.fromHms(SiteLatitude.Text, out b1) * 10;
-                int Longitude = SharedResources.fromHms(SiteLongitude.Text, out b2) * 10;
+                int Latitude = (int)(SharedResources.fromHms2(SiteLatitude.Text, out b1) * 10);
+                int Longitude = (int)(SharedResources.fromHms2(SiteLongitude.Text, out b2) * 10);
                 int SiteAltitude; int fl, ap, ar;
                 if (b1 && b2 && int.TryParse(SiteElevation.Text, out SiteAltitude) && 
                      int.TryParse(FocalLength.Text, out fl) &&
@@ -1266,6 +1286,13 @@ namespace ASCOM.LocalServer
         }
 
         SateliteTrack sateliteTrack = new SateliteTrack();
+
+        private void checkBox19_CheckedChanged(object sender, EventArgs e)
+        {
+            SharedResources.reconnectOnDrop = checkBox19.Checked;
+            TelescopeHardware.saveProfile();
+        }
+
         void updateIssImage()
         {
             int w= sateliteTrack.pictureBox2.Width, h= sateliteTrack.pictureBox2.Height;

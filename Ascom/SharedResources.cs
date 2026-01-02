@@ -70,8 +70,8 @@ namespace ASCOM.LocalServer
             get { return ascomtrackspd; } 
             set { if (value<0 || value>3) return; ascomtrackspd= value; sendTrackSpeed(); } 
             }
-        public static bool TrackingDisabled { get { return _trackingDisabled; } set { ascomtrack= _trackingDisabled= value; sendTrackSpeed(); } }
-        public static void Track(bool running, int rate) { _trackingDisabled= ascomtrack= running; TrackingRate= rate; }
+        public static bool TrackingDisabled { get { return _trackingDisabled; } set { ascomtrack= !value; _trackingDisabled= value; sendTrackSpeed(); } }
+        public static void Track(bool running, int rate) { _trackingDisabled=!running; ascomtrack= running; TrackingRate= rate; }
         public static bool meridianFlip { get { return _meridianFlip; } }
         public static long timeSpanPC { get { return _spanPC; } }
         public static long timeSpanHW { get { return _spanHW; } }
@@ -124,17 +124,19 @@ namespace ASCOM.LocalServer
         public static bool hasPowerCount= false;
         public static bool powerBit= false;
         public static int powerCount= 0;
-        public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false;
+        public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false;
         public static double guideRateDecf() { return (360f * guideRateDec) / decMaxPos; }
         public static double guideRateRaf() { return (360f * guideRateRA) / raMaxPos; }
 
         public static int midOfraRealPos = 6 * 3600; // stores the mid point of the RA axis in real coordinates. Used to check if somehting will need a meridial flip...
+        static public bool serialCrahed= false;
         public static void Disconnect() // force disconnect. setting connected to false will NOT disconnect as multiple clients might be asking for a disconnection
         {
             lock (lockObject)
             {
                 if (timerPos != null) { timerPos.Dispose(); timerPos = null; }
                 Lock= 0;
+                serialCrahed= false;
                 connectionLive = false; hasHWPos= false; hasHWData = false; dataDisplayed= false; hasPowerCount= false;
                 raMaxPos = 0; raMaxSpeed = 0; ramsToSpeed = 0; decMaxPos = 0; decMaxSpeed = 0; decmsToSpeed = 0;
                 if (SharedSerial!=null) SharedSerial.Connected = false;
@@ -211,6 +213,7 @@ namespace ASCOM.LocalServer
                 {
                     doLog("Connect", -1);
                     if (!value) return; // We actually do NOT disconnect when asked by a client... just when asked by the main app!
+                    serialCrahed= false;
 
                     if (SharedSerial.Connected || tcpstream!=null) return; // already connected...
                     if (comPort!="tcp")
@@ -269,8 +272,8 @@ namespace ASCOM.LocalServer
                                 times[timesPos].pctime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond - startpcTime;
                                 times[timesPos].HWtime = timems;
                                 times[timesPos].uncountedSteps = uncountedSteps;
-                                doLog(times[timesPos].pctime.ToString() + "," + (times[timesPos].pctime - lastPCTime).ToString() + "," + 
-                                      (times[timesPos].uncountedSteps-lastuncountedSteps).ToString() + "," + uncountedSteps.ToString() + (raGuideIssued == 0 ? "" : ("," + raGuideIssued.ToString())), 2);
+                                //doLog(times[timesPos].pctime.ToString() + "," + (times[timesPos].pctime - lastPCTime).ToString() + "," + 
+                                //      (times[timesPos].uncountedSteps-lastuncountedSteps).ToString() + "," + uncountedSteps.ToString() + (raGuideIssued == 0 ? "" : ("," + raGuideIssued.ToString())), -2);
                                 raGuideIssued = 0;
                                 lastPCTime= times[timesPos].pctime;
                                 lastuncountedSteps= times[timesPos].uncountedSteps;
@@ -318,10 +321,10 @@ namespace ASCOM.LocalServer
                                     hwconfstring= v;
                                     readHWString();
                                     
-                                    if (_Declinaison>89.9f) setToTrueNorth();
+                                    if (_Declinaison>89.9f && _RightAssension>5.59f && _RightAssension<6.01f) setToTrueNorth();
                                 }
                             }
-                            catch (NotConnectedException)
+                            catch (Exception)
                             {
                                 SharedSerial.Connected= false;
                                 tcpdisconnect();
@@ -427,19 +430,27 @@ namespace ASCOM.LocalServer
                 else break;
             return v;
         }
-        public static int fromHms(string s, out bool ok)
+        public static double fromHms2(string s, out bool ok)
         {
             ok = true; if (s.Length==0) {  ok= false; return 0; }
             int v = 0;  int i = 0; int neg = 1;
             if (s.Length > i) if (s[i] == '-') { i++; neg = -1; } else if (s[i] == '+') i++;
             v = readDec(s, ref i)*3600;
-            if (i >= s.Length || (s[i]!=':' && s[i]!='*')) return v;
+            if (i >= s.Length || (s[i]!=':' && s[i]!='*')) return v*neg;
             i++;
             v+= readDec(s, ref i) * 60;
-            if (i >= s.Length || (s[i] != ':' && s[i] != '*')) return v;
+            if (i >= s.Length || (s[i] != ':' && s[i] != '*')) return v*neg;
             i++;
             v += readDec(s, ref i);
-            return v*neg;
+            if (i >= s.Length || s[i] != '.') return v*neg;
+            i++; int j= i;
+            double v2= readDec(s, ref i);
+            while (j<i) { v2/=10; j++; }
+            return (v+v2)*neg;
+        }
+        public static int fromHms(string s, out bool ok)
+        {
+            return (int)(fromHms(s, out ok)+0.5);
         }
         public static int getHexFromDevice(string command, out bool ok, bool acceptHms= false)
         {
@@ -452,6 +463,7 @@ namespace ASCOM.LocalServer
         }
         public static string SendSerialCommand(string command, int waitReturn=1) // 0: is no wait return, 1 is wait for '#'
         {
+            if (command!="!") doLog("-> "+command, 2);
             if (comPort!="tcp")
             { 
                 if (!SharedSerial.Connected) return String.Empty;
@@ -466,7 +478,8 @@ namespace ASCOM.LocalServer
                         // if (command.Length>1) doLog(command);
                         SharedSerial.Transmit(command);
                     }
-                    catch (Exception) { Disconnect(); return String.Empty; } // end of work here...
+                    catch (Exception) { try { Disconnect(); } catch (Exception) { }
+                        serialCrahed=true; return String.Empty; } // end of work here...
                     if (waitReturn==0) return String.Empty;
                     try
                     {

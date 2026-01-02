@@ -831,7 +831,7 @@ class Ctmc2209 { public:
     {
         // Read register to make sure motor is OK... But don't care what it is or does...
         #ifdef __AVR__
-            uint8_t v[4]; while (readRegister(0, v)!=0) { udelay(10000); UARTAdr= (UARTAdr+1)&3; } // Auto discovert uart addr!
+          uint8_t v[4]; while (readRegister(0, v)!=0) { udelay(10000); UARTAdr= (UARTAdr+1)&3; } // Auto discovert uart addr!
         #endif
         uint8_t const IGCONF[8]=    { 5, UARTAdr, GCONFAdr|0x80, 0, 0, 1, 0b11000001 };       memcpy(GCONF, IGCONF, 8);       // GCONF.pdn_disable=1, GCONF.mstep_reg_select = 1 (use MRES for step count)
         uint8_t const ICHOPCONF[8]= { 5, UARTAdr, CHOPCONFAdr|0x80, 0x30, 0x00, 0x00, 0x53 }; memcpy(CHOPCONF, ICHOPCONF, 8); // TOFF=3, microsteps=0(256), INTPOL=1, HSTRT= 5, TBL=0, double edge on
@@ -1137,8 +1137,19 @@ class CMotorUncounted : public CMotor { public:
     // Assumes that this is in the positive direction!
         uint32_t NextUncountedSteps= 0;         // Next time we need to step
         uint32_t deltaBetweenUncountedSteps= 0; // delta between 2 steps in micro seconds (1s/1e6)..
-        uint16_t unstep= 0;                     // number of uncounted steps*256 for precision...
-        uint16_t unitsPerSteps;                 // number of units per steps*256. We are getting close to the 64K limit on an eq3 with 256 microsteps and a 30 to 16 gearing!
+        #ifdef __AVR__
+          #define TUstep uint16_t
+          #ifdef TMC
+              #define ustepsize 16U
+          #else
+              #define ustepsize 256U
+          #endif
+        #else
+          #define TUstep uint32_t
+          #define ustepsize 256
+        #endif
+        TUstep unstep= 0;                       // number of uncounted steps*ustepsize for precision...
+        TUstep unitsPerSteps;                   // number of units per steps*ustepsize. Note things to avoid 64k limit on avr!
         int32_t uncountedMaxRealVal;            // make sure min real is always smaller than this. allign maxReal
         uint32_t countAllUncountedSteps= 0;     // count ALL the uncounted steps to sync with PC
         int16_t _guide= 0;                      // Steps to add or remove in the automatic direction...
@@ -1154,7 +1165,7 @@ class CMotorUncounted : public CMotor { public:
         // every now and then, we need to shift the real min/max to stay in sync...
         // Let us add a *256 to the number just to be on the safe side of things...
         // how many steps do we need for 1 real unit?
-        unitsPerSteps= uint16_t((uint64_t(maxPos)<<8)/Abs(maxPosReal-minPosReal)); // here, by default, this will be around 1230 (or -1230)... meaning that 1230/256 steps is 1 unit
+        unitsPerSteps= TUstep((uint64_t(maxPos)*ustepsize)/Abs(maxPosReal-minPosReal)); // here, by default, this will be around 1230 (or -1230)... meaning that 1230/256 steps is 1 unit
         unitsToMove= muldiv(unitsToMove, maxPos, minPosReal-maxPosReal);     // transform to steps... Assumes no loss of data as we have large number of both... This number SHOULD be positive on a telescope!
         deltaBetweenUncountedSteps= muldiv(seconds, 1000000L, unitsToMove);  // delta, in micros between uncounted steps...
         batchExtraStepsOnMoveComplete= false;
@@ -1198,7 +1209,7 @@ class CMotorUncounted : public CMotor { public:
         if (pos>=maxPos) { savedGotoForFlip.flipFlags= 2; return; } // flip if we are at the end of the run...
         pos++;                                              // next position. We do count the movements!
         STEP1(stp);                                         // step pulse up Minimum 1.9micros until down... or 31 cycles...
-        unstep+=256; // 256microsteps per step...
+        unstep+=ustepsize; // 256microsteps per step...
         while (unstep>=unitsPerSteps) // enough steps will mean changes in the min/max pos to keep synced...
         { 
             unstep-= unitsPerSteps; minPosReal++, maxPosReal++; 
@@ -2289,7 +2300,7 @@ void processSerial(char *C, int8_t nb)
             bool decMove= MDec.isMoving(); if (!decMove) decGuiding= false; 
             // bit 0: moving, bit 1: focus moving, bit 2: side of pier, bit 3: meridian swapping, bit 4: flip disabled,
             //   bit 5: tracking disabled, bit 6: power, bit 7: guiding
-            printHex2(((decMove||MRa.isMoving())?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
+            printHex2(((decMove||MRa.isMoving()||(savedGotoForFlip.flipFlags!=0))?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
                     (isRaFlipEnabled()?0:16) | (MRa.deltaBetweenUncountedSteps==0?32:0) | (power?64:0) | ((decGuiding||(MRa._guide!=0))?128:0), 2);
             printHex2(Time::mnow(), 6);                         // this allows to verify time drift
             printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
