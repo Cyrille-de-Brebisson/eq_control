@@ -167,6 +167,7 @@ namespace ASCOM.LocalServer
             this.FreezeLastResponse = new System.Windows.Forms.CheckBox();
             this.NbResponses = new System.Windows.Forms.Label();
             this.groupBox16 = new System.Windows.Forms.GroupBox();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.checkBox8 = new System.Windows.Forms.CheckBox();
             this.checkboxlogsystem = new System.Windows.Forms.CheckBox();
             this.checkboxascom = new System.Windows.Forms.CheckBox();
@@ -246,8 +247,8 @@ namespace ASCOM.LocalServer
             this.label43 = new System.Windows.Forms.Label();
             this.checkBox13 = new System.Windows.Forms.CheckBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.checkBox19 = new System.Windows.Forms.CheckBox();
+            this.AutoMeridianFlip = new System.Windows.Forms.CheckBox();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -295,7 +296,7 @@ namespace ASCOM.LocalServer
             this.button1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button1.ForeColor = System.Drawing.Color.White;
             this.button1.Location = new System.Drawing.Point(19, 85);
-            this.button1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button1.Margin = new System.Windows.Forms.Padding(4);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(133, 28);
             this.button1.TabIndex = 3;
@@ -306,7 +307,7 @@ namespace ASCOM.LocalServer
             // textBox1
             // 
             this.textBox1.Location = new System.Drawing.Point(19, 57);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(4);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(132, 22);
             this.textBox1.TabIndex = 4;
@@ -319,7 +320,7 @@ namespace ASCOM.LocalServer
             this.button2.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button2.ForeColor = System.Drawing.Color.White;
             this.button2.Location = new System.Drawing.Point(20, 58);
-            this.button2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button2.Margin = new System.Windows.Forms.Padding(4);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(131, 28);
             this.button2.TabIndex = 5;
@@ -357,9 +358,9 @@ namespace ASCOM.LocalServer
             this.groupMount.Controls.Add(this.labelRa);
             this.groupMount.ForeColor = System.Drawing.SystemColors.Window;
             this.groupMount.Location = new System.Drawing.Point(21, 89);
-            this.groupMount.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupMount.Margin = new System.Windows.Forms.Padding(4);
             this.groupMount.Name = "groupMount";
-            this.groupMount.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupMount.Padding = new System.Windows.Forms.Padding(4);
             this.groupMount.Size = new System.Drawing.Size(392, 249);
             this.groupMount.TabIndex = 7;
             this.groupMount.TabStop = false;
@@ -376,7 +377,7 @@ namespace ASCOM.LocalServer
             "Sun",
             "King"});
             this.SideralSelect.Location = new System.Drawing.Point(5, 178);
-            this.SideralSelect.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.SideralSelect.Margin = new System.Windows.Forms.Padding(4);
             this.SideralSelect.Name = "SideralSelect";
             this.SideralSelect.Size = new System.Drawing.Size(116, 24);
             this.SideralSelect.TabIndex = 63;
@@ -389,7 +390,7 @@ namespace ASCOM.LocalServer
             this.button42.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button42.ForeColor = System.Drawing.Color.White;
             this.button42.Location = new System.Drawing.Point(136, 217);
-            this.button42.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button42.Margin = new System.Windows.Forms.Padding(4);
             this.button42.Name = "button42";
             this.button42.Size = new System.Drawing.Size(68, 25);
             this.button42.TabIndex = 62;
@@ -403,7 +404,7 @@ namespace ASCOM.LocalServer
             this.button41.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button41.ForeColor = System.Drawing.Color.White;
             this.button41.Location = new System.Drawing.Point(332, 217);
-            this.button41.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button41.Margin = new System.Windows.Forms.Padding(4);
             this.button41.Name = "button41";
             this.button41.Size = new System.Drawing.Size(51, 25);
             this.button41.TabIndex = 61;
@@ -417,7 +418,7 @@ namespace ASCOM.LocalServer
             this.button40.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button40.ForeColor = System.Drawing.Color.White;
             this.button40.Location = new System.Drawing.Point(277, 217);
-            this.button40.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button40.Margin = new System.Windows.Forms.Padding(4);
             this.button40.Name = "button40";
             this.button40.Size = new System.Drawing.Size(51, 25);
             this.button40.TabIndex = 60;
@@ -431,7 +432,7 @@ namespace ASCOM.LocalServer
             this.button39.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button39.ForeColor = System.Drawing.Color.White;
             this.button39.Location = new System.Drawing.Point(207, 217);
-            this.button39.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button39.Margin = new System.Windows.Forms.Padding(4);
             this.button39.Name = "button39";
             this.button39.Size = new System.Drawing.Size(68, 25);
             this.button39.TabIndex = 59;
@@ -588,7 +589,7 @@ namespace ASCOM.LocalServer
             this.button21.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button21.ForeColor = System.Drawing.Color.White;
             this.button21.Location = new System.Drawing.Point(5, 148);
-            this.button21.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button21.Margin = new System.Windows.Forms.Padding(4);
             this.button21.Name = "button21";
             this.button21.Size = new System.Drawing.Size(117, 28);
             this.button21.TabIndex = 12;
@@ -603,7 +604,7 @@ namespace ASCOM.LocalServer
             this.button12.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button12.ForeColor = System.Drawing.Color.White;
             this.button12.Location = new System.Drawing.Point(5, 117);
-            this.button12.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button12.Margin = new System.Windows.Forms.Padding(4);
             this.button12.Name = "button12";
             this.button12.Size = new System.Drawing.Size(117, 28);
             this.button12.TabIndex = 8;
@@ -618,7 +619,7 @@ namespace ASCOM.LocalServer
             this.button7.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button7.ForeColor = System.Drawing.Color.White;
             this.button7.Location = new System.Drawing.Point(5, 69);
-            this.button7.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button7.Margin = new System.Windows.Forms.Padding(4);
             this.button7.Name = "button7";
             this.button7.Size = new System.Drawing.Size(80, 28);
             this.button7.TabIndex = 6;
@@ -632,7 +633,7 @@ namespace ASCOM.LocalServer
             this.button4.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button4.ForeColor = System.Drawing.Color.White;
             this.button4.Location = new System.Drawing.Point(208, 69);
-            this.button4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button4.Margin = new System.Windows.Forms.Padding(4);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(80, 28);
             this.button4.TabIndex = 5;
@@ -647,7 +648,7 @@ namespace ASCOM.LocalServer
             this.button3.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button3.ForeColor = System.Drawing.Color.White;
             this.button3.Location = new System.Drawing.Point(99, 69);
-            this.button3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button3.Margin = new System.Windows.Forms.Padding(4);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(80, 28);
             this.button3.TabIndex = 4;
@@ -659,7 +660,7 @@ namespace ASCOM.LocalServer
             // textBox4
             // 
             this.textBox4.Location = new System.Drawing.Point(208, 43);
-            this.textBox4.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox4.Margin = new System.Windows.Forms.Padding(4);
             this.textBox4.Name = "textBox4";
             this.textBox4.Size = new System.Drawing.Size(172, 22);
             this.textBox4.TabIndex = 3;
@@ -669,7 +670,7 @@ namespace ASCOM.LocalServer
             // textBox3
             // 
             this.textBox3.Location = new System.Drawing.Point(5, 43);
-            this.textBox3.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox3.Margin = new System.Windows.Forms.Padding(4);
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(172, 22);
             this.textBox3.TabIndex = 2;
@@ -715,9 +716,9 @@ namespace ASCOM.LocalServer
             this.groupBox2.Controls.Add(this.label2);
             this.groupBox2.ForeColor = System.Drawing.SystemColors.Window;
             this.groupBox2.Location = new System.Drawing.Point(21, 481);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(4);
             this.groupBox2.Size = new System.Drawing.Size(392, 116);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
@@ -970,7 +971,7 @@ namespace ASCOM.LocalServer
             // FocalLength
             // 
             this.FocalLength.Location = new System.Drawing.Point(144, 106);
-            this.FocalLength.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.FocalLength.Margin = new System.Windows.Forms.Padding(4);
             this.FocalLength.Name = "FocalLength";
             this.FocalLength.Size = new System.Drawing.Size(96, 22);
             this.FocalLength.TabIndex = 36;
@@ -978,7 +979,7 @@ namespace ASCOM.LocalServer
             // SiteElevation
             // 
             this.SiteElevation.Location = new System.Drawing.Point(144, 75);
-            this.SiteElevation.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.SiteElevation.Margin = new System.Windows.Forms.Padding(4);
             this.SiteElevation.Name = "SiteElevation";
             this.SiteElevation.Size = new System.Drawing.Size(96, 22);
             this.SiteElevation.TabIndex = 35;
@@ -986,7 +987,7 @@ namespace ASCOM.LocalServer
             // SiteLongitude
             // 
             this.SiteLongitude.Location = new System.Drawing.Point(144, 52);
-            this.SiteLongitude.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.SiteLongitude.Margin = new System.Windows.Forms.Padding(4);
             this.SiteLongitude.Name = "SiteLongitude";
             this.SiteLongitude.Size = new System.Drawing.Size(96, 22);
             this.SiteLongitude.TabIndex = 34;
@@ -994,7 +995,7 @@ namespace ASCOM.LocalServer
             // SiteLatitude
             // 
             this.SiteLatitude.Location = new System.Drawing.Point(144, 28);
-            this.SiteLatitude.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.SiteLatitude.Margin = new System.Windows.Forms.Padding(4);
             this.SiteLatitude.Name = "SiteLatitude";
             this.SiteLatitude.Size = new System.Drawing.Size(96, 22);
             this.SiteLatitude.TabIndex = 33;
@@ -1046,7 +1047,7 @@ namespace ASCOM.LocalServer
             // Area
             // 
             this.Area.Location = new System.Drawing.Point(144, 153);
-            this.Area.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Area.Margin = new System.Windows.Forms.Padding(4);
             this.Area.Name = "Area";
             this.Area.Size = new System.Drawing.Size(96, 22);
             this.Area.TabIndex = 38;
@@ -1054,7 +1055,7 @@ namespace ASCOM.LocalServer
             // Aperture
             // 
             this.Aperture.Location = new System.Drawing.Point(144, 129);
-            this.Aperture.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Aperture.Margin = new System.Windows.Forms.Padding(4);
             this.Aperture.Name = "Aperture";
             this.Aperture.Size = new System.Drawing.Size(96, 22);
             this.Aperture.TabIndex = 37;
@@ -1113,7 +1114,7 @@ namespace ASCOM.LocalServer
             // 
             this.posCB.FormattingEnabled = true;
             this.posCB.Location = new System.Drawing.Point(11, 17);
-            this.posCB.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.posCB.Margin = new System.Windows.Forms.Padding(4);
             this.posCB.Name = "posCB";
             this.posCB.Size = new System.Drawing.Size(165, 24);
             this.posCB.TabIndex = 43;
@@ -1159,7 +1160,7 @@ namespace ASCOM.LocalServer
             // textBox19
             // 
             this.textBox19.Location = new System.Drawing.Point(141, 91);
-            this.textBox19.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox19.Margin = new System.Windows.Forms.Padding(4);
             this.textBox19.Name = "textBox19";
             this.textBox19.Size = new System.Drawing.Size(96, 22);
             this.textBox19.TabIndex = 47;
@@ -1167,7 +1168,7 @@ namespace ASCOM.LocalServer
             // StepSize
             // 
             this.StepSize.Location = new System.Drawing.Point(141, 114);
-            this.StepSize.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.StepSize.Margin = new System.Windows.Forms.Padding(4);
             this.StepSize.Name = "StepSize";
             this.StepSize.Size = new System.Drawing.Size(96, 22);
             this.StepSize.TabIndex = 11;
@@ -1272,6 +1273,7 @@ namespace ASCOM.LocalServer
             // groupBox6
             // 
             this.groupBox6.BackColor = System.Drawing.Color.Black;
+            this.groupBox6.Controls.Add(this.AutoMeridianFlip);
             this.groupBox6.Controls.Add(this.button43);
             this.groupBox6.Controls.Add(this.RAMaxMovement);
             this.groupBox6.Controls.Add(this.label35);
@@ -1323,7 +1325,7 @@ namespace ASCOM.LocalServer
             // RAMaxMovement
             // 
             this.RAMaxMovement.Location = new System.Drawing.Point(132, 107);
-            this.RAMaxMovement.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.RAMaxMovement.Margin = new System.Windows.Forms.Padding(4);
             this.RAMaxMovement.Name = "RAMaxMovement";
             this.RAMaxMovement.Size = new System.Drawing.Size(96, 22);
             this.RAMaxMovement.TabIndex = 11;
@@ -1342,7 +1344,7 @@ namespace ASCOM.LocalServer
             // textBox18
             // 
             this.textBox18.Location = new System.Drawing.Point(132, 231);
-            this.textBox18.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox18.Margin = new System.Windows.Forms.Padding(4);
             this.textBox18.Name = "textBox18";
             this.textBox18.Size = new System.Drawing.Size(96, 22);
             this.textBox18.TabIndex = 45;
@@ -1361,7 +1363,7 @@ namespace ASCOM.LocalServer
             // textBox14
             // 
             this.textBox14.Location = new System.Drawing.Point(132, 84);
-            this.textBox14.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox14.Margin = new System.Windows.Forms.Padding(4);
             this.textBox14.Name = "textBox14";
             this.textBox14.Size = new System.Drawing.Size(96, 22);
             this.textBox14.TabIndex = 34;
@@ -1668,7 +1670,7 @@ namespace ASCOM.LocalServer
             // textBox20
             // 
             this.textBox20.Location = new System.Drawing.Point(205, 18);
-            this.textBox20.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox20.Margin = new System.Windows.Forms.Padding(4);
             this.textBox20.Name = "textBox20";
             this.textBox20.Size = new System.Drawing.Size(40, 22);
             this.textBox20.TabIndex = 42;
@@ -1679,7 +1681,7 @@ namespace ASCOM.LocalServer
             // textBox15
             // 
             this.textBox15.Location = new System.Drawing.Point(11, 18);
-            this.textBox15.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox15.Margin = new System.Windows.Forms.Padding(4);
             this.textBox15.Name = "textBox15";
             this.textBox15.Size = new System.Drawing.Size(59, 22);
             this.textBox15.TabIndex = 40;
@@ -1764,7 +1766,7 @@ namespace ASCOM.LocalServer
             // textBox6
             // 
             this.textBox6.Location = new System.Drawing.Point(12, 18);
-            this.textBox6.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox6.Margin = new System.Windows.Forms.Padding(4);
             this.textBox6.Name = "textBox6";
             this.textBox6.Size = new System.Drawing.Size(59, 22);
             this.textBox6.TabIndex = 32;
@@ -1795,7 +1797,7 @@ namespace ASCOM.LocalServer
             // textBox7
             // 
             this.textBox7.Location = new System.Drawing.Point(207, 18);
-            this.textBox7.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox7.Margin = new System.Windows.Forms.Padding(4);
             this.textBox7.Name = "textBox7";
             this.textBox7.Size = new System.Drawing.Size(40, 22);
             this.textBox7.TabIndex = 40;
@@ -1932,6 +1934,20 @@ namespace ASCOM.LocalServer
             this.groupBox16.TabIndex = 63;
             this.groupBox16.TabStop = false;
             this.groupBox16.Text = "Log filtering";
+            // 
+            // checkBox1
+            // 
+            this.checkBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.BackColor = System.Drawing.SystemColors.WindowText;
+            this.checkBox1.ForeColor = System.Drawing.SystemColors.Window;
+            this.checkBox1.Location = new System.Drawing.Point(11, 76);
+            this.checkBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(168, 20);
+            this.checkBox1.TabIndex = 58;
+            this.checkBox1.Text = "Show serial commands";
+            this.checkBox1.UseVisualStyleBackColor = false;
             // 
             // checkBox8
             // 
@@ -2443,7 +2459,7 @@ namespace ASCOM.LocalServer
             this.button20.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button20.ForeColor = System.Drawing.Color.White;
             this.button20.Location = new System.Drawing.Point(583, 505);
-            this.button20.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.button20.Margin = new System.Windows.Forms.Padding(4);
             this.button20.Name = "button20";
             this.button20.Size = new System.Drawing.Size(73, 25);
             this.button20.TabIndex = 64;
@@ -2468,7 +2484,7 @@ namespace ASCOM.LocalServer
             // 
             this.textBox26.Enabled = false;
             this.textBox26.Location = new System.Drawing.Point(451, 490);
-            this.textBox26.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox26.Margin = new System.Windows.Forms.Padding(4);
             this.textBox26.Name = "textBox26";
             this.textBox26.ReadOnly = true;
             this.textBox26.Size = new System.Drawing.Size(104, 22);
@@ -2491,7 +2507,7 @@ namespace ASCOM.LocalServer
             // 
             this.textBox25.Enabled = false;
             this.textBox25.Location = new System.Drawing.Point(305, 490);
-            this.textBox25.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox25.Margin = new System.Windows.Forms.Padding(4);
             this.textBox25.Name = "textBox25";
             this.textBox25.Size = new System.Drawing.Size(111, 22);
             this.textBox25.TabIndex = 67;
@@ -2513,7 +2529,7 @@ namespace ASCOM.LocalServer
             // 
             this.textBox24.Enabled = false;
             this.textBox24.Location = new System.Drawing.Point(113, 490);
-            this.textBox24.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox24.Margin = new System.Windows.Forms.Padding(4);
             this.textBox24.Name = "textBox24";
             this.textBox24.Size = new System.Drawing.Size(119, 22);
             this.textBox24.TabIndex = 49;
@@ -2874,7 +2890,7 @@ namespace ASCOM.LocalServer
             // textBox22
             // 
             this.textBox22.Location = new System.Drawing.Point(13, 41);
-            this.textBox22.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.textBox22.Margin = new System.Windows.Forms.Padding(4);
             this.textBox22.Name = "textBox22";
             this.textBox22.Size = new System.Drawing.Size(281, 22);
             this.textBox22.TabIndex = 20;
@@ -2970,20 +2986,6 @@ namespace ASCOM.LocalServer
             this.toolTip1.InitialDelay = 4000;
             this.toolTip1.ReshowDelay = 400;
             // 
-            // checkBox1
-            // 
-            this.checkBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.BackColor = System.Drawing.SystemColors.WindowText;
-            this.checkBox1.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox1.Location = new System.Drawing.Point(11, 76);
-            this.checkBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(168, 20);
-            this.checkBox1.TabIndex = 58;
-            this.checkBox1.Text = "Show serial commands";
-            this.checkBox1.UseVisualStyleBackColor = false;
-            // 
             // checkBox19
             // 
             this.checkBox19.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
@@ -3000,6 +3002,18 @@ namespace ASCOM.LocalServer
         "ll not work on HW that does a motor position reset at startup!");
             this.checkBox19.UseVisualStyleBackColor = false;
             this.checkBox19.CheckedChanged += new System.EventHandler(this.checkBox19_CheckedChanged);
+            // 
+            // AutoMeridianFlip
+            // 
+            this.AutoMeridianFlip.AutoSize = true;
+            this.AutoMeridianFlip.Location = new System.Drawing.Point(7, 133);
+            this.AutoMeridianFlip.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.AutoMeridianFlip.Name = "AutoMeridianFlip";
+            this.AutoMeridianFlip.Size = new System.Drawing.Size(131, 20);
+            this.AutoMeridianFlip.TabIndex = 46;
+            this.AutoMeridianFlip.Text = "Auto meridian flip";
+            this.toolTip1.SetToolTip(this.AutoMeridianFlip, "Automatically flip ahen reaching meridian");
+            this.AutoMeridianFlip.UseVisualStyleBackColor = true;
             // 
             // FrmMain
             // 
@@ -3021,13 +3035,13 @@ namespace ASCOM.LocalServer
             this.Controls.Add(this.groupMount);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.groupBox7);
             this.Controls.Add(this.groupBox10);
             this.Controls.Add(this.groupBox8);
+            this.Controls.Add(this.groupBox7);
             this.ForeColor = System.Drawing.Color.White;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.MaximizeBox = false;
             this.Name = "FrmMain";
             this.Text = "Brébisson EQ control ASCOM server";
@@ -3291,6 +3305,7 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.GroupBox groupBox9;
         private System.Windows.Forms.CheckBox checkBox1;
         private System.Windows.Forms.CheckBox checkBox19;
+        private System.Windows.Forms.CheckBox AutoMeridianFlip;
     }
 }
 

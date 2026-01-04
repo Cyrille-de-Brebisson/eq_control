@@ -21,7 +21,7 @@ namespace ASCOM.EQControl.Telescope.V1
     // This code is mostly a presentation layer for the functionality in the TelescopeHardware class. You should not need to change the contents of this file very much, if at all.
     // Most customisation will be in the TelescopeHardware class, which is shared by all instances of the driver, and which must handle all aspects of communicating with your device.
     [ComVisible(true)]
-    [Guid("9cfbd404-ad34-45da-839b-c1c216e1c93b")]
+    [Guid("9cfbd404-ad34-45da-839b-c1c216e1c93c")]
     [ProgId("ASCOM.EQControl.Telescope.V1")]
     [ServedClassName("Telescope on EQControl (V1)")] // Driver description that appears in the Chooser, customise as required
     [ClassInterface(ClassInterfaceType.None)]

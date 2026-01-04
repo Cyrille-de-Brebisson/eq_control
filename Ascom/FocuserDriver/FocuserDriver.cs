@@ -10,7 +10,7 @@ namespace ASCOM.EQControl.Focuser.V1
     // This code is mostly a presentation layer for the functionality in the FocuserHardware class. You should not need to change the contents of this file very much, if at all.
     // Most customisation will be in the FocuserHardware class, which is shared by all instances of the driver, and which must handle all aspects of communicating with your device.
     [ComVisible(true)]
-    [Guid("ea8f2e77-6a97-4c38-a769-2a1b2123ae38")]
+    [Guid("ea8f2e77-6a97-4c38-a769-2a1b2123ae39")]
     [ProgId("ASCOM.EQControl.Focuser.V1")]
     [ServedClassName("Focuser on EQControl (V1)")] // Driver description that appears in the Chooser, customise as required
     [ClassInterface(ClassInterfaceType.None)]

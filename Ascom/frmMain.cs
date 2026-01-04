@@ -326,10 +326,11 @@ namespace ASCOM.LocalServer
                     decdps.Text= (360.0*SharedResources.decMaxSpeed/SharedResources.decMaxPos).ToString("N1")+"°/s";
                     decMsToSpd.Text = SharedResources.decmsToSpeed.ToString();
                     timeComp.Text= SharedResources.timeComp.ToString();
+                    AutoMeridianFlip.Checked= (SharedResources.guidingBits&0x80)==0;
 
-                    SiteLatitude.Text = SharedResources.raToText(((Double)SharedResources.Latitude)/10);
+                    SiteLatitude.Text = SharedResources.raToText(((Double)SharedResources.Latitude)/10/3600);
                     SiteElevation.Text = SharedResources.SiteAltitude.ToString();
-                    SiteLongitude.Text = SharedResources.raToText(((Double)SharedResources.Longitude)/10);
+                    SiteLongitude.Text = SharedResources.raToText(((Double)SharedResources.Longitude)/10/3600);
                     FocalLength.Text = SharedResources.FocalLength.ToString();
                     Area.Text = SharedResources.Area_cm2.ToString();
                     Aperture.Text = SharedResources.Diameter_mm.ToString();
@@ -447,7 +448,9 @@ namespace ASCOM.LocalServer
                         SharedResources.raSettle = (int)((raSettle * (Int64)raMaxPos) / (360*3600));
                         SharedResources.focBacklash = focBacklash;
                         SharedResources.guidingBits = (checkBox9.Checked ? 1 : 0) + (checkBox2.Checked ? 2 : 0) + (raGuideStop.Checked ? 4 : 0) +
-                                                      (checkBox10.Checked ? 8 : 0) + (checkBox3.Checked ? 16 : 0) + (decGuideStop.Checked ? 32 : 0);
+                                                      (checkBox10.Checked ? 8 : 0) + (checkBox3.Checked ? 16 : 0) + (decGuideStop.Checked ? 32 : 0) +
+                                                      (AutoMeridianFlip.Checked?0:0x80);
+;
                         SharedResources.wifi= textBox24.Text; SharedResources.wifip= textBox25.Text;
                         SharedResources.updateHW();
                     }
