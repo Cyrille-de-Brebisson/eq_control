@@ -1129,7 +1129,7 @@ class CMotor : public Ctmc2209 { public:
     }
 };
 
-static struct { int32_t ra, dec; uint8_t flipFlags= 0; } savedGotoForFlip; // flipFlags bits 0: flipping, bit 1: flip must be calcualted as it was requested by low level...
+static struct { int32_t ra, dec; uint8_t flipFlags= 0; bool noAutoFlip= false; } savedGotoForFlip; // flipFlags bits 0: flipping, bit 1: flip must be calcualted as it was requested by low level...
 
 class CMotorUncounted : public CMotor { public:
   CMotorUncounted(uint8_t dir, uint8_t stp, uint8_t serialPin, uint8_t IHold, uint8_t adr): CMotor(dir, stp, serialPin, IHold, adr) { }
@@ -1137,19 +1137,6 @@ class CMotorUncounted : public CMotor { public:
     // Assumes that this is in the positive direction!
         uint32_t NextUncountedSteps= 0;         // Next time we need to step
         uint32_t deltaBetweenUncountedSteps= 0; // delta between 2 steps in micro seconds (1s/1e6)..
-        #ifdef __AVR__
-          #define TUstep uint16_t
-          #ifdef TMC
-              #define ustepsize 16U
-          #else
-              #define ustepsize 256U
-          #endif
-        #else
-          #define TUstep uint32_t
-          #define ustepsize 256
-        #endif
-        TUstep unstep= 0;                       // number of uncounted steps*ustepsize for precision...
-        TUstep unitsPerSteps;                   // number of units per steps*ustepsize. Note things to avoid 64k limit on avr!
         int32_t uncountedMaxRealVal;            // make sure min real is always smaller than this. allign maxReal
         uint32_t countAllUncountedSteps= 0;     // count ALL the uncounted steps to sync with PC
         int16_t _guide= 0;                      // Steps to add or remove in the automatic direction...
@@ -1161,21 +1148,30 @@ class CMotorUncounted : public CMotor { public:
         kill(); // reset microsteps and the like...
         pause= true;
         this->uncountedMaxRealVal= uncountedMaxRealVal;
-        NextUncountedSteps= now; unstep= 0;
+        NextUncountedSteps= now; 
         // every now and then, we need to shift the real min/max to stay in sync...
         // Let us add a *256 to the number just to be on the safe side of things...
         // how many steps do we need for 1 real unit?
-        unitsPerSteps= TUstep((uint64_t(maxPos)*ustepsize)/Abs(maxPosReal-minPosReal)); // here, by default, this will be around 1230 (or -1230)... meaning that 1230/256 steps is 1 unit
         unitsToMove= muldiv(unitsToMove, maxPos, minPosReal-maxPosReal);     // transform to steps... Assumes no loss of data as we have large number of both... This number SHOULD be positive on a telescope!
         deltaBetweenUncountedSteps= muldiv(seconds, 1000000L, unitsToMove);  // delta, in micros between uncounted steps...
         batchExtraStepsOnMoveComplete= false;
         pause= false;
     }
+    uint32_t nextRASec= 0; // next time ra edges need to inc by 1s...
+    void quantize()
+    {
+        CMotor::quantize();
+        if (Time::mnow()<nextRASec) return;
+        nextRASec+= 997; // one ra second every 997 ms ((23*3600L+56*60+4)*1000)/(24*3600L);
+        minPosReal++, maxPosReal++; 
+        if (maxPosReal>=uncountedMaxRealVal && minPosReal>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal; // loop around when the smallest of the 2 reaches 24h (will always be max post in reality...)
+    }
     int32_t nextGuideStep= 0, guideStepSize= 0;
     uint8_t skipNSteps= 0;
     #define min(a,b) ((a)<(b)?(a):(b))
     // TODO: make division performed by PC, not me!!!
-    void guide(int16_t steps, uint32_t speed) { cli(); guideStepSize= 1000000UL/speed; if (unitsPerSteps>0) steps= -steps; _guide= steps; nextGuideStep= Time::unow(); sei(); }
+    void guide(int16_t steps, uint32_t speed) 
+    { cli(); guideStepSize= 1000000UL/speed; _guide= -steps; nextGuideStep= Time::unow(); sei(); }
     void IRAM_ATTR step(uint32_t now)
     {
         if (CMotor::step(now)) { batchExtraStepsOnMoveComplete= true; return; }
@@ -1205,16 +1201,15 @@ class CMotorUncounted : public CMotor { public:
         NextUncountedSteps+= deltaBetweenUncountedSteps; if (skipNSteps!=0) { skipNSteps--; return; }
 
         step:
-        countAllUncountedSteps++; 
-        if (pos>=maxPos) { savedGotoForFlip.flipFlags= 2; return; } // flip if we are at the end of the run...
-        pos++;                                              // next position. We do count the movements!
-        STEP1(stp);                                         // step pulse up Minimum 1.9micros until down... or 31 cycles...
-        unstep+=ustepsize; // 256microsteps per step...
-        while (unstep>=unitsPerSteps) // enough steps will mean changes in the min/max pos to keep synced...
+        if (pos>=maxPos) // are we at the end???
         { 
-            unstep-= unitsPerSteps; minPosReal++, maxPosReal++; 
-            if (min(maxPosReal, minPosReal)>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal; // loop around when the smallest of the 2 reaches 24h (will always be max post in reality...)
-        }
+            if (!savedGotoForFlip.noAutoFlip) { savedGotoForFlip.flipFlags= 2; return; }
+            sideralMove= 0; deltaBetweenUncountedSteps= 0; // stop sideral move...
+            return;
+        } // flip if we are at the end of the run...
+        STEP1(stp);                                         // step pulse up Minimum 1.9micros until down... or 31 cycles...
+        countAllUncountedSteps++; 
+        pos++;                                              // next position. We do count the movements!
         STEP2(stp);                                        // step pulse down. It takes 4 cycles for an out, 12 cycles to add/substract 1. comparisons of 2 16 bit numbers is 6 cycles
     }
 };
@@ -1496,6 +1491,7 @@ class CSavedData { public:
     uint8_t invertAxes; // 1 bit per motor... For some reason dec, ra and then focus... dec is before RA... don't ask...
     uint8_t guidingBits; // 0:ra pier invert, 1:ra invert, 2:ra stop, 3:dec pier invert, 4:dec invert, 5:dec stop (these are server side stuff)
                          // 6: AP mode (true if access point mode, esp32 only)
+                         // 7: NoAutoFlip
     uint16_t raBacklash, focBacklash;
     uint8_t _raSettle; // not used anymore...
     uint8_t extra[11]; // for future...
@@ -1559,6 +1555,7 @@ class CSavedData { public:
         MFocus.backlash= savedData.focBacklash<<8;
         MRa.backlash= savedData.raBacklash;
         MDec.backlash= savedData.decBacklash;
+        savedGotoForFlip.noAutoFlip= (savedData.guidingBits&0x80)!=0;
     }
 } CSavedData::savedData;
 #pragma pack(pop) // This gets sent to PC so we need to ensure consistent data strucutre...

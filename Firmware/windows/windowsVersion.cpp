@@ -327,7 +327,7 @@ class CMyWin : public CFBWindow { public:
                     rect(x*2+4, y*2+4, 2, 2, display.pixel(x,y)? ClBlack : ClWhite);
             text(310, 0*3*8, 500, print("RA  pos:%d %s %s %s", MRa.pos, toHStr(MRa.minPosReal, s1), toHStr(MRaposInReal(), s2), toHStr(MRa.maxPosReal, s3)), ClBlack, ClWhite, 2);
             text(310, 1*3*8, 500, print("RA  spd:%d dst:%d respd:%d", MRa.currentSpd, MRa.dst, MRa.requestedSpd), ClBlack, ClWhite, 2);
-            text(310, 2*3*8, 500, print("RA ustp:%d", MRa.unstep), ClBlack, ClWhite, 3);
+            //text(310, 2*3*8, 500, print("RA ustp:%d", MRa.unstep), ClBlack, ClWhite, 3);
             text(310, 3*3*8, 500, print("RA rspd:%d", MRa.requestedSpd), ClBlack, ClWhite, 3);
             text(310, 4*3*8, 500, print("Dec pos:%d %s %s %s", MDec.pos, toHStr(MDec.minPosReal, s1), toHStr(MDec.posInReal(), s2), toHStr(MDec.maxPosReal, s3)), ClBlack, ClWhite, 2);
             text(310, 5*3*8, 500, print("Dec Invert:%s", MDec.invertDir?"True":"False"), ClBlack, ClWhite, 3);
