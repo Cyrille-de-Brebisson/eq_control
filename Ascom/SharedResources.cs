@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.ComTypes;
 using ASCOM.EQControl.Telescope.V1;
+using System.Drawing.Drawing2D;
 
 namespace ASCOM.LocalServer
 {
@@ -124,6 +125,7 @@ namespace ASCOM.LocalServer
         public static bool hasPowerCount= false;
         public static bool powerBit= false;
         public static int powerCount= 0;
+        public static bool hasGpsInfo= false;
         public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false;
 
         public static void updateAzimutal()
@@ -144,7 +146,7 @@ namespace ASCOM.LocalServer
                 if (timerPos != null) { timerPos.Dispose(); timerPos = null; }
                 Lock= 0;
                 serialCrahed= false;
-                connectionLive = false; hasHWPos= false; hasHWData = false; dataDisplayed= false; hasPowerCount= false;
+                connectionLive = false; hasHWPos= false; hasHWData = false; hasGpsInfo= false; dataDisplayed= false; hasPowerCount= false;
                 raMaxPos = 0; raMaxSpeed = 0; ramsToSpeed = 0; decMaxPos = 0; decMaxSpeed = 0; decmsToSpeed = 0;
                 if (SharedSerial!=null) SharedSerial.Connected = false;
                 tcpdisconnect();
@@ -294,7 +296,12 @@ namespace ASCOM.LocalServer
                                 {
                                     hasPowerCount= true;
                                     int tmp = readHex(v, ref i, i + 2);
-                                    powerCount= tmp&0x1f;
+                                    powerCount= tmp&0x0f;
+                                    if (hasGpsInfo != ((tmp&0x10)!=0))
+                                    {
+                                        hasGpsInfo= (tmp&0x10)!=0;
+                                        if (hasGpsInfo) hasHWData= false; // force a reask of HW data to get new GPS data...
+                                    }
                                     tmp>>= 5;
                                     if (tmp==0) ascomtrack= false;
                                     else { ascomtrack= true; ascomtrackspd= tmp-1; }

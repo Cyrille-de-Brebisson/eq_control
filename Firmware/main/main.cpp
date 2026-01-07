@@ -147,8 +147,8 @@ extern "C" void app_main()
                     while (sd<0.0f) sd+= 24.0f; while (sd>24.0f) sd-= 24.0f;
                     sync(int(sd*3600.0), 90*3600L);
                 }
-                CSavedData::savedData.Longitude= int(CGPS::longitude*36000.0f/(2.0f*M_PI));
-                CSavedData::savedData.Latitude= int(CGPS::latitude*36000.0f/(2.0f*M_PI));
+                CSavedData::savedData.Longitude= int(CGPS::longitude*(180.0f*36000.0f/M_PI));
+                CSavedData::savedData.Latitude= int(CGPS::latitude*(180.0f*36000.0f/M_PI));
                 CSavedData::savedData.Altitude= CGPS::altitude;
                 wasGpsSynced= true;
             }

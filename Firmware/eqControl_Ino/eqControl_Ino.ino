@@ -592,7 +592,7 @@ namespace MSerial {
 		memcpy(buf+bufl, c, l); bufl+= l; 
 	}
     void flush(char c) { print(c); usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
-    void flush() { usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
+    void flush(char const *s) { usb_serial_jtag_write_bytes(s, strlen(s), 20 / portTICK_PERIOD_MS); }
 };
 
 // These are here to be manageable in PC simulation mode
@@ -600,7 +600,7 @@ namespace MSerial {
 #define GPSUART UART_NUM_0
 int gpsGetData(char *b, int size) {     
     int l= uart_read_bytes(GPSUART, b, size, 500/portTICK_PERIOD_MS); // twice per second. Since data is normally under 300 bytes and buffer is 512B, we should get the full dataset on each go..
-    //b[l]= 0; MSerial::print(b); MSerial::flush();
+    //b[l]= 0; MSerial::flush(b); 
     return l;
 }
 void gpsDone() 
@@ -669,6 +669,7 @@ static uint16_t inline pgm_read_word(uint16_t const *p) { return *p; }
 
 
 #ifdef HASGPS // this is only valid in ESP and PC mode...
+static uint8_t hasGPSData= 0; // need to be set to 0x10 when data present!!!
 namespace CGPS {
     // Typical data comming form the gps at 9600 baud:
     // Info on visible satelites...
@@ -755,6 +756,7 @@ namespace CGPS {
                     M= readint(l,2); if (M==-1) goto next;
                     if (!skipComa(l,le)) goto next;
                     Y= readint(l,4); if (Y==-1) goto next;
+                    if (hasPosInfo) hasGPSData= 0x10; // need to be set to 0x10 when data present!!!
                     hasTimeInfo= true; goto next;
                 }
                 next: memcpy(b, le+1, b+sizeof(b)-le-1); sze-= int(le+1-b);
@@ -787,6 +789,8 @@ namespace CGPS {
     }
 
 };
+#else
+static uint8_t const hasGPSData= 0;
 #endif
 
 
@@ -1993,7 +1997,7 @@ static void doUI() // Display takes around 5ms...
         return;
     }
 
-    if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UIFocus) UI= UIMain; else UI++; } // menu change
+    if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI>=UIWifi) UI= UIMain; else UI++; } // menu change
     if ((newKeyDown&keyEsc)!=0) UI= UIMain; // escape menu.
 
     if (UI==UIMain) // Main screen. move, speed, menu and spiral
@@ -2072,7 +2076,7 @@ static void doUI() // Display takes around 5ms...
 
 
 
-    #ifdef ALPACA
+    #ifdef ESP
     if (UI==UIWifi) // ESP32 setup: wifi...
     {
         char adr[60]; sprintf(adr, "%ld.%ld.%ld.%ld", ipaddr&255, (ipaddr>>8)&255, (ipaddr>>16)&255, ipaddr>>24);
@@ -2081,10 +2085,10 @@ static void doUI() // Display takes around 5ms...
         if ((CSavedData::savedData.guidingBits&0x40)!=0)
         {
             display.text("Station DownKey=ap", 0, 16);
-            if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
+            if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits&=~0x40; CSavedData::savedData.save(); reboot(); }  // load back original setting. discard changes
         } else {
             display.text("AccessPnt UpKey=sta", 0, 16);
-            if ((newKeyDown&keyUp)!=0) { CSavedData::savedData.guidingBits&=~0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
+            if ((newKeyDown&keyUp)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); reboot(); }  // load back original setting. discard changes
         }
         #ifdef HASGPS
             // "-90:00 360:00 hhhhm" = 18 characters of a max of 21
@@ -2093,7 +2097,7 @@ static void doUI() // Display takes around 5ms...
             sprintf(adr, "%d:%d %d:%d %dm", ladd, ladm, lodd, lodm, int(CGPS::altitude));
             adr[21]= 0; /// make sure we do not over draw...
             if (!CGPS::hasPosInfo) display.text("unknown gps", 0, 24);
-            display.text(adr, 0, 24);
+            else display.text(adr, 0, 24);
         #endif
         return;
     }
@@ -2297,7 +2301,7 @@ void processSerial(char *C, int8_t nb)
             printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
             printHex2(MRa.countAllUncountedSteps, 6);           // this is also a time drift check
             printHex2(MRa.pos, 8); printHex2(MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
-            printHex2((powercnt&0x1f) | (MRa.sideralMove<<5), 2); 
+            printHex2((powercnt&0x0f) | (MRa.sideralMove<<5) | hasGPSData, 2);  // hasGPSData is bit 4...
             MSerial::flush('#');
             continue;
         }

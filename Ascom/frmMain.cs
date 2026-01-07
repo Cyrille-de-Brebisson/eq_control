@@ -363,8 +363,10 @@ namespace ASCOM.LocalServer
                     label53.Enabled= label54.Enabled= label55.Enabled= textBox25.Enabled= textBox24.Enabled= textBox26.Enabled= SharedResources.haswifi;
                     textBox24.Text= SharedResources.wifi;
                     textBox25.Text= SharedResources.wifip;
+                    checkBox18.Checked = (SharedResources.guidingBits&0x40)==0;
                     String s= ""; for (int i=3;  i>=0; i--) s+= (((SharedResources.ipaddr)>>(8*i))&0xff).ToString()+'.';
                     textBox26.Text= s.Substring(0, s.Length-1);
+                    groupBox4.Text= "Telescope && observatory"+(hasGpsInfo?" (GPS)":"");
                 }
             } else
             {
@@ -388,6 +390,7 @@ namespace ASCOM.LocalServer
                 FocMaxSpd.Text = "N/A";
                 textBox14.Text = "N/A";
                 RAMaxMovement.Text = "N/A";
+                groupBox4.Text= "Telescope && observatory";
 
                 textBox6.Text = "N/A";
                 textBox15.Text = "N/A";
@@ -450,6 +453,7 @@ namespace ASCOM.LocalServer
                         SharedResources.focBacklash = focBacklash;
                         SharedResources.guidingBits = (checkBox9.Checked ? 1 : 0) + (checkBox2.Checked ? 2 : 0) + (raGuideStop.Checked ? 4 : 0) +
                                                       (checkBox10.Checked ? 8 : 0) + (checkBox3.Checked ? 16 : 0) + (decGuideStop.Checked ? 32 : 0) +
+                                                      (checkBox18.Checked ? 0 : 0x40) + // = (SharedResources.guidingBits&0x40)!=0;
                                                       (AutoMeridianFlip.Checked?0:0x80);
 ;
                         SharedResources.wifi= textBox24.Text; SharedResources.wifip= textBox25.Text;
