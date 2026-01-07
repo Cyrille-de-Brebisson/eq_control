@@ -52,10 +52,15 @@ protected:
     TAlpacaErr set_focallength(float v) override { CSavedData::savedData.FocalLength= uint16_t(v*1000.0f); return ALPACA_OK;  } // Returns the telescope's focal length in meters.
     float get_siteelevation() override { return CSavedData::savedData.Altitude; } // Returns the observing $SiteElevation above mean sea level.
     TAlpacaErr set_siteelevation(float v) override { CSavedData::savedData.Altitude= uint16_t(v); return ALPACA_OK; } // Sets the observing site's elevation above mean sea level.
-    float get_sitelatitude() override { return CSavedData::savedData.Latitude/3600.0f; } // Returns the observing $SiteLatitude .
-    TAlpacaErr set_sitelatitude(float v) override { CSavedData::savedData.Latitude= uint32_t(v*3600.0f); return ALPACA_OK; } // Sets the observing site's latitude.
-    float get_sitelongitude() override { return CSavedData::savedData.Longitude/3600.0f; } // Returns the observing site's longitude.
-    TAlpacaErr set_sitelongitude(float v) override { CSavedData::savedData.Longitude= uint32_t(v*3600.0f); return ALPACA_OK; } // Sets the observing $SiteLongitude .
+    float get_sitelatitude() override { return CSavedData::savedData.Latitude/36000.0f; } // Returns the observing $SiteLatitude .
+    TAlpacaErr set_sitelatitude(float v) override { CSavedData::savedData.Latitude= uint32_t(v*36000.0f); return ALPACA_OK; } // Sets the observing site's latitude.
+    float get_sitelongitude() override { return CSavedData::savedData.Longitude/36000.0f; } // Returns the observing site's longitude.
+    TAlpacaErr set_sitelongitude(float v) override { CSavedData::savedData.Longitude= uint32_t(v*36000.0f); return ALPACA_OK; } // Sets the observing $SiteLongitude .
+    float get_guideratedeclination() override { return CSavedData::savedData.guideRateDec/10.0f; } 
+    TAlpacaErr set_guideratedeclination(float v) override { if (v>1.0f && v<20.0f) CSavedData::savedData.guideRateDec= int(v*10.0f); return ALPACA_OK; }
+    float get_guideraterightascension() override { return CSavedData::savedData.guideRateRA/10.0f;  }
+    TAlpacaErr set_guideraterightascension(float v) override { if (v>1.0f && v<20.0f) CSavedData::savedData.guideRateRA= int(v*10.0f); return ALPACA_OK; }
+
 
 
     void subSetup(CAlpaca *Alpaca, int sock, bool get, char *data, CMyStr &s) override  // This allows you to add stuff in the HTML or handle inputs...

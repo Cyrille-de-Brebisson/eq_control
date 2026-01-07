@@ -347,8 +347,8 @@ namespace ASCOM.LocalServer
                     RAMaxMovement.Text= SharedResources.raAmplitude.ToString();
                     groupBox2.Visible= SharedResources.focMaxSpd != 0;
 
-                    textBox6.Text = (SharedResources.guideRateDecf()*3600).ToString("N1");
-                    textBox15.Text = (SharedResources.guideRateRaf()*3600).ToString("N1");
+                    textBox6.Text = (SharedResources.guideRateDec/10.0f).ToString("N1");
+                    textBox15.Text = (SharedResources.guideRateRA/10.0f).ToString("N1");
                     checkBox4.Checked = (SharedResources.invertAxes & 2) != 0;
                     checkBox5.Checked = (SharedResources.invertAxes & 1) != 0;
                     checkBox6.Checked = (SharedResources.invertAxes & 4) != 0;
@@ -435,13 +435,14 @@ namespace ASCOM.LocalServer
                         int.TryParse(textBox14.Text, out raBacklash) && int.TryParse(textBox19.Text, out focBacklash) )
                     {
                         SharedResources.raMaxPos = raMaxPos; SharedResources.raMaxSpeed = raMaxSpeed; SharedResources.ramsToSpeed =ramsToSpeed; SharedResources.decMaxPos = decMaxPos; SharedResources.decMaxSpeed = decMaxSpeed; SharedResources.decmsToSpeed = decmsToSpeed; SharedResources.timeComp = timeComp;
-                        SharedResources.Latitude = Latitude; SharedResources.Longitude= Longitude; SharedResources.SiteAltitude= SiteAltitude; SharedResources.FocalLength= FocalLength; SharedResources.Diameter_mm= Diameter_mm; SharedResources.Area_cm2= Area_cm2; SharedResources.FocStepdum = (int)(foxstp * 10);
+                        SharedResources.Latitude = Latitude; SharedResources.Longitude= Longitude; SharedResources.SiteAltitude= SiteAltitude; SharedResources.updateAzimutal();
+                        SharedResources.FocalLength= FocalLength; SharedResources.Diameter_mm= Diameter_mm; SharedResources.Area_cm2= Area_cm2; SharedResources.FocStepdum = (int)(foxstp * 10);
                         SharedResources.focMaxStp = focMaxStp; SharedResources.focMaxSpd = focMaxSpd; SharedResources.focAcc = focAcc;
                         if (SharedResources.focMaxStp>65535) SharedResources.focMaxStp= 65535;
                         SharedResources.decBacklash= (int)((decBacklash*(Int64)decMaxPos)/(360*3600)); SharedResources.raAmplitude = raAmplitude;
-                        SharedResources.guideRateDec = (int)((decGuideRate * (Int64)SharedResources.decMaxPos / (360*3600)));
+                        SharedResources.guideRateDec = (int)(decGuideRate*10.0f);
                         if (SharedResources.guideRateDec>=256) SharedResources.guideRateDec= 255;
-                        SharedResources.guideRateRA = (int)((raGuideRate * (Int64)SharedResources.raMaxPos / (360*3600)));
+                        SharedResources.guideRateRA = (int)(raGuideRate*10.0f);
                         if (SharedResources.guideRateRA>=256) SharedResources.guideRateRA= 255;
                         SharedResources.invertAxes = (checkBox4.Checked ? 2 : 0) | (checkBox5.Checked ? 1 : 0) | (checkBox6.Checked ? 4 : 0);
                         SharedResources.raBacklash = (int)((raBacklash * (Int64)raMaxPos) / (360 * 3600));
@@ -1245,6 +1246,7 @@ namespace ASCOM.LocalServer
                     SharedResources.Latitude = Latitude; 
                     SharedResources.Longitude= Longitude; 
                     SharedResources.SiteAltitude= SiteAltitude;
+                    SharedResources.updateAzimutal();
                     SharedResources.FocalLength= fl;
                     SharedResources.Diameter_mm= ap;
                     SharedResources.Area_cm2= ar;

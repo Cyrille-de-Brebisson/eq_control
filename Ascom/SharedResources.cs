@@ -125,8 +125,15 @@ namespace ASCOM.LocalServer
         public static bool powerBit= false;
         public static int powerCount= 0;
         public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false;
-        public static double guideRateDecf() { return (360f * guideRateDec) / decMaxPos; }
-        public static double guideRateRaf() { return (360f * guideRateRA) / raMaxPos; }
+
+        public static void updateAzimutal()
+        { 
+                try { 
+                azimutal.SiteLatitude = Latitude / 36000.0f;
+                azimutal.SiteLongitude = Longitude / 36000.0f;
+                azimutal.SiteElevation = SiteAltitude;
+            } catch (Exception) { }
+        }
 
         public static int midOfraRealPos = 6 * 3600; // stores the mid point of the RA axis in real coordinates. Used to check if somehting will need a meridial flip...
         static public bool serialCrahed= false;
@@ -177,6 +184,8 @@ namespace ASCOM.LocalServer
             timeComp= readHex2(v, ref i, i + 8);
 
             Latitude = readHex2(v, ref i, i + 8); Longitude = readHex2(v, ref i, i + 8); SiteAltitude = readHex2(v, ref i, i + 4);
+            updateAzimutal();
+            
             FocalLength= readHex2(v, ref i, i + 4); Diameter_mm= readHex2(v, ref i, i + 4); Area_cm2= readHex2(v, ref i, i + 4); FocStepdum= readHex2(v, ref i, i + 4);
             focMaxStp = readHex2(v, ref i, i + 4); focMaxSpd = readHex2(v, ref i, i + 4); focAcc = readHex2(v, ref i, i + 4);
             decBacklash = readHex2(v, ref i, i + 4); raAmplitude = readHex2(v, ref i, i + 4);
@@ -187,11 +196,6 @@ namespace ASCOM.LocalServer
             focBacklash = readHex2(v, ref i, i + 4);
             raSettle = readHex2(v, ref i, i + 2);
 
-            azimutal.SiteLatitude = Latitude / 36000.0f;
-            azimutal.SiteLongitude = Longitude / 36000.0f;
-            azimutal.SiteElevation = SiteAltitude;
-
-            
             wifi= ""; wifip= ""; ipaddr= 0;
             if (haswifi)
             { 
