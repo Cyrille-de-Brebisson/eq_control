@@ -6,7 +6,7 @@
 #define TMC // in arduino (__AVR__) nano mode, you can select the TMC or non TMC driver... in esp, it is ALWAYS tmc...
 #define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
                // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply
-//#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
+#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
 //#define WEIRED_KBD // I had some early ARV boards with a slightly differnet keyboard. Uncomment for those
 
 /********************************************
@@ -592,22 +592,28 @@ namespace MSerial {
 		memcpy(buf+bufl, c, l); bufl+= l; 
 	}
     void flush(char c) { print(c); usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
+    void flush(char const *s) { usb_serial_jtag_write_bytes(s, strlen(s), 20 / portTICK_PERIOD_MS); }
 };
 
 // These are here to be manageable in PC simulation mode
 #include "driver/uart.h"
-int gpsGetData(char *b, int size) { return uart_read_bytes(UART_NUM_1, b, size, 10); }
+#define GPSUART UART_NUM_0
+int gpsGetData(char *b, int size) {     
+    int l= uart_read_bytes(GPSUART, b, size, 500/portTICK_PERIOD_MS); // twice per second. Since data is normally under 300 bytes and buffer is 512B, we should get the full dataset on each go..
+    //b[l]= 0; MSerial::flush(b); 
+    return l;
+}
 void gpsDone() 
 { 
-    uart_driver_delete(UART_NUM_1);
+    uart_driver_delete(GPSUART);
     vTaskDelete(nullptr); 
 }
 bool gpsBegin()
 {
     const uart_config_t uart_config = { .baud_rate= 9600, .data_bits= UART_DATA_8_BITS, .parity= UART_PARITY_DISABLE, .stop_bits= UART_STOP_BITS_1, .flow_ctrl= UART_HW_FLOWCTRL_DISABLE };
-    uart_driver_install(UART_NUM_1, 1024*2, 1024*2, 0, NULL, 0);
-    uart_param_config(UART_NUM_1, &uart_config);
-    uart_set_pin(UART_NUM_1, -1, 20, -1, -1);
+    uart_driver_install(GPSUART, 1024*2, 1024*2, 0, NULL, 0);
+    uart_param_config(GPSUART, &uart_config);
+    uart_set_pin(GPSUART, -1, 20, -1, -1);
     return true;
 }
 
@@ -663,6 +669,7 @@ static uint16_t inline pgm_read_word(uint16_t const *p) { return *p; }
 
 
 #ifdef HASGPS // this is only valid in ESP and PC mode...
+static uint8_t hasGPSData= 0; // need to be set to 0x10 when data present!!!
 namespace CGPS {
     // Typical data comming form the gps at 9600 baud:
     // Info on visible satelites...
@@ -695,7 +702,6 @@ namespace CGPS {
     float latitude=M_PI/4.0f, longitude= -4*M_PI/180.0f, altitude=42.0f; // Will be valid once hasPosInfo is true. angles in radians, altitude in meters...
     int h, m, s, D, M, Y; // will be valid once hasTimeInfo is true. Y is 2025
     bool hasPosInfo= false, hasTimeInfo= false, talking= false;
-	bool waitGPS= false;                    // true if we are waiting on GPS init
     static int readint(char *&s, int nbchr) // read n chr in an int. return -1 if they was not n numerical chrs.... s points at end of number at the end
     { int res= 0; while (--nbchr>=0) { if (*s<'0' || *s>'9') return -1; res= res*10+*s++-'0'; } return res; }
     static float readAngle(char *&s, int nb) // read an angle in ddmm.frac_part form where frac_part has an undefined length. result in rad. returns 1000 on error. s points at end of number at the end
@@ -719,9 +725,9 @@ namespace CGPS {
         char b[512]; int sze= 0;
         while (true)
         {
-            if ((hasPosInfo && hasTimeInfo) || !waitGPS) { gpsDone(); return; }// end of task. frees all that is needed...
+            //if (hasPosInfo && hasTimeInfo) { gpsDone(); return; }// end of task. frees all that is needed...
             int r= gpsGetData(b+sze, sizeof(b)-sze-1);
-            if (r<0) continue;
+            if (r<=0) continue;
             sze+= r; b[sze]=0;
             while (true)
             {
@@ -750,6 +756,7 @@ namespace CGPS {
                     M= readint(l,2); if (M==-1) goto next;
                     if (!skipComa(l,le)) goto next;
                     Y= readint(l,4); if (Y==-1) goto next;
+                    if (hasPosInfo) hasGPSData= 0x10; // need to be set to 0x10 when data present!!!
                     hasTimeInfo= true; goto next;
                 }
                 next: memcpy(b, le+1, b+sizeof(b)-le-1); sze-= int(le+1-b);
@@ -782,6 +789,8 @@ namespace CGPS {
     }
 
 };
+#else
+static uint8_t const hasGPSData= 0;
 #endif
 
 
@@ -1487,7 +1496,7 @@ class CSavedData { public:
     uint16_t Altitude, FocalLength, Diameter_mm, Area_cm2; 
     uint16_t FocStepdum, focMaxStp, focMaxSpd, focAcc; // FocStepdum is in thenth of microns..
     uint16_t decBacklash, raAmplitude; // raAmplitude is the amplitude of the RA movement in degree! allows to pass the meridian... decBacklash is in steps...
-    uint8_t guideRateRA, guideRateDec; // used by driver only... in steps/s
+    uint8_t guideRateRA, guideRateDec; // used by driver only... in thenth of arc"/s (75 = 7.5"/s) (used to be in steps/s)
     uint8_t invertAxes; // 1 bit per motor... For some reason dec, ra and then focus... dec is before RA... don't ask...
     uint8_t guidingBits; // 0:ra pier invert, 1:ra invert, 2:ra stop, 3:dec pier invert, 4:dec invert, 5:dec stop (these are server side stuff)
                          // 6: AP mode (true if access point mode, esp32 only)
@@ -1894,6 +1903,7 @@ static void toStr2(char *s, uint8_t v) { s[1]= '0'+(v%10); s[0]= '0'+(v/10); }
 
     uint8_t const column[] PROGMEM = { 6, 14, 60, 15, 207, 195, 243, 240, 60, 0, 0, 0, 0}; // Fat 2 dots....
     uint8_t const degree[] PROGMEM = { 6, 6, 0b11111111, 0b00111111, 0b11001111, 0b11111111, 0b1111};
+    uint8_t const earth[] PROGMEM = { 8, 8, 60, 114, 161, 137, 157, 181, 126, 60};
 
 static void dispRaDec(int32_t ra, int32_t dec) // dispaly ra/dec on screen
 { 
@@ -1941,9 +1951,6 @@ static void testGoSync(uint16_t newKeyDown, int32_t ra, int32_t dec)
 }
 
 static bool lastpower= false; // true if power is on!
-#ifdef ESP
-static bool candisplay= false; // can not display unless fully initiialized;
-#endif
 
 
 
@@ -1973,18 +1980,6 @@ static void doUI() // Display takes around 5ms...
 
     uint16_t keys= kbdValue(); uint16_t newKeyDown= keys&~lastkbd; lastkbd= keys;
 
-	#ifdef HASGPS
-	    if (CGPS::waitGPS)
-	    {
-	        if (!CGPS::talking) display.text2("INIT GPS", 16, 8); else  display.text2("WAIT GPS", 16, 8);
-	        if ((newKeyDown&keyEsc)!=0) CGPS::waitGPS= false; // esc key. stop where we are...
-	        return;
-	    }
-	#endif
-    #ifdef ESP
-        if (!candisplay) return; // no display if system not initlialized (GPS comes before)...
-    #endif
-
     if (keys!=0) display.screenOn(), returnToScreen1= 20*10, timeToScreenOff= timeToScreenOffConst;   // if a key is pressed, we reset the returnToScreen1 timer...
     if (returnToScreen1==0) UI= UIMain; else returnToScreen1--; // at 0, reset UI. else tick down timer
 	#ifndef PC // no screen auto off in PC mode...
@@ -2002,7 +1997,7 @@ static void doUI() // Display takes around 5ms...
         return;
     }
 
-    if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI==UIFocus) UI= UIMain; else UI++; } // menu change
+    if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI>=UIWifi) UI= UIMain; else UI++; } // menu change
     if ((newKeyDown&keyEsc)!=0) UI= UIMain; // escape menu.
 
     if (UI==UIMain) // Main screen. move, speed, menu and spiral
@@ -2015,7 +2010,10 @@ static void doUI() // Display takes around 5ms...
         display.blit(scopeWest() ? scopeW:scopeE, x+1, 0);
         if (!isRaFlipEnabled()) display.hline(x+2, 3, 5);
         static char const speeds[6][8]= {"Stopped", "Sideral", "Moon", "Sun", "King", "Unknow"};
-        display.text(speeds[MRa.sideralMove], 30, 8);
+        x= display.text(speeds[MRa.sideralMove], 30, 8);
+        #ifdef HASGPS
+            if (CGPS::hasPosInfo) display.blit(earth, x, 8);
+        #endif
 
 
         if ((newKeyDown&keyLeft)!=0) { stopMovingOnKeyRelease= true; MRa.goDownReal(manualSpeeds[manualSpeed]/15); }
@@ -2078,7 +2076,7 @@ static void doUI() // Display takes around 5ms...
 
 
 
-    #ifdef ALPACA
+    #ifdef ESP
     if (UI==UIWifi) // ESP32 setup: wifi...
     {
         char adr[60]; sprintf(adr, "%ld.%ld.%ld.%ld", ipaddr&255, (ipaddr>>8)&255, (ipaddr>>16)&255, ipaddr>>24);
@@ -2087,10 +2085,10 @@ static void doUI() // Display takes around 5ms...
         if ((CSavedData::savedData.guidingBits&0x40)!=0)
         {
             display.text("Station DownKey=ap", 0, 16);
-            if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
+            if ((newKeyDown&keyDown)!=0) { CSavedData::savedData.guidingBits&=~0x40; CSavedData::savedData.save(); reboot(); }  // load back original setting. discard changes
         } else {
             display.text("AccessPnt UpKey=sta", 0, 16);
-            if ((newKeyDown&keyUp)!=0) { CSavedData::savedData.guidingBits&=~0x40; CSavedData::savedData.save(); }  // load back original setting. discard changes
+            if ((newKeyDown&keyUp)!=0) { CSavedData::savedData.guidingBits|=0x40; CSavedData::savedData.save(); reboot(); }  // load back original setting. discard changes
         }
         #ifdef HASGPS
             // "-90:00 360:00 hhhhm" = 18 characters of a max of 21
@@ -2099,7 +2097,7 @@ static void doUI() // Display takes around 5ms...
             sprintf(adr, "%d:%d %d:%d %dm", ladd, ladm, lodd, lodm, int(CGPS::altitude));
             adr[21]= 0; /// make sure we do not over draw...
             if (!CGPS::hasPosInfo) display.text("unknown gps", 0, 24);
-            display.text(adr, 0, 24);
+            else display.text(adr, 0, 24);
         #endif
         return;
     }
@@ -2303,7 +2301,7 @@ void processSerial(char *C, int8_t nb)
             printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
             printHex2(MRa.countAllUncountedSteps, 6);           // this is also a time drift check
             printHex2(MRa.pos, 8); printHex2(MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
-            printHex2((powercnt&0x1f) | (MRa.sideralMove<<5), 2); 
+            printHex2((powercnt&0x0f) | (MRa.sideralMove<<5) | hasGPSData, 2);  // hasGPSData is bit 4...
             MSerial::flush('#');
             continue;
         }

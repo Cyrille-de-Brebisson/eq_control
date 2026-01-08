@@ -203,14 +203,14 @@ namespace ASCOM.EQControl.Telescope.V1
         /// The current Right Ascension movement rate offset for telescope guiding (degrees/sec) <summary>
         internal static double GuideRateDeclination // deg/s
         {
-            get { SharedResources.doLog("get GuideRateDeclination "+ SharedResources.guideRateDecf().ToString(), 1); return SharedResources.guideRateDecf(); }
+            get { SharedResources.doLog("get GuideRateDeclination "+ (SharedResources.guideRateDec/10.0f).ToString(), 1); return SharedResources.guideRateDec/10.0f; }
             set { SharedResources.doLog("set GuideRateDeclination "+GuideRateDeclination.ToString(), 1); }
         }
         /// The current Right Ascension movement rate offset for telescope guiding (degrees/sec)
 
         internal static double GuideRateRightAscension // deg/s
         {
-            get { SharedResources.doLog("get GuideRateRa " + SharedResources.guideRateRaf().ToString(), 1); return SharedResources.guideRateRaf(); }
+            get { SharedResources.doLog("get GuideRateRa " + (SharedResources.guideRateRA/10.0f).ToString(), 1); return SharedResources.guideRateRA/10.0f; }
             set { return; }
         }
         /// Moves the scope in the given direction for the given interval or time at
@@ -310,9 +310,9 @@ namespace ASCOM.EQControl.Telescope.V1
         internal static double FocalLength { get { return SharedResources.FocalLength / 1000.0f; } set { SharedResources.FocalLength = (int)(value * 1000); } } /// The telescope's focal length, meters
         internal static double ApertureArea { get { return SharedResources.Area_cm2/10000.0f; } set { SharedResources.Area_cm2= (int)(value*10000); } } /// The area of the telescope's aperture, taking into account any obstructions (square meters)
         internal static double ApertureDiameter { get { return SharedResources.Diameter_mm/1000.0f; } set { SharedResources.Diameter_mm= (int)(value*1000); } } /// The telescope's effective aperture diameter (meters)
-        internal static double SiteElevation { get { return SharedResources.SiteAltitude; } set { SharedResources.SiteAltitude = (int)value; } } /// The elevation above mean sea level (meters) of the site at which the telescope is located
-        internal static double SiteLatitude { get { return SharedResources.Latitude/36000.0f;  } set { SharedResources.Latitude = (int)(value*36000); } } // /// The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
-        internal static double SiteLongitude { get { return SharedResources.Longitude/36000.0f;  } set { SharedResources.Longitude= (int)(value*36000); } } /// The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
+        internal static double SiteElevation { get { return SharedResources.SiteAltitude; } set { SharedResources.SiteAltitude = (int)value; SharedResources.updateAzimutal(); } } /// The elevation above mean sea level (meters) of the site at which the telescope is located
+        internal static double SiteLatitude { get { return SharedResources.Latitude/36000.0f;  } set { SharedResources.Latitude = (int)(value*36000); SharedResources.updateAzimutal(); } } // /// The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
+        internal static double SiteLongitude { get { return SharedResources.Longitude/36000.0f;  } set { SharedResources.Longitude= (int)(value*36000); SharedResources.updateAzimutal(); } } /// The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
 
         /// Specifies a post-slew settling time (sec.).
         internal static short SlewSettleTime

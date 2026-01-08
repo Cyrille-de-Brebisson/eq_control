@@ -573,9 +573,19 @@ static char const img2[]=
 "*   *"\
 ;
 
+static char const img3[]=
+"  ****  "\
+" *    * "\
+"*   ****"\
+"*  ** **"\
+"**  ****"\
+"***  ***"\
+" *    * "\
+"  ****  "
+;
 void displayImageStruct()
 {
-    char const *p= img2; int w= 5, h=10;
+    char const *p= img3; int w= 8, h=8;
     printf("uint8_t const [] PROGMEM = { %d, %d",w, h);
     uint8_t b= 0, bs= 0;
     for (int x=0; x<w; x++)

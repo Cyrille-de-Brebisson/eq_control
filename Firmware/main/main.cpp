@@ -24,7 +24,6 @@ static void UITask(void*)
 }
 static void SerialTask(void*)
 {
-    MSerial::begin();
     while (true)
     {
         uint8_t d[64]; int l= MSerial::read(d, sizeof(d)); // blocking...
@@ -98,15 +97,10 @@ extern "C" void app_main()
     #ifdef HASADC // This one will setup the uart system... which will not be used after...
         CADC::begin();
     #endif
-    xTaskCreate(UITask, "UI", 4096, NULL, 2, NULL);
+    MSerial::begin();
 
-    #ifdef HASGPS // This one will setup the uart system... which will not be used after...
-        CGPS::waitGPS= true;
-        if (CGPS::begin()) // During this time the UI task will up date the LCD...
-        {
-            for (int i=0; i<1000; i++) if (!CGPS::waitGPS || (CGPS::hasPosInfo && CGPS::hasTimeInfo)) break; else vTaskDelay(100/portTICK_PERIOD_MS); // Wait 5s or until loation/place info is there!
-            CGPS::waitGPS= false;
-        }
+    #ifdef HASGPS
+        CGPS::begin();
     #endif
 
     GPIOSetup();
@@ -124,19 +118,6 @@ extern "C" void app_main()
 
     xTaskCreate(SerialTask, "Serial", 2048, NULL, 2, NULL);
 
-    #ifdef HASGPS // This one will setup the uart system... which will not be used after...
-        if (CGPS::hasPosInfo && CGPS::hasTimeInfo)
-        {
-            double sd= CGPS::localSiderealTime();
-            if (scopeWest()) sd-= 6.0f; else sd+= 6.0f; // setup ra depending on side of pier!
-            while (sd<0.0f) sd+= 24.0f; while (sd>24.0f) sd-= 24.0f;
-            sync(int(sd*3600.0), 90*3600L);
-            // Set alpaca gps positions?
-        }
-    #endif
-
-    candisplay= true;
-
     // setup alarm for motors!
     gptimer_handle_t gptimer;
     gptimer_config_t timer_config = { .clk_src = GPTIMER_CLK_SRC_DEFAULT, .direction = GPTIMER_COUNT_UP, .resolution_hz = 1000000 }; // 1MHz, clock
@@ -148,10 +129,29 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(gptimer_enable(gptimer));
     ESP_ERROR_CHECK(gptimer_start(gptimer));
 
+    xTaskCreate(UITask, "UI", 4096, NULL, 2, NULL);
+
     // update motor speed and handle flip 100 times per second...
+    bool wasGpsSynced= false;
     while (true) 
     {
         quantizePowerFlip(); // quantize motor speed, handles power and meridian flip...
         vTaskDelay(10/portTICK_PERIOD_MS);
+        #ifdef HASGPS // This one will setup the uart system... which will not be used after...
+            if (!wasGpsSynced && CGPS::hasPosInfo && CGPS::hasTimeInfo)
+            {
+                if (MDec.pos>=(MDec.maxPos-(MDec.maxPos>>7)) && abs(MRa.posInReal()-(6*3600))<30)
+                {
+                    double sd= CGPS::localSiderealTime();
+                    if (scopeWest()) sd-= 6.0f; else sd+= 6.0f; // setup ra depending on side of pier!
+                    while (sd<0.0f) sd+= 24.0f; while (sd>24.0f) sd-= 24.0f;
+                    sync(int(sd*3600.0), 90*3600L);
+                }
+                CSavedData::savedData.Longitude= int(CGPS::longitude*(180.0f*36000.0f/M_PI));
+                CSavedData::savedData.Latitude= int(CGPS::latitude*(180.0f*36000.0f/M_PI));
+                CSavedData::savedData.Altitude= CGPS::altitude;
+                wasGpsSynced= true;
+            }
+        #endif
     }
 }

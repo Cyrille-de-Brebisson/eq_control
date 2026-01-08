@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.ComTypes;
 using ASCOM.EQControl.Telescope.V1;
+using System.Drawing.Drawing2D;
 
 namespace ASCOM.LocalServer
 {
@@ -124,9 +125,17 @@ namespace ASCOM.LocalServer
         public static bool hasPowerCount= false;
         public static bool powerBit= false;
         public static int powerCount= 0;
+        public static bool hasGpsInfo= false;
         public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false;
-        public static double guideRateDecf() { return (360f * guideRateDec) / decMaxPos; }
-        public static double guideRateRaf() { return (360f * guideRateRA) / raMaxPos; }
+
+        public static void updateAzimutal()
+        { 
+                try { 
+                azimutal.SiteLatitude = Latitude / 36000.0f;
+                azimutal.SiteLongitude = Longitude / 36000.0f;
+                azimutal.SiteElevation = SiteAltitude;
+            } catch (Exception) { }
+        }
 
         public static int midOfraRealPos = 6 * 3600; // stores the mid point of the RA axis in real coordinates. Used to check if somehting will need a meridial flip...
         static public bool serialCrahed= false;
@@ -137,7 +146,7 @@ namespace ASCOM.LocalServer
                 if (timerPos != null) { timerPos.Dispose(); timerPos = null; }
                 Lock= 0;
                 serialCrahed= false;
-                connectionLive = false; hasHWPos= false; hasHWData = false; dataDisplayed= false; hasPowerCount= false;
+                connectionLive = false; hasHWPos= false; hasHWData = false; hasGpsInfo= false; dataDisplayed= false; hasPowerCount= false;
                 raMaxPos = 0; raMaxSpeed = 0; ramsToSpeed = 0; decMaxPos = 0; decMaxSpeed = 0; decmsToSpeed = 0;
                 if (SharedSerial!=null) SharedSerial.Connected = false;
                 tcpdisconnect();
@@ -177,6 +186,8 @@ namespace ASCOM.LocalServer
             timeComp= readHex2(v, ref i, i + 8);
 
             Latitude = readHex2(v, ref i, i + 8); Longitude = readHex2(v, ref i, i + 8); SiteAltitude = readHex2(v, ref i, i + 4);
+            updateAzimutal();
+            
             FocalLength= readHex2(v, ref i, i + 4); Diameter_mm= readHex2(v, ref i, i + 4); Area_cm2= readHex2(v, ref i, i + 4); FocStepdum= readHex2(v, ref i, i + 4);
             focMaxStp = readHex2(v, ref i, i + 4); focMaxSpd = readHex2(v, ref i, i + 4); focAcc = readHex2(v, ref i, i + 4);
             decBacklash = readHex2(v, ref i, i + 4); raAmplitude = readHex2(v, ref i, i + 4);
@@ -187,11 +198,6 @@ namespace ASCOM.LocalServer
             focBacklash = readHex2(v, ref i, i + 4);
             raSettle = readHex2(v, ref i, i + 2);
 
-            azimutal.SiteLatitude = Latitude / 36000.0f;
-            azimutal.SiteLongitude = Longitude / 36000.0f;
-            azimutal.SiteElevation = SiteAltitude;
-
-            
             wifi= ""; wifip= ""; ipaddr= 0;
             if (haswifi)
             { 
@@ -290,7 +296,12 @@ namespace ASCOM.LocalServer
                                 {
                                     hasPowerCount= true;
                                     int tmp = readHex(v, ref i, i + 2);
-                                    powerCount= tmp&0x1f;
+                                    powerCount= tmp&0x0f;
+                                    if (hasGpsInfo != ((tmp&0x10)!=0))
+                                    {
+                                        hasGpsInfo= (tmp&0x10)!=0;
+                                        if (hasGpsInfo) hasHWData= false; // force a reask of HW data to get new GPS data...
+                                    }
                                     tmp>>= 5;
                                     if (tmp==0) ascomtrack= false;
                                     else { ascomtrack= true; ascomtrackspd= tmp-1; }

@@ -112,6 +112,7 @@ namespace ASCOM.LocalServer
             this.label36 = new System.Windows.Forms.Label();
             this.FocMaxAcc = new System.Windows.Forms.TextBox();
             this.groupBox6 = new System.Windows.Forms.GroupBox();
+            this.AutoMeridianFlip = new System.Windows.Forms.CheckBox();
             this.button43 = new System.Windows.Forms.Button();
             this.RAMaxMovement = new System.Windows.Forms.TextBox();
             this.label35 = new System.Windows.Forms.Label();
@@ -248,7 +249,6 @@ namespace ASCOM.LocalServer
             this.checkBox13 = new System.Windows.Forms.CheckBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.checkBox19 = new System.Windows.Forms.CheckBox();
-            this.AutoMeridianFlip = new System.Windows.Forms.CheckBox();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -278,7 +278,7 @@ namespace ASCOM.LocalServer
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(187, 41);
             this.label1.TabIndex = 0;
-            this.label1.Text = "Ascom driver for Brebisson compound mount/focusser";
+            this.label1.Text = "Ascom driver for mount && focusser by C. de Brébisson";
             // 
             // label2
             // 
@@ -733,7 +733,7 @@ namespace ASCOM.LocalServer
             this.checkBox12.Location = new System.Drawing.Point(19, 20);
             this.checkBox12.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox12.Name = "checkBox12";
-            this.checkBox12.Size = new System.Drawing.Size(156, 20);
+            this.checkBox12.Size = new System.Drawing.Size(153, 20);
             this.checkBox12.TabIndex = 57;
             this.checkBox12.Text = "use mm and micron/s";
             this.checkBox12.UseVisualStyleBackColor = false;
@@ -1239,7 +1239,7 @@ namespace ASCOM.LocalServer
             this.checkBox6.Location = new System.Drawing.Point(243, 71);
             this.checkBox6.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox6.Name = "checkBox6";
-            this.checkBox6.Size = new System.Drawing.Size(61, 20);
+            this.checkBox6.Size = new System.Drawing.Size(58, 20);
             this.checkBox6.TabIndex = 43;
             this.checkBox6.Text = "invert";
             this.checkBox6.UseVisualStyleBackColor = true;
@@ -1308,6 +1308,18 @@ namespace ASCOM.LocalServer
             this.groupBox6.TabIndex = 38;
             this.groupBox6.TabStop = false;
             this.groupBox6.Text = "RA/Dec setup";
+            // 
+            // AutoMeridianFlip
+            // 
+            this.AutoMeridianFlip.AutoSize = true;
+            this.AutoMeridianFlip.Location = new System.Drawing.Point(7, 133);
+            this.AutoMeridianFlip.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.AutoMeridianFlip.Name = "AutoMeridianFlip";
+            this.AutoMeridianFlip.Size = new System.Drawing.Size(128, 20);
+            this.AutoMeridianFlip.TabIndex = 46;
+            this.AutoMeridianFlip.Text = "Auto meridian flip";
+            this.toolTip1.SetToolTip(this.AutoMeridianFlip, "Automatically flip ahen reaching meridian");
+            this.AutoMeridianFlip.UseVisualStyleBackColor = true;
             // 
             // button43
             // 
@@ -1385,7 +1397,7 @@ namespace ASCOM.LocalServer
             this.checkBox5.Location = new System.Drawing.Point(233, 212);
             this.checkBox5.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox5.Name = "checkBox5";
-            this.checkBox5.Size = new System.Drawing.Size(61, 20);
+            this.checkBox5.Size = new System.Drawing.Size(58, 20);
             this.checkBox5.TabIndex = 42;
             this.checkBox5.Text = "invert";
             this.checkBox5.UseVisualStyleBackColor = true;
@@ -1396,7 +1408,7 @@ namespace ASCOM.LocalServer
             this.checkBox4.Location = new System.Drawing.Point(233, 64);
             this.checkBox4.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox4.Name = "checkBox4";
-            this.checkBox4.Size = new System.Drawing.Size(61, 20);
+            this.checkBox4.Size = new System.Drawing.Size(58, 20);
             this.checkBox4.TabIndex = 41;
             this.checkBox4.Text = "invert";
             this.checkBox4.UseVisualStyleBackColor = true;
@@ -1661,7 +1673,7 @@ namespace ASCOM.LocalServer
             this.checkBox9.Location = new System.Drawing.Point(11, 48);
             this.checkBox9.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox9.Name = "checkBox9";
-            this.checkBox9.Size = new System.Drawing.Size(88, 20);
+            this.checkBox9.Size = new System.Drawing.Size(85, 20);
             this.checkBox9.TabIndex = 43;
             this.checkBox9.Text = "Pier Invert";
             this.checkBox9.UseVisualStyleBackColor = true;
@@ -1713,7 +1725,7 @@ namespace ASCOM.LocalServer
             this.checkBox2.Location = new System.Drawing.Point(117, 48);
             this.checkBox2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(61, 20);
+            this.checkBox2.Size = new System.Drawing.Size(58, 20);
             this.checkBox2.TabIndex = 35;
             this.checkBox2.Text = "invert";
             this.checkBox2.UseVisualStyleBackColor = true;
@@ -1725,7 +1737,7 @@ namespace ASCOM.LocalServer
             this.raGuideStop.Location = new System.Drawing.Point(193, 48);
             this.raGuideStop.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.raGuideStop.Name = "raGuideStop";
-            this.raGuideStop.Size = new System.Drawing.Size(55, 20);
+            this.raGuideStop.Size = new System.Drawing.Size(52, 20);
             this.raGuideStop.TabIndex = 37;
             this.raGuideStop.Text = "stop";
             this.raGuideStop.UseVisualStyleBackColor = true;
@@ -1757,7 +1769,7 @@ namespace ASCOM.LocalServer
             this.checkBox10.Location = new System.Drawing.Point(12, 47);
             this.checkBox10.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox10.Name = "checkBox10";
-            this.checkBox10.Size = new System.Drawing.Size(88, 20);
+            this.checkBox10.Size = new System.Drawing.Size(85, 20);
             this.checkBox10.TabIndex = 44;
             this.checkBox10.Text = "Pier Invert";
             this.checkBox10.UseVisualStyleBackColor = true;
@@ -1788,7 +1800,7 @@ namespace ASCOM.LocalServer
             this.decGuideStop.Location = new System.Drawing.Point(192, 47);
             this.decGuideStop.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.decGuideStop.Name = "decGuideStop";
-            this.decGuideStop.Size = new System.Drawing.Size(55, 20);
+            this.decGuideStop.Size = new System.Drawing.Size(52, 20);
             this.decGuideStop.TabIndex = 38;
             this.decGuideStop.Text = "stop";
             this.decGuideStop.UseVisualStyleBackColor = true;
@@ -1811,7 +1823,7 @@ namespace ASCOM.LocalServer
             this.checkBox3.Location = new System.Drawing.Point(121, 47);
             this.checkBox3.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox3.Name = "checkBox3";
-            this.checkBox3.Size = new System.Drawing.Size(61, 20);
+            this.checkBox3.Size = new System.Drawing.Size(58, 20);
             this.checkBox3.TabIndex = 36;
             this.checkBox3.Text = "invert";
             this.checkBox3.UseVisualStyleBackColor = true;
@@ -1900,7 +1912,7 @@ namespace ASCOM.LocalServer
             this.FreezeLastResponse.Location = new System.Drawing.Point(583, 27);
             this.FreezeLastResponse.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.FreezeLastResponse.Name = "FreezeLastResponse";
-            this.FreezeLastResponse.Size = new System.Drawing.Size(71, 20);
+            this.FreezeLastResponse.Size = new System.Drawing.Size(68, 20);
             this.FreezeLastResponse.TabIndex = 48;
             this.FreezeLastResponse.Text = "Freeze";
             this.FreezeLastResponse.UseVisualStyleBackColor = true;
@@ -1944,7 +1956,7 @@ namespace ASCOM.LocalServer
             this.checkBox1.Location = new System.Drawing.Point(11, 76);
             this.checkBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(168, 20);
+            this.checkBox1.Size = new System.Drawing.Size(165, 20);
             this.checkBox1.TabIndex = 58;
             this.checkBox1.Text = "Show serial commands";
             this.checkBox1.UseVisualStyleBackColor = false;
@@ -1958,7 +1970,7 @@ namespace ASCOM.LocalServer
             this.checkBox8.Location = new System.Drawing.Point(11, 58);
             this.checkBox8.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox8.Name = "checkBox8";
-            this.checkBox8.Size = new System.Drawing.Size(177, 20);
+            this.checkBox8.Size = new System.Drawing.Size(174, 20);
             this.checkBox8.TabIndex = 55;
             this.checkBox8.Text = "show frequent ascom log";
             this.checkBox8.UseVisualStyleBackColor = false;
@@ -1974,7 +1986,7 @@ namespace ASCOM.LocalServer
             this.checkboxlogsystem.Location = new System.Drawing.Point(11, 20);
             this.checkboxlogsystem.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkboxlogsystem.Name = "checkboxlogsystem";
-            this.checkboxlogsystem.Size = new System.Drawing.Size(130, 20);
+            this.checkboxlogsystem.Size = new System.Drawing.Size(127, 20);
             this.checkboxlogsystem.TabIndex = 49;
             this.checkboxlogsystem.Text = "Show system log";
             this.checkboxlogsystem.UseVisualStyleBackColor = false;
@@ -1991,7 +2003,7 @@ namespace ASCOM.LocalServer
             this.checkboxascom.Location = new System.Drawing.Point(11, 40);
             this.checkboxascom.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkboxascom.Name = "checkboxascom";
-            this.checkboxascom.Size = new System.Drawing.Size(126, 20);
+            this.checkboxascom.Size = new System.Drawing.Size(123, 20);
             this.checkboxascom.TabIndex = 54;
             this.checkboxascom.Text = "show ascom log";
             this.checkboxascom.UseVisualStyleBackColor = false;
@@ -2008,7 +2020,7 @@ namespace ASCOM.LocalServer
             this.checkBox15.Location = new System.Drawing.Point(11, 95);
             this.checkBox15.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox15.Name = "checkBox15";
-            this.checkBox15.Size = new System.Drawing.Size(115, 20);
+            this.checkBox15.Size = new System.Drawing.Size(112, 20);
             this.checkBox15.TabIndex = 56;
             this.checkBox15.Text = "show phd2 log";
             this.checkBox15.UseVisualStyleBackColor = false;
@@ -2024,7 +2036,7 @@ namespace ASCOM.LocalServer
             this.checkBox16.Location = new System.Drawing.Point(11, 113);
             this.checkBox16.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox16.Name = "checkBox16";
-            this.checkBox16.Size = new System.Drawing.Size(102, 20);
+            this.checkBox16.Size = new System.Drawing.Size(99, 20);
             this.checkBox16.TabIndex = 57;
             this.checkBox16.Text = "show iss log";
             this.checkBox16.UseVisualStyleBackColor = false;
@@ -2293,7 +2305,7 @@ namespace ASCOM.LocalServer
             this.rbPlanets.Location = new System.Drawing.Point(316, 27);
             this.rbPlanets.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.rbPlanets.Name = "rbPlanets";
-            this.rbPlanets.Size = new System.Drawing.Size(73, 20);
+            this.rbPlanets.Size = new System.Drawing.Size(70, 20);
             this.rbPlanets.TabIndex = 7;
             this.rbPlanets.Text = "Planets";
             this.rbPlanets.UseVisualStyleBackColor = true;
@@ -2346,7 +2358,7 @@ namespace ASCOM.LocalServer
             this.rbStars.Location = new System.Drawing.Point(245, 27);
             this.rbStars.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.rbStars.Name = "rbStars";
-            this.rbStars.Size = new System.Drawing.Size(59, 20);
+            this.rbStars.Size = new System.Drawing.Size(56, 20);
             this.rbStars.TabIndex = 3;
             this.rbStars.Text = "Stars";
             this.rbStars.UseVisualStyleBackColor = true;
@@ -2358,7 +2370,7 @@ namespace ASCOM.LocalServer
             this.rbNgc.Location = new System.Drawing.Point(187, 27);
             this.rbNgc.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.rbNgc.Name = "rbNgc";
-            this.rbNgc.Size = new System.Drawing.Size(53, 20);
+            this.rbNgc.Size = new System.Drawing.Size(50, 20);
             this.rbNgc.TabIndex = 2;
             this.rbNgc.Text = "Ngc";
             this.rbNgc.UseVisualStyleBackColor = true;
@@ -2370,7 +2382,7 @@ namespace ASCOM.LocalServer
             this.rbC.Location = new System.Drawing.Point(100, 27);
             this.rbC.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.rbC.Name = "rbC";
-            this.rbC.Size = new System.Drawing.Size(76, 20);
+            this.rbC.Size = new System.Drawing.Size(73, 20);
             this.rbC.TabIndex = 1;
             this.rbC.Text = "Cadwell";
             this.rbC.UseVisualStyleBackColor = true;
@@ -2383,7 +2395,7 @@ namespace ASCOM.LocalServer
             this.rbMessier.Location = new System.Drawing.Point(16, 27);
             this.rbMessier.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.rbMessier.Name = "rbMessier";
-            this.rbMessier.Size = new System.Drawing.Size(76, 20);
+            this.rbMessier.Size = new System.Drawing.Size(73, 20);
             this.rbMessier.TabIndex = 0;
             this.rbMessier.TabStop = true;
             this.rbMessier.Text = "Messier";
@@ -2474,7 +2486,7 @@ namespace ASCOM.LocalServer
             this.checkBox18.Location = new System.Drawing.Point(11, 494);
             this.checkBox18.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox18.Name = "checkBox18";
-            this.checkBox18.Size = new System.Drawing.Size(47, 20);
+            this.checkBox18.Size = new System.Drawing.Size(44, 20);
             this.checkBox18.TabIndex = 44;
             this.checkBox18.Text = "AP";
             this.toolTip1.SetToolTip(this.checkBox18, "Check to use access point mode");
@@ -2804,7 +2816,7 @@ namespace ASCOM.LocalServer
             this.checkBox7.Location = new System.Drawing.Point(21, 364);
             this.checkBox7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox7.Name = "checkBox7";
-            this.checkBox7.Size = new System.Drawing.Size(207, 20);
+            this.checkBox7.Size = new System.Drawing.Size(204, 20);
             this.checkBox7.TabIndex = 55;
             this.checkBox7.Text = "Restart PHD2 guide after slew";
             this.toolTip1.SetToolTip(this.checkBox7, "If this is checked, will restart PHD2 guiding after a goto operation");
@@ -2820,7 +2832,7 @@ namespace ASCOM.LocalServer
             this.checkBox11.Location = new System.Drawing.Point(21, 339);
             this.checkBox11.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox11.Name = "checkBox11";
-            this.checkBox11.Size = new System.Drawing.Size(127, 20);
+            this.checkBox11.Size = new System.Drawing.Size(124, 20);
             this.checkBox11.TabIndex = 56;
             this.checkBox11.Text = "Yell on power off";
             this.toolTip1.SetToolTip(this.checkBox11, "With latest HW, will plkay a \"power\" sound if the power cuts (which means that yo" +
@@ -2858,7 +2870,7 @@ namespace ASCOM.LocalServer
             this.checkBox17.Location = new System.Drawing.Point(288, -2);
             this.checkBox17.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox17.Name = "checkBox17";
-            this.checkBox17.Size = new System.Drawing.Size(91, 20);
+            this.checkBox17.Size = new System.Drawing.Size(88, 20);
             this.checkBox17.TabIndex = 61;
             this.checkBox17.Text = "5mn alarm";
             this.toolTip1.SetToolTip(this.checkBox17, "If checked, will make a sound 5mn before the ISS becomes visible");
@@ -2872,7 +2884,7 @@ namespace ASCOM.LocalServer
             this.label51.Location = new System.Drawing.Point(215, -1);
             this.label51.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label51.Name = "label51";
-            this.label51.Size = new System.Drawing.Size(75, 17);
+            this.label51.Size = new System.Drawing.Size(57, 13);
             this.label51.TabIndex = 59;
             this.label51.Text = "Norad Site";
             this.toolTip1.SetToolTip(this.label51, "Click here to get to the Norad site where you can find satelite numbers");
@@ -2911,7 +2923,7 @@ namespace ASCOM.LocalServer
             this.checkBox14.Location = new System.Drawing.Point(248, 64);
             this.checkBox14.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox14.Name = "checkBox14";
-            this.checkBox14.Size = new System.Drawing.Size(120, 20);
+            this.checkBox14.Size = new System.Drawing.Size(117, 20);
             this.checkBox14.TabIndex = 58;
             this.checkBox14.Text = "Track above 0°";
             this.toolTip1.SetToolTip(this.checkBox14, "If checked, will track the ISS or satelite as soon as it gets above the horizon");
@@ -2971,7 +2983,7 @@ namespace ASCOM.LocalServer
             this.checkBox13.Location = new System.Drawing.Point(11, -1);
             this.checkBox13.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox13.Name = "checkBox13";
-            this.checkBox13.Size = new System.Drawing.Size(121, 20);
+            this.checkBox13.Size = new System.Drawing.Size(118, 20);
             this.checkBox13.TabIndex = 58;
             this.checkBox13.Text = "ISS (or number)";
             this.toolTip1.SetToolTip(this.checkBox13, "Check to look for ISS position. If you type a satelite number in the box on the r" +
@@ -2995,25 +3007,13 @@ namespace ASCOM.LocalServer
             this.checkBox19.Location = new System.Drawing.Point(242, 339);
             this.checkBox19.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox19.Name = "checkBox19";
-            this.checkBox19.Size = new System.Drawing.Size(168, 20);
+            this.checkBox19.Size = new System.Drawing.Size(165, 20);
             this.checkBox19.TabIndex = 57;
             this.checkBox19.Text = "Reconnect on usb drop";
             this.toolTip1.SetToolTip(this.checkBox19, "If the com connection is lost, will attempt to reconnect when the com returns. Wi" +
         "ll not work on HW that does a motor position reset at startup!");
             this.checkBox19.UseVisualStyleBackColor = false;
             this.checkBox19.CheckedChanged += new System.EventHandler(this.checkBox19_CheckedChanged);
-            // 
-            // AutoMeridianFlip
-            // 
-            this.AutoMeridianFlip.AutoSize = true;
-            this.AutoMeridianFlip.Location = new System.Drawing.Point(7, 133);
-            this.AutoMeridianFlip.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.AutoMeridianFlip.Name = "AutoMeridianFlip";
-            this.AutoMeridianFlip.Size = new System.Drawing.Size(131, 20);
-            this.AutoMeridianFlip.TabIndex = 46;
-            this.AutoMeridianFlip.Text = "Auto meridian flip";
-            this.toolTip1.SetToolTip(this.AutoMeridianFlip, "Automatically flip ahen reaching meridian");
-            this.AutoMeridianFlip.UseVisualStyleBackColor = true;
             // 
             // FrmMain
             // 
@@ -3044,7 +3044,7 @@ namespace ASCOM.LocalServer
             this.Margin = new System.Windows.Forms.Padding(4);
             this.MaximizeBox = false;
             this.Name = "FrmMain";
-            this.Text = "Brébisson EQ control ASCOM server";
+            this.Text = "EQ control ASCOM server";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmMain_FormClosing);
             this.groupMount.ResumeLayout(false);
             this.groupMount.PerformLayout();

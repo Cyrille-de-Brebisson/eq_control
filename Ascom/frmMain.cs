@@ -347,8 +347,8 @@ namespace ASCOM.LocalServer
                     RAMaxMovement.Text= SharedResources.raAmplitude.ToString();
                     groupBox2.Visible= SharedResources.focMaxSpd != 0;
 
-                    textBox6.Text = (SharedResources.guideRateDecf()*3600).ToString("N1");
-                    textBox15.Text = (SharedResources.guideRateRaf()*3600).ToString("N1");
+                    textBox6.Text = (SharedResources.guideRateDec/10.0f).ToString("N1");
+                    textBox15.Text = (SharedResources.guideRateRA/10.0f).ToString("N1");
                     checkBox4.Checked = (SharedResources.invertAxes & 2) != 0;
                     checkBox5.Checked = (SharedResources.invertAxes & 1) != 0;
                     checkBox6.Checked = (SharedResources.invertAxes & 4) != 0;
@@ -363,8 +363,10 @@ namespace ASCOM.LocalServer
                     label53.Enabled= label54.Enabled= label55.Enabled= textBox25.Enabled= textBox24.Enabled= textBox26.Enabled= SharedResources.haswifi;
                     textBox24.Text= SharedResources.wifi;
                     textBox25.Text= SharedResources.wifip;
+                    checkBox18.Checked = (SharedResources.guidingBits&0x40)==0;
                     String s= ""; for (int i=3;  i>=0; i--) s+= (((SharedResources.ipaddr)>>(8*i))&0xff).ToString()+'.';
                     textBox26.Text= s.Substring(0, s.Length-1);
+                    groupBox4.Text= "Telescope && observatory"+(hasGpsInfo?" (GPS)":"");
                 }
             } else
             {
@@ -388,6 +390,7 @@ namespace ASCOM.LocalServer
                 FocMaxSpd.Text = "N/A";
                 textBox14.Text = "N/A";
                 RAMaxMovement.Text = "N/A";
+                groupBox4.Text= "Telescope && observatory";
 
                 textBox6.Text = "N/A";
                 textBox15.Text = "N/A";
@@ -435,13 +438,14 @@ namespace ASCOM.LocalServer
                         int.TryParse(textBox14.Text, out raBacklash) && int.TryParse(textBox19.Text, out focBacklash) )
                     {
                         SharedResources.raMaxPos = raMaxPos; SharedResources.raMaxSpeed = raMaxSpeed; SharedResources.ramsToSpeed =ramsToSpeed; SharedResources.decMaxPos = decMaxPos; SharedResources.decMaxSpeed = decMaxSpeed; SharedResources.decmsToSpeed = decmsToSpeed; SharedResources.timeComp = timeComp;
-                        SharedResources.Latitude = Latitude; SharedResources.Longitude= Longitude; SharedResources.SiteAltitude= SiteAltitude; SharedResources.FocalLength= FocalLength; SharedResources.Diameter_mm= Diameter_mm; SharedResources.Area_cm2= Area_cm2; SharedResources.FocStepdum = (int)(foxstp * 10);
+                        SharedResources.Latitude = Latitude; SharedResources.Longitude= Longitude; SharedResources.SiteAltitude= SiteAltitude; SharedResources.updateAzimutal();
+                        SharedResources.FocalLength= FocalLength; SharedResources.Diameter_mm= Diameter_mm; SharedResources.Area_cm2= Area_cm2; SharedResources.FocStepdum = (int)(foxstp * 10);
                         SharedResources.focMaxStp = focMaxStp; SharedResources.focMaxSpd = focMaxSpd; SharedResources.focAcc = focAcc;
                         if (SharedResources.focMaxStp>65535) SharedResources.focMaxStp= 65535;
                         SharedResources.decBacklash= (int)((decBacklash*(Int64)decMaxPos)/(360*3600)); SharedResources.raAmplitude = raAmplitude;
-                        SharedResources.guideRateDec = (int)((decGuideRate * (Int64)SharedResources.decMaxPos / (360*3600)));
+                        SharedResources.guideRateDec = (int)(decGuideRate*10.0f);
                         if (SharedResources.guideRateDec>=256) SharedResources.guideRateDec= 255;
-                        SharedResources.guideRateRA = (int)((raGuideRate * (Int64)SharedResources.raMaxPos / (360*3600)));
+                        SharedResources.guideRateRA = (int)(raGuideRate*10.0f);
                         if (SharedResources.guideRateRA>=256) SharedResources.guideRateRA= 255;
                         SharedResources.invertAxes = (checkBox4.Checked ? 2 : 0) | (checkBox5.Checked ? 1 : 0) | (checkBox6.Checked ? 4 : 0);
                         SharedResources.raBacklash = (int)((raBacklash * (Int64)raMaxPos) / (360 * 3600));
@@ -449,6 +453,7 @@ namespace ASCOM.LocalServer
                         SharedResources.focBacklash = focBacklash;
                         SharedResources.guidingBits = (checkBox9.Checked ? 1 : 0) + (checkBox2.Checked ? 2 : 0) + (raGuideStop.Checked ? 4 : 0) +
                                                       (checkBox10.Checked ? 8 : 0) + (checkBox3.Checked ? 16 : 0) + (decGuideStop.Checked ? 32 : 0) +
+                                                      (checkBox18.Checked ? 0 : 0x40) + // = (SharedResources.guidingBits&0x40)!=0;
                                                       (AutoMeridianFlip.Checked?0:0x80);
 ;
                         SharedResources.wifi= textBox24.Text; SharedResources.wifip= textBox25.Text;
@@ -1245,6 +1250,7 @@ namespace ASCOM.LocalServer
                     SharedResources.Latitude = Latitude; 
                     SharedResources.Longitude= Longitude; 
                     SharedResources.SiteAltitude= SiteAltitude;
+                    SharedResources.updateAzimutal();
                     SharedResources.FocalLength= fl;
                     SharedResources.Diameter_mm= ap;
                     SharedResources.Area_cm2= ar;
