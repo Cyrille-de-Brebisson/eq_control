@@ -347,7 +347,7 @@ unsigned long __stdcall motorThread(void*)
     while (true)
     {
         uint32_t now = Time::unow();
-        for (int i=0; i<100; i++)
+        for (int i=0; i<10000; i++)
         {
             MRa.step(now); MDec.step(now); MFocus.step(now); // move motors as needed
         }
