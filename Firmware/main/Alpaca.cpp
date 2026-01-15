@@ -115,9 +115,11 @@ static bool startsWithNonCase(char const *s1, char const *s2)
 template <typename T>
 static int readInt(T *&s) 
 {
+    bool neg= false;
+    if (*s=='-') neg= true, s++;
     int res= 0;
     while (*s>='0' && *s<='9') res= res*10+*s++-'0';
-    return res;
+    return neg?-res:res;
 }
 // read a positive int from s, and moves s to the end of the int.... return false if there is no number to read
 static bool readInt(char const *&b, int &v)
@@ -133,7 +135,7 @@ static float readFloat(T *&s)
 {
     float r= float(readInt(s));
     if (*s!='.') return r; s++;
-    float div= 0.1f;
+    float div= r<0.0f ? -0.1f : 0.1f;
     while (*s>='0' && *s<='9') { r+= div*(*s++-'0'); div/=10.0f; }
     return r;
 }
@@ -592,7 +594,7 @@ bool CAlpacaDevice::dispatch(bool get, char const *url, char *data, CMyStr *s)
     if (get && strcmp(url, "driverversion") == 0) return putErVal(s, ALPACA_OK, get_driverversion());
     if (get && strcmp(url, "name") == 0) return putErVal(s, ALPACA_OK, get_name());
     if (get && strcmp(url, "interfaceversion") == 0) return putErVal(s, ALPACA_OK, get_interfaceversion());
-    if (get && strcmp(url, "supportedactions") == 0) return putErVal(s, ALPACA_OK, get_supportedactions());
+    if (get && strcmp(url, "supportedactions") == 0) return putErValRaw(s, ALPACA_OK, get_supportedactions());
     return putEr(s, ALPACA_ERR_INVALID_OPERATION);
 }
 
@@ -616,14 +618,14 @@ bool CTelescope::dispatch(bool get, char const *url, char *data, CMyStr *s)
     
     if (get && strcmp(url, "canfindhome")==0) return putErVal(s, ALPACA_OK, canfindhome());
     if (get && strcmp(url, "athome")==0) return putErVal(s, ALPACA_OK, athome());
-    if (!get && strcmp(url, "findhome")==0) return putErVal(s, ALPACA_OK, findhome());
+    if (!get && strcmp(url, "findhome")==0) return putEr(s, findhome());
     if (get && strcmp(url, "canpark")==0) return putErVal(s, ALPACA_OK, canpark());
     if (get && strcmp(url, "atpark")==0) return putErVal(s, ALPACA_OK, atpark());
     if (get && strcmp(url, "cansetpark")==0) return putErVal(s, ALPACA_OK, cansetpark());
     if (get && strcmp(url, "canunpark")==0) return putErVal(s, ALPACA_OK, canunpark());
-    if (!get && strcmp(url, "park")==0) return putErVal(s, ALPACA_OK, park());
-    if (!get && strcmp(url, "setpark")==0) return putErVal(s, ALPACA_OK, setpark());
-    if (!get && strcmp(url, "unpark")==0) return putErVal(s, ALPACA_OK, unpark());
+    if (!get && strcmp(url, "park")==0) return putEr(s, park());
+    if (!get && strcmp(url, "setpark")==0) return putEr(s, setpark());
+    if (!get && strcmp(url, "unpark")==0) return putEr(s, unpark());
 
     if (get && strcmp(url, "canpulseguide")==0) return putErVal(s, ALPACA_OK, canpulseguide());
     if (!get && strcmp(url, "pulseguide")==0) return putEr(s, pulseguide(getIntData(data,"Direction"), getIntData(data,"Duration")));
@@ -638,6 +640,7 @@ bool CTelescope::dispatch(bool get, char const *url, char *data, CMyStr *s)
     if (get && strcmp(url, "tracking")==0) return putErVal(s, ALPACA_OK, get_tracking());
     if (!get && strcmp(url, "tracking")==0) return putEr(s, set_tracking(getBoolData(data, "Tracking")));
     if (get && strcmp(url, "trackingrate")==0) return putErVal(s, ALPACA_OK, get_trackingrate());
+    if (get && strcmp(url, "trackingrates")==0) return putErValRaw(s, ALPACA_OK, trackingrates());
     if (!get && strcmp(url, "trackingrate")==0) return putEr(s, set_trackingrate(getIntData(data, "TrackingRate")));
 
     if (get && strcmp(url, "cansetrightascensionrate")==0) return putErVal(s, ALPACA_OK, cansetrightascensionrate());
@@ -650,7 +653,7 @@ bool CTelescope::dispatch(bool get, char const *url, char *data, CMyStr *s)
     if (get && strcmp(url, "slewing")==0) return putErVal(s, ALPACA_OK, slewing());
     if (get && strcmp(url, "slewsettletime")==0) return putErVal(s, ALPACA_OK, get_slewsettletime());
     if (!get && strcmp(url, "slewsettletime")==0) return putEr(s, set_slewsettletime(getIntData(data, "SlewSettleTime")));
-    if (!get && strcmp(url, "abortslew")==0) return putErVal(s, ALPACA_OK, abortslew());
+    if (!get && strcmp(url, "abortslew")==0) return putEr(s, abortslew());
     if (get && strcmp(url, "canslew")==0) return putErVal(s, ALPACA_OK, canslew());
     if (get && strcmp(url, "canslewasync")==0) return putErVal(s, ALPACA_OK, canslewasync());
     if (!get && strcmp(url, "slewtocoordinates")==0) return putEr(s, slewtocoordinates(getFloatData(data, "RightAscension"), getFloatData(data, "Declination")));

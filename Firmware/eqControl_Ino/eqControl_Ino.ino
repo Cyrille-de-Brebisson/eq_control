@@ -1179,8 +1179,7 @@ class CMotorUncounted : public CMotor { public:
     uint8_t skipNSteps= 0;
     #define min(a,b) ((a)<(b)?(a):(b))
     // TODO: make division performed by PC, not me!!!
-    void guide(int16_t steps, uint32_t speed) 
-    { cli(); guideStepSize= 1000000UL/speed; _guide= -steps; nextGuideStep= Time::unow(); sei(); }
+    void guide(int16_t steps, uint32_t speed) { cli(); guideStepSize= 1000000UL/speed; _guide= -steps; nextGuideStep= Time::unow(); sei(); }
     void IRAM_ATTR step(uint32_t now)
     {
         if (CMotor::step(now)) { batchExtraStepsOnMoveComplete= true; return; }
@@ -2252,7 +2251,7 @@ static uint8_t powercnt= 0;
 static void inline quantizePowerFlip() 
 {
   MRa.quantize(); MDec.quantize(); MFocus.quantize(); // update motor speeds
-
+  if (!MDec.isMoving()) decGuiding= false; 
   #ifdef HASADC
     power= CADC::next()>90; if (lastpower!=power) // if power was applied, needs to reset the motors... Note that this is ok on arduino and represent 9.0V on esp32
     {
@@ -2292,10 +2291,9 @@ void processSerial(char *C, int8_t nb)
         if (c=='!')   // get info command
         {
             printHex2(MDec.posInReal(), 6); printHex2(MRaposInReal(), 6); printHex2(MFocus.pos>>8, 6);
-            bool decMove= MDec.isMoving(); if (!decMove) decGuiding= false; 
             // bit 0: moving, bit 1: focus moving, bit 2: side of pier, bit 3: meridian swapping, bit 4: flip disabled,
             //   bit 5: tracking disabled, bit 6: power, bit 7: guiding
-            printHex2(((decMove||MRa.isMoving()||(savedGotoForFlip.flipFlags!=0))?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
+            printHex2(((MDec.isMoving()||MRa.isMoving()||(savedGotoForFlip.flipFlags!=0))?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
                     (isRaFlipEnabled()?0:16) | (MRa.deltaBetweenUncountedSteps==0?32:0) | (power?64:0) | ((decGuiding||(MRa._guide!=0))?128:0), 2);
             printHex2(Time::mnow(), 6);                         // this allows to verify time drift
             printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...

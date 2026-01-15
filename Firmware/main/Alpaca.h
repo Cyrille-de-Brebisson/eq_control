@@ -269,8 +269,9 @@ class CFocuser : public CAlpacaDevice { public:
     virtual int32_t get_stepsize() { return alpaca->load(keyHeader, "FocStepSize", int32_t(6)); }
     virtual TAlpacaErr put_halt() = 0;
     virtual TAlpacaErr put_move(int32_t position) = 0;
-    virtual TAlpacaErr get_tempcomp(bool *tempcomp) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; }
-    virtual TAlpacaErr put_tempcomp(bool tempcomp) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; }
+        bool _tempComp= false;
+    virtual TAlpacaErr get_tempcomp(bool *tempcomp) { *tempcomp= _tempComp; return ALPACA_OK; }
+    virtual TAlpacaErr put_tempcomp(bool tempcomp) { if (tempcomp) return ALPACA_ERR_INVALID_VALUE; _tempComp= tempcomp; return ALPACA_OK; }
     virtual bool get_tempcompavailable() { return false; }
     virtual TAlpacaErr get_temperature(double *temperature) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; }
 
@@ -527,11 +528,11 @@ protected:
     virtual float get_focallength() { return alpaca->load(keyHeader, "focallength", 400.0f); } // Returns the telescope's focal length in meters.
     virtual TAlpacaErr set_focallength(float v) { alpaca->save(keyHeader, "focallength", v); return ALPACA_OK;  } // Returns the telescope's focal length in meters.
     virtual float get_siteelevation() { return alpaca->load(keyHeader, "siteelevation", 1060.0f); } // Returns the observing $SiteElevation above mean sea level.
-    virtual TAlpacaErr set_siteelevation(float v) { alpaca->save(keyHeader, "set_siteelevation", v); return ALPACA_OK; } // Sets the observing site's elevation above mean sea level.
+    virtual TAlpacaErr set_siteelevation(float v) { if (v<-200.0f || v>9999.0f) return ALPACA_ERR_INVALID_VALUE; alpaca->save(keyHeader, "set_siteelevation", v); return ALPACA_OK; } // Sets the observing site's elevation above mean sea level.
     virtual float get_sitelatitude() { return alpaca->load(keyHeader, "sitelatitude", 45.007109f); } // Returns the observing $SiteLatitude .
-    virtual TAlpacaErr set_sitelatitude(float v) { alpaca->save(keyHeader, "sitelatitude", v); return ALPACA_OK; } // Sets the observing site's latitude.
+    virtual TAlpacaErr set_sitelatitude(float v) { if (v<-90.0f || v>90.0f) return ALPACA_ERR_INVALID_VALUE; alpaca->save(keyHeader, "sitelatitude", v); return ALPACA_OK; } // Sets the observing site's latitude.
     virtual float get_sitelongitude() { return alpaca->load(keyHeader, "sitelongitude", 4.335247f); } // Returns the observing site's longitude.
-    virtual TAlpacaErr set_sitelongitude(float v) { alpaca->save(keyHeader, "sitelongitude", v); return ALPACA_OK; } // Sets the observing $SiteLongitude .
+    virtual TAlpacaErr set_sitelongitude(float v) {  if (v<-180.0f || v>180.0f) return ALPACA_ERR_INVALID_VALUE;alpaca->save(keyHeader, "sitelongitude", v); return ALPACA_OK; } // Sets the observing $SiteLongitude .
 
     virtual bool canfindhome() { return false; } // Indicates whether the mount can find the home position.
     virtual bool athome() { return false; } // Indicates whether the mount is at the home position.
@@ -561,7 +562,7 @@ protected:
     virtual TAlpacaErr set_tracking(bool v) { tracking= v; return ALPACA_OK; } // Enables or disables telescope $Tracking.
         int trackingrate= 0; // 0: sideral, 1: lunar, 2: solar, 3: king (15.0369 arc"/s)
     virtual int get_trackingrate() { return trackingrate; } // Returns the current tracking rate. 0: sideral, 1: lunar, 2: solar, 3: king (15.0369 arc"/s)
-    virtual TAlpacaErr set_trackingrate(int v) { trackingrate= v; return ALPACA_OK; } // Sets the mount's $TrackingRate.
+    virtual TAlpacaErr set_trackingrate(int v) { if (v<0 || v>3) return ALPACA_ERR_INVALID_VALUE; trackingrate= v; return ALPACA_OK; } // Sets the mount's $TrackingRate.
     virtual char const *trackingrates() { return "[0,1,2,3]"; } // Returns a collection of supported DriveRates values. i.e: a json object that has 0 to 4 integers in it...
 
     virtual bool cansetrightascensionrate() { return false; } // Indicates whether the RightAscensionRate property can be changed.
@@ -572,7 +573,7 @@ protected:
     virtual TAlpacaErr set_declinationrate(float v) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Sets the telescope's $DeclinationRate tracking rate.
          
     virtual bool slewing() = 0; // Indicates whether the telescope is currently slewing.
-    virtual TAlpacaErr set_slewsettletime(int32_t v) { alpaca->save(keyHeader, "slewsettletime", v); return ALPACA_OK; }// Sets the post-slew $SlewSettleTime time.
+    virtual TAlpacaErr set_slewsettletime(int32_t v) { if (v<0) return ALPACA_ERR_INVALID_VALUE; alpaca->save(keyHeader, "slewsettletime", v); return ALPACA_OK; }// Sets the post-slew $SlewSettleTime time.
     virtual int get_slewsettletime() { return alpaca->load(keyHeader, "slewsettletime", int32_t(1)); } // Returns the post-slew settling time (sec)
     virtual TAlpacaErr abortslew() = 0; // Immediatley stops a slew in progress.
     virtual bool canslew() { return false; } // Indicates whether the telescope can slew synchronously.
@@ -584,9 +585,9 @@ protected:
 
         float targetdeclination= 0.0f, targetrightascension= 0.0f;
     virtual float get_targetdeclination() { return targetdeclination; } // Returns the current target declination.
-    virtual TAlpacaErr set_targetdeclination(float v) { targetdeclination= v; return ALPACA_OK; } // Sets the $TargetDeclination of a slew or sync.
+    virtual TAlpacaErr set_targetdeclination(float v) { if (v<-0.0f || v>90.0f) return ALPACA_ERR_INVALID_VALUE; targetdeclination= v; return ALPACA_OK; } // Sets the $TargetDeclination of a slew or sync.
     virtual float get_targetrightascension() { return targetrightascension; } // Returns the current target right ascension.
-    virtual TAlpacaErr set_targetrightascension(float v) { targetrightascension= v; return ALPACA_OK; } // Sets the target $TargetRightAscension of a slew or sync.
+    virtual TAlpacaErr set_targetrightascension(float v) {  if (v<-0.0f || v>24.0f) return ALPACA_ERR_INVALID_VALUE; targetrightascension= v; return ALPACA_OK; } // Sets the target $TargetRightAscension of a slew or sync.
     virtual TAlpacaErr slewtotarget() { return slewtocoordinates(targetdeclination, targetrightascension); } // Synchronously slew to the TargetRightAscension and TargetDeclination coordinates.
     virtual TAlpacaErr slewtotargetasync() { return slewtocoordinatesasync(targetdeclination, targetrightascension); } // Asynchronously slew to the TargetRightAscension and TargetDeclination coordinates.
     virtual TAlpacaErr synctotarget() { return synctocoordinates(targetdeclination, targetrightascension); } // Syncs to the TargetRightAscension and TargetDeclination coordinates.
@@ -622,7 +623,7 @@ protected:
     #endif
 
     virtual TAlpacaErr axisrates(int axis, char *b) { b[0]= 0; return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the rates at which the telescope may be moved about the specified $Axis  returns [{"Maximum": 0,"Minimum": 0}] in b (b will be 30 chr long)
-    virtual bool canmoveaxis(int axis) { return false; } // Indicates whether the telescope can move the requested $Axis.
+    virtual bool canmoveaxis(int axis) { return axis<2; } // Indicates whether the telescope can move the requested $Axis.
     virtual TAlpacaErr moveaxis(int axis, float rate) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Moves a telescope $Axis at the given $Rate.
 
     bool dispatch(bool get, char const *url, char *m, CMyStr *s) override;
