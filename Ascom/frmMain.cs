@@ -205,8 +205,11 @@ namespace ASCOM.LocalServer
                             var l= (new Serial()).AvailableCOMPorts;
                             if (l.Contains(SharedResources.comPort))
                             { 
-                                SharedResources.Connected = true;
-                                log("Try reconnecting to "+SharedResources.comPort, 0);
+                                try { 
+                                    log("Try reconnecting to "+SharedResources.comPort, 0);
+                                    SharedResources.Connected = true;
+                                    log("Reconnected!!!", 0);
+                                } catch (Exception ) { SharedResources.serialCrahed=true; }
                             }
 
                         }
