@@ -229,7 +229,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 if (Direction == GuideDirections.guideNorth) steps= -steps;
                 if ((SharedResources.guidingBits & 16) != 0) steps = -steps;
                 if (((SharedResources.guidingBits & 8) != 0) && SideOfPier == PierSide.pierEast) steps = -steps;
-                movement = rate * Duration * SharedResources.guideDecAgressivity / 1000 / 360; // in turns (0 to 1)...
+                movement = rate * Duration * SharedResources.guideDecAgressivity / 1000 / 360/3600; // in turns (0 to 1)...
             }
             else if (Direction == GuideDirections.guideEast || Direction == GuideDirections.guideWest) 
             { 
@@ -240,11 +240,12 @@ namespace ASCOM.EQControl.Telescope.V1
                 if ((SharedResources.guidingBits & 2) != 0) steps = -steps;
                 if (((SharedResources.guidingBits & 1) != 0) && SideOfPier==PierSide.pierEast) steps = -steps;
                 SharedResources.raGuideIssued += steps;
-                movement = rate * Duration * SharedResources.guideRaAgressivity / 1000 / 360; // in turns (0 to 1)...
+                movement = rate * Duration * SharedResources.guideRaAgressivity / 1000 / 360/3600; // in turns (0 to 1)...
             }
             else return;
-            // rate in deg/s, duration in ms
-            int speed= (int)(steps*rate/360); if (speed<0) speed= -speed;
+            // rate in arcs/s steps is steps in 1 turn. duration in ms.
+            int speed= (int)(steps/(360.0f*3600)*rate); if (speed<0) speed= -speed;
+            // speed in steps/s
             steps = (int)(steps*movement+0.5);
 
             SharedResources.doLog("Mount guide "+Direction.ToString()+" for "+Duration.ToString()+" is "+steps.ToString()+" steps at "+speed.ToString()+" steps/s", 3); 
