@@ -38,6 +38,7 @@ namespace ASCOM.LocalServer
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.button2 = new System.Windows.Forms.Button();
             this.groupMount = new System.Windows.Forms.GroupBox();
+            this.MovingLabel = new System.Windows.Forms.Label();
             this.SideralSelect = new System.Windows.Forms.ComboBox();
             this.button42 = new System.Windows.Forms.Button();
             this.button41 = new System.Windows.Forms.Button();
@@ -249,7 +250,9 @@ namespace ASCOM.LocalServer
             this.checkBox13 = new System.Windows.Forms.CheckBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.checkBox19 = new System.Windows.Forms.CheckBox();
-            this.MovingLabel = new System.Windows.Forms.Label();
+            this.BNO1 = new System.Windows.Forms.TextBox();
+            this.BNO2 = new System.Windows.Forms.TextBox();
+            this.BNO0 = new System.Windows.Forms.Label();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -367,6 +370,17 @@ namespace ASCOM.LocalServer
             this.groupMount.TabIndex = 7;
             this.groupMount.TabStop = false;
             this.groupMount.Text = "Mount";
+            // 
+            // MovingLabel
+            // 
+            this.MovingLabel.AutoSize = true;
+            this.MovingLabel.ForeColor = System.Drawing.Color.White;
+            this.MovingLabel.Location = new System.Drawing.Point(139, 129);
+            this.MovingLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.MovingLabel.Name = "MovingLabel";
+            this.MovingLabel.Size = new System.Drawing.Size(61, 20);
+            this.MovingLabel.TabIndex = 64;
+            this.MovingLabel.Text = "noSlew";
             // 
             // SideralSelect
             // 
@@ -2121,6 +2135,9 @@ namespace ASCOM.LocalServer
             // 
             this.groupBox15.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
             this.groupBox15.BackColor = System.Drawing.SystemColors.WindowText;
+            this.groupBox15.Controls.Add(this.BNO0);
+            this.groupBox15.Controls.Add(this.BNO2);
+            this.groupBox15.Controls.Add(this.BNO1);
             this.groupBox15.Controls.Add(this.label42);
             this.groupBox15.Controls.Add(this.label52);
             this.groupBox15.Controls.Add(this.label41);
@@ -2138,7 +2155,7 @@ namespace ASCOM.LocalServer
             // 
             this.label42.AutoSize = true;
             this.label42.ForeColor = System.Drawing.Color.White;
-            this.label42.Location = new System.Drawing.Point(6, 60);
+            this.label42.Location = new System.Drawing.Point(6, 40);
             this.label42.Name = "label42";
             this.label42.Size = new System.Drawing.Size(83, 20);
             this.label42.TabIndex = 56;
@@ -2148,7 +2165,7 @@ namespace ASCOM.LocalServer
             // 
             this.label52.AutoSize = true;
             this.label52.ForeColor = System.Drawing.Color.White;
-            this.label52.Location = new System.Drawing.Point(6, 89);
+            this.label52.Location = new System.Drawing.Point(6, 62);
             this.label52.Name = "label52";
             this.label52.Size = new System.Drawing.Size(98, 20);
             this.label52.TabIndex = 56;
@@ -2158,7 +2175,7 @@ namespace ASCOM.LocalServer
             // 
             this.label41.AutoSize = true;
             this.label41.ForeColor = System.Drawing.Color.White;
-            this.label41.Location = new System.Drawing.Point(6, 31);
+            this.label41.Location = new System.Drawing.Point(6, 18);
             this.label41.Name = "label41";
             this.label41.Size = new System.Drawing.Size(77, 20);
             this.label41.TabIndex = 55;
@@ -3017,17 +3034,33 @@ namespace ASCOM.LocalServer
             this.checkBox19.UseVisualStyleBackColor = false;
             this.checkBox19.CheckedChanged += new System.EventHandler(this.checkBox19_CheckedChanged);
             // 
-            // MovingLabel
+            // BNO1
             // 
-            this.MovingLabel.AutoSize = true;
-            this.MovingLabel.ForeColor = System.Drawing.Color.White;
-            this.MovingLabel.Location = new System.Drawing.Point(139, 129);
-            this.MovingLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.MovingLabel.Name = "MovingLabel";
-            this.MovingLabel.Size = new System.Drawing.Size(61, 20);
-            this.MovingLabel.TabIndex = 64;
-            this.MovingLabel.Text = "noSlew";
-            this.MovingLabel.Visible = true;
+            this.BNO1.Location = new System.Drawing.Point(10, 110);
+            this.BNO1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.BNO1.Name = "BNO1";
+            this.BNO1.Size = new System.Drawing.Size(193, 26);
+            this.BNO1.TabIndex = 57;
+            this.toolTip1.SetToolTip(this.BNO1, "Dec coordinates in -d:m:s format. m and s are optional");
+            // 
+            // BNO2
+            // 
+            this.BNO2.Location = new System.Drawing.Point(10, 142);
+            this.BNO2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.BNO2.Name = "BNO2";
+            this.BNO2.Size = new System.Drawing.Size(193, 26);
+            this.BNO2.TabIndex = 58;
+            this.toolTip1.SetToolTip(this.BNO2, "Dec coordinates in -d:m:s format. m and s are optional");
+            // 
+            // BNO0
+            // 
+            this.BNO0.AutoSize = true;
+            this.BNO0.ForeColor = System.Drawing.Color.White;
+            this.BNO0.Location = new System.Drawing.Point(5, 86);
+            this.BNO0.Name = "BNO0";
+            this.BNO0.Size = new System.Drawing.Size(43, 20);
+            this.BNO0.TabIndex = 59;
+            this.BNO0.Text = "BNO";
             // 
             // FrmMain
             // 
@@ -3049,9 +3082,9 @@ namespace ASCOM.LocalServer
             this.Controls.Add(this.groupMount);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.label1);
+            this.Controls.Add(this.groupBox7);
             this.Controls.Add(this.groupBox10);
             this.Controls.Add(this.groupBox8);
-            this.Controls.Add(this.groupBox7);
             this.ForeColor = System.Drawing.Color.White;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -3321,6 +3354,9 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.CheckBox checkBox19;
         private System.Windows.Forms.CheckBox AutoMeridianFlip;
         private System.Windows.Forms.Label MovingLabel;
+        private System.Windows.Forms.TextBox BNO2;
+        private System.Windows.Forms.TextBox BNO1;
+        private System.Windows.Forms.Label BNO0;
     }
 }
 

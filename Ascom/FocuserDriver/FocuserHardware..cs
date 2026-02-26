@@ -84,8 +84,8 @@ namespace ASCOM.EQControl.Focuser.V1
             SharedResources.SendSerialCommand(":FG"+Position.ToString("X8")+"#", 0);
             SharedResources.doLog("Foc move to "+Position.ToString()+" from "+SharedResources.FocusserPosition.ToString()+" delta "+(Position-SharedResources.FocusserPosition).ToString(), 0); 
         }
-        public static void moveIn(int spd) { SharedResources.SendSerialCommand(":FM" + (-spd).ToString("X8") + '#'); }
-        public static void moveOut(int spd) { SharedResources.SendSerialCommand(":FM" + spd.ToString("X8") + '#'); }
+        public static void moveIn(int spd) { SharedResources.SendSerialCommand(":FM" + (-spd).ToString("X8") + '#', 0); }
+        public static void moveOut(int spd) { SharedResources.SendSerialCommand(":FM" + spd.ToString("X8") + '#', 0); }
         internal static void Stop() { SharedResources.SendSerialCommand(":Q#", 0); SharedResources.doLog("Foc stop", 0); }
         internal static int Position { get { return SharedResources.FocusserPosition; } } // Return the focuser position
         internal static double StepSize /// Step size (microns) for the focuser.

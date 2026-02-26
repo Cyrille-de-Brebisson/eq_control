@@ -246,7 +246,7 @@ namespace ASCOM.EQControl.Telescope.V1
             }
             else return;
             int speedi= (int)(speed*fullTurn/(360*3600));
-            int steps = (int)((speed*Duration+0.5)/1000.0);
+            int steps = (int)(speed*fullTurn/(360*3600)*Duration/1000.0+0.5)*dir;
 
             SharedResources.doLog("Mount guide "+Direction.ToString()+" for "+Duration.ToString()+" is "+steps.ToString()+" steps at "+speedi.ToString()+" steps/s", 3); 
             SharedResources.SendSerialCommand(":p"+d+ steps.ToString("X8") + speedi.ToString("X8") + '#', 0);

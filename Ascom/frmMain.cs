@@ -166,6 +166,13 @@ namespace ASCOM.LocalServer
                             lastRep2.Text= SharedResources.latestResponse2;
                             NbResponses.Text= SharedResources.responceCount.ToString();
                         }
+                        if (SharedResources.BNOhas)
+                        {
+                            BNO0.Text = "T:"+SharedResources.BNOTemp.ToString()+" "+(SharedResources.BNOhasOffset1?"O1":"")+" "+(SharedResources.BNOhasOffset2?"O2":"")+" "+(SharedResources.BNOscopeEast?"E":"W");
+                            BNO1.Text = SharedResources.BNOw.ToString()+" "+SharedResources.BNOx.ToString()+" "+SharedResources.BNOy.ToString()+" "+SharedResources.BNOz.ToString();
+                            BNO2.Text = SharedResources.BNOra.ToString()+" "+SharedResources.BNOdec.ToString()+" "+SharedResources.BNOaz.ToString()+" "+SharedResources.BNOalt.ToString();
+
+                        }
                     }
                     else
                     {
@@ -199,6 +206,7 @@ namespace ASCOM.LocalServer
                         label41.Text = "N/A";
                         label42.Text = "N/A";
                         label21.Text = "N/A";
+                        BNO0.Text = "NO BNO"; BNO1.Text = ""; BNO2.Text = "";
                         MovingLabel.Text = "";
                         if (SharedResources.serialCrahed && SharedResources.reconnectOnDrop)
                         {
@@ -669,7 +677,7 @@ namespace ASCOM.LocalServer
         }
         private void button24_MouseUp(object sender, MouseEventArgs e)
         {
-            SharedResources.SendSerialCommand(":Q#");
+            SharedResources.SendSerialCommand(":Q#",0);
         }
         private static string decode(string s, int pos, int length, string txt)
         {

@@ -175,10 +175,15 @@ namespace ASCOM.LocalServer
         static public bool haswifi= false;
         static public string wifi= "", wifip= "";
         static public uint ipaddr= 0;
+
+        static public double BNOw=0.0, BNOx=0.0, BNOy=0.0, BNOz=0.0;
+        static public int BNOTemp= 1000;
+        static public bool BNOhas= false, BNOhasOffset1= false, BNOhasOffset2= false, BNOscopeEast= false;
+        static public double BNOra= 0.0, BNOdec= 0.0, BNOaz= 0.0, BNOalt= 0.0;
         static public void readHWString()
         {
             int i = 0; string v= hwconfstring;
-            if (v.Length != 154 && v.Length != 154+32*4+8) return;
+            if (v.Length != 154 && v.Length != 154+32*4+8 && v.Length!=154+32*4+8+9*4*2) return;
             haswifi= v.Length == 154+32*4+8;
             dataDisplayed= false;
             raMaxPos = readHex2(v, ref i, i+8); raMaxSpeed = readHex2(v, ref i, i + 8); ramsToSpeed = readHex2(v, ref i, i + 8);
@@ -307,7 +312,16 @@ namespace ASCOM.LocalServer
                                     else { ascomtrack= true; ascomtrackspd= tmp-1; }
                                     latestResponse2+= " powerCount:"+powerCount.ToString();
                                 }
-
+                                //Console.WriteLine("len "+v.Length.ToString());
+                                if (v.Length>=128)
+                                {
+                                    BNOw= readFloat(v, ref i, i+8);BNOx= readFloat(v, ref i, i+8);BNOy= readFloat(v, ref i, i+8);BNOz= readFloat(v, ref i, i+8);
+                                    BNOTemp= readHex2(v, ref i, i+2);
+                                    int tmp= readHex2(v, ref i, i+6);
+                                    BNOhasOffset1= (tmp&2)!= 0; BNOhasOffset2= (tmp&4)!= 0; BNOscopeEast= (tmp&8)!= 0;
+                                    BNOra= readFloat(v, ref i, i+8);BNOdec= readFloat(v, ref i, i+8);BNOaz= readFloat(v, ref i, i+8);BNOalt= readFloat(v, ref i, i+8);
+                                    BNOhas= true;
+                                }
 
 
                                 if (saveTimes)
@@ -432,6 +446,12 @@ namespace ASCOM.LocalServer
                 m *= 256;
             }
             return v;
+        }
+        public static double readFloat(string s, ref int i, int l)
+        {
+            int j=readHex2(s, ref i, l);
+            byte[] bytes = BitConverter.GetBytes(j);
+            return BitConverter.ToSingle(bytes, 0);
         }
         public static int readDec(string s, ref int i)
         {
