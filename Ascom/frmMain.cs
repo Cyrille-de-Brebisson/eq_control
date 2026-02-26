@@ -101,6 +101,7 @@ namespace ASCOM.LocalServer
                         button23.Enabled = true;
                         button24.Enabled = true;
                         button25.Enabled = true;
+                        MovingLabel.Text = SharedResources._ScopeGuiding ? "Guide" : (SharedResources._ScopeMoving ? "Slewing": "");
                         button12.Text = "Mount " + (TelescopeHardware.SideOfPier == PierSide.pierEast ? "East" : "West");
                         if (!SideralSelect.DroppedDown)
                         { 
@@ -198,13 +199,17 @@ namespace ASCOM.LocalServer
                         label41.Text = "N/A";
                         label42.Text = "N/A";
                         label21.Text = "N/A";
+                        MovingLabel.Text = "";
                         if (SharedResources.serialCrahed && SharedResources.reconnectOnDrop)
                         {
                             var l= (new Serial()).AvailableCOMPorts;
                             if (l.Contains(SharedResources.comPort))
                             { 
-                                SharedResources.Connected = true;
-                                log("Try reconnecting to "+SharedResources.comPort, 0);
+                                try { 
+                                    log("Try reconnecting to "+SharedResources.comPort, 0);
+                                    SharedResources.Connected = true;
+                                    log("Reconnected!!!", 0);
+                                } catch (Exception ) { SharedResources.serialCrahed=true; }
                             }
 
                         }

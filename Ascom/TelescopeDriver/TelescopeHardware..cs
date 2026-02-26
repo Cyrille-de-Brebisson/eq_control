@@ -172,7 +172,7 @@ namespace ASCOM.EQControl.Telescope.V1
         internal static bool CanSetDeclinationRate { get { return false; } } /// True if the <see cref="DeclinationRate" /> property can be changed to provide offset tracking in the declination axis.
         internal static bool CanPulseGuide { get { SharedResources.doLog("CanPulseGuide", 0); return true; } } /// True if this telescope is capable of software-pulsed guiding (via the <see cref="PulseGuide" /> method)
         internal static bool CanSetGuideRates { get { SharedResources.doLog("CanSetGuideRates", 1); return true; } } /// True if the guide rate properties used for <see cref="PulseGuide" /> can ba adjusted.
-        internal static bool CanSetPierSide { get { return true; } } /// True if the <see cref="SideOfPier" /> property can be set, meaning that the mount can be forced to flip.
+        internal static bool CanSetPierSide { get { return false; } } /// True if the <see cref="SideOfPier" /> property can be set, meaning that the mount can be forced to flip.
         internal static bool CanSetRightAscensionRate { get { return false; } } /// True if the <see cref="RightAscensionRate" /> property can be changed to provide offset tracking in the right ascension axis.
         internal static bool CanSetTracking { get { SharedResources.doLog("CanSetTracking", 1); return true; } } /// True if the <see cref="Tracking" /> property can be changed, turning telescope sidereal tracking on and off.
         internal static bool CanSlew { get { return true; } } /// True if this telescope is capable of programmed slewing (synchronous or asynchronous) to equatorial coordinates
@@ -182,7 +182,7 @@ namespace ASCOM.EQControl.Telescope.V1
         internal static bool CanSync { get { return true; } } /// True if this telescope is capable of programmed synching to equatorial coordinates.
         internal static bool CanSyncAltAz { get { return false; } } /// True if this telescope is capable of programmed synching to local horizontal coordinates
         internal static double Declination { get { return SharedResources.Declinaison; } } /// The declination (degrees) of the telescope's current equatorial coordinates, in the coordinate system given by the <see cref="EquatorialSystem" /> property.
-        internal static double DeclinationRate { get { return 0.0; } set { } } /// The declination tracking rate (arcseconds per SI second, default = 0.0)
+        internal static double DeclinationRate { get { return 0.0; } set { throw new MethodNotImplementedException("Get DeclinationRate"); } } /// The declination tracking rate (arcseconds per SI second, default = 0.0)
 
         /// Predict side of pier for German equatorial mounts at the provided coordinates
         internal static PierSide DestinationSideOfPier(double RightAscension, double Declination)
@@ -219,37 +219,37 @@ namespace ASCOM.EQControl.Telescope.V1
         /// <param name="Duration">The duration of the guide-rate motion (milliseconds)</param>
         internal static void PulseGuide(GuideDirections Direction, int Duration)
         {
-            double rate; int steps; char d= ' ';
-            double movement;
+            // if (Duration > 5000) throw new InvalidValueException("PulseGuide duration invalid " + Duration.ToString());
+            char d= ' ';
+            double speed; // in arc"/s
+            int fullTurn; // in steps
+            int dir= 1;      // direction multiplicator (-1 or 1)
             if (Direction == GuideDirections.guideNorth || Direction == GuideDirections.guideSouth) 
             { 
                 if ((SharedResources.guidingBits&32)!=0) return;
-                rate= GuideRateDeclination; steps= SharedResources.raMaxPos;
+                speed= GuideRateDeclination* SharedResources.guideDecAgressivity;
+                fullTurn = SharedResources.decMaxPos;
                 d = 'd';
-                if (Direction == GuideDirections.guideNorth) steps= -steps;
-                if ((SharedResources.guidingBits & 16) != 0) steps = -steps;
-                if (((SharedResources.guidingBits & 8) != 0) && SideOfPier == PierSide.pierEast) steps = -steps;
-                movement = rate * Duration * SharedResources.guideDecAgressivity / 1000 / 360/3600; // in turns (0 to 1)...
+                if (Direction == GuideDirections.guideSouth) dir = -dir;
+                if ((SharedResources.guidingBits & 16) != 0) dir = -dir;
+                if (((SharedResources.guidingBits & 8) != 0) && SideOfPier == PierSide.pierEast) dir = -dir;
             }
             else if (Direction == GuideDirections.guideEast || Direction == GuideDirections.guideWest) 
             { 
                 if ((SharedResources.guidingBits & 8) != 0) return;
-                rate= GuideRateRightAscension; steps= SharedResources.decMaxPos; 
+                speed = GuideRateRightAscension * SharedResources.guideRaAgressivity;
+                fullTurn = SharedResources.raMaxPos;
                 d = 'r';
-                if (Direction == GuideDirections.guideEast) steps = -steps;
-                if ((SharedResources.guidingBits & 2) != 0) steps = -steps;
-                if (((SharedResources.guidingBits & 1) != 0) && SideOfPier==PierSide.pierEast) steps = -steps;
-                SharedResources.raGuideIssued += steps;
-                movement = rate * Duration * SharedResources.guideRaAgressivity / 1000 / 360/3600; // in turns (0 to 1)...
+                if (Direction == GuideDirections.guideEast) dir = -dir;
+                if ((SharedResources.guidingBits & 2) != 0) dir = -dir;
+                if (((SharedResources.guidingBits & 1) != 0) && SideOfPier==PierSide.pierEast) dir = -dir;
             }
             else return;
-            // rate in arcs/s steps is steps in 1 turn. duration in ms.
-            int speed= (int)(steps/(360.0f*3600)*rate); if (speed<0) speed= -speed;
-            // speed in steps/s
-            steps = (int)(steps*movement+0.5);
+            int speedi= (int)(speed*fullTurn/(360*3600));
+            int steps = (int)((speed*Duration+0.5)/1000.0);
 
-            SharedResources.doLog("Mount guide "+Direction.ToString()+" for "+Duration.ToString()+" is "+steps.ToString()+" steps at "+speed.ToString()+" steps/s", 3); 
-            SharedResources.SendSerialCommand(":p"+d+ steps.ToString("X8") + speed.ToString("X8") + '#', 0);
+            SharedResources.doLog("Mount guide "+Direction.ToString()+" for "+Duration.ToString()+" is "+steps.ToString()+" steps at "+speedi.ToString()+" steps/s", 3); 
+            SharedResources.SendSerialCommand(":p"+d+ steps.ToString("X8") + speedi.ToString("X8") + '#', 0);
             SharedResources.SetScopeGuiding();
         }
         /// True if a <see cref="PulseGuide" /> command is in progress, False otherwise
@@ -260,11 +260,19 @@ namespace ASCOM.EQControl.Telescope.V1
         internal static void MoveAxis(TelescopeAxes Axis, double Rate)
         {
             SharedResources.doLog("Mount move "+Axis.ToString()+" at "+Rate.ToString(), 0);
+            if (Axis == TelescopeAxes.axisTertiary) throw new MethodNotImplementedException("MoveAxis ", Axis.ToString());
             if (Rate == 0) { SharedResources.SendSerialCommand(":Q#", 0); return; }
+            if (Math.Abs(Rate)<1.0/3600.0) throw new InvalidValueException("MoveAxis invalid rate: "+Rate.ToString());
             if (Axis == TelescopeAxes.axisPrimary)
-                SharedResources.SendSerialCommand(":Mr" + ((int)(Rate * 3600/15)).ToString("X8") + '#', 0); // in hour in mount!
-            if (Axis == TelescopeAxes.axisSecondary)
+            {
+                if (Math.Abs(Rate) > SharedResources.raMaxSpeed* 360.0/SharedResources.raMaxPos) throw new InvalidValueException("MoveAxis invalid rate: "+Rate.ToString());
+                SharedResources.SendSerialCommand(":Mr" + ((int)(Rate * 3600 / 15)).ToString("X8") + '#', 0); // in hour in mount!
+            } else if (Axis == TelescopeAxes.axisSecondary)
+            {   
+                if (Math.Abs(Rate) > SharedResources.decMaxSpeed* 360.0/SharedResources.decMaxPos) throw new InvalidValueException("MoveAxis invalid rate: "+Rate.ToString());
                 SharedResources.SendSerialCommand(":Md" + ((int)(Rate * 3600)).ToString("X8") + '#', 0); // in degree in mount
+            }
+
             SharedResources.SetScopeMoving();
         }
 
@@ -311,9 +319,9 @@ namespace ASCOM.EQControl.Telescope.V1
         internal static double FocalLength { get { return SharedResources.FocalLength / 1000.0f; } set { SharedResources.FocalLength = (int)(value * 1000); } } /// The telescope's focal length, meters
         internal static double ApertureArea { get { return SharedResources.Area_cm2/10000.0f; } set { SharedResources.Area_cm2= (int)(value*10000); } } /// The area of the telescope's aperture, taking into account any obstructions (square meters)
         internal static double ApertureDiameter { get { return SharedResources.Diameter_mm/1000.0f; } set { SharedResources.Diameter_mm= (int)(value*1000); } } /// The telescope's effective aperture diameter (meters)
-        internal static double SiteElevation { get { return SharedResources.SiteAltitude; } set { SharedResources.SiteAltitude = (int)value; SharedResources.updateAzimutal(); } } /// The elevation above mean sea level (meters) of the site at which the telescope is located
-        internal static double SiteLatitude { get { return SharedResources.Latitude/36000.0f;  } set { SharedResources.Latitude = (int)(value*36000); SharedResources.updateAzimutal(); } } // /// The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
-        internal static double SiteLongitude { get { return SharedResources.Longitude/36000.0f;  } set { SharedResources.Longitude= (int)(value*36000); SharedResources.updateAzimutal(); } } /// The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
+        internal static double SiteElevation { get { return SharedResources.SiteAltitude; } set { if (value<-200 || value>=9999) throw new InvalidValueException("SiteElevation invalid"); SharedResources.SiteAltitude = (int)value; SharedResources.updateAzimutal(); } } /// The elevation above mean sea level (meters) of the site at which the telescope is located
+        internal static double SiteLatitude { get { return SharedResources.Latitude/36000.0f;  } set { if (value <-90 || value >90) throw new InvalidValueException("SiteLatitude invalid");  SharedResources.Latitude = (int)(value*36000); SharedResources.updateAzimutal(); } } // /// The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
+        internal static double SiteLongitude { get { return SharedResources.Longitude/36000.0f;  } set { if (value < -180 || value > 180) throw new InvalidValueException("SiteLatitude invalid"); SharedResources.Longitude= (int)(value*36000); SharedResources.updateAzimutal(); } } /// The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
 
         /// Specifies a post-slew settling time (sec.).
         internal static short SlewSettleTime
@@ -355,11 +363,11 @@ namespace ASCOM.EQControl.Telescope.V1
         internal static void SyncToTarget() { SyncToCoordinates(_TargetRightAscension, _TargetDeclination); }
 
         /// The declination (degrees, positive North) for the target of an equatorial slew or sync operation
-        static double _TargetDeclination = 0.0;
-        internal static double TargetDeclination { get { return _TargetDeclination; } set { _TargetDeclination= value; } }
+        static double _TargetDeclination = -1000.0;
+        internal static double TargetDeclination { get { if (_TargetDeclination == -1000.0) throw new InvalidOperationException("TargetDeclination was not set"); return _TargetDeclination; } set { _TargetDeclination= value; } }
         /// The right ascension (hours) for the target of an equatorial slew or sync operation
-        static double _TargetRightAscension = 0.0;
-        internal static double TargetRightAscension { get { return _TargetRightAscension; } set { _TargetRightAscension = value; } }
+        static double _TargetRightAscension = -1000.0;
+        internal static double TargetRightAscension { get { if (_TargetRightAscension == -1000.0) throw new InvalidOperationException("TargetRightAscension was not set"); return _TargetRightAscension; } set { _TargetRightAscension = value; } }
 
         // The state of the telescope's sidereal tracking drive.
         internal static bool Tracking { get { return !SharedResources.TrackingDisabled; } 
@@ -384,22 +392,7 @@ namespace ASCOM.EQControl.Telescope.V1
         }
 
         /// Returns a collection of supported <see cref="DriveRates" /> values that describe the permissible
-        public class MyTrackingRates : ITrackingRates
-            {
-                private readonly List<DriveRates> supportedRates = new List<DriveRates>();
-                public MyTrackingRates()
-                {
-                    supportedRates.Add(DriveRates.driveSidereal);
-                    supportedRates.Add(DriveRates.driveLunar);
-                    supportedRates.Add(DriveRates.driveSolar);
-                    supportedRates.Add(DriveRates.driveKing);
-                }
-                public int Count => supportedRates.Count;
-                public IEnumerator GetEnumerator() => supportedRates.GetEnumerator();
-                public DriveRates this[int index] => supportedRates[index];
-                public void Dispose() { }
-            }
-        internal static ITrackingRates TrackingRates { get { return new MyTrackingRates(); } }
+        internal static ITrackingRates TrackingRates { get { return new TrackingRates(); } }
 
         /// The UTC date/time of the telescope's internal clock
         internal static DateTime UTCDate

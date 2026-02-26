@@ -1,4 +1,5 @@
 ﻿using ASCOM.DeviceInterface;
+using ASCOM.LocalServer;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -77,39 +78,25 @@ namespace ASCOM.EQControl.Telescope.V1
     {
         private TelescopeAxes axis;
         private readonly Rate[] rates;
-
-        //
-        // Constructor - Internal prevents public creation
-        // of instances. Returned by Telescope.AxisRates.
-        //
         internal AxisRates(TelescopeAxes axis)
         {
             this.axis = axis;
-            //
-            // This collection must hold zero or more Rate objects describing the 
-            // rates of motion ranges for the Telescope.MoveAxis() method
-            // that are supported by your driver. It is OK to leave this 
-            // array empty, indicating that MoveAxis() is not supported.
-            //
-            // Note that we are constructing a rate array for the axis passed
-            // to the constructor. Thus we switch() below, and each case should 
-            // initialize the array for the rate for the selected axis.
-            //
             switch (axis)
             {
                 case TelescopeAxes.axisPrimary:
                     // TODO Initialize this array with any Primary axis rates that your driver may provide
                     // Example: m_Rates = new Rate[] { new Rate(10.5, 30.2), new Rate(54.0, 43.6) }
-                    this.rates = new Rate[] { new Rate(0.01, 0.1), new Rate(0.2, 0.2), new Rate(0.5, 0.5), new Rate(1.0, 1.0) };
+                    this.rates = new Rate[] { new Rate(1.0/3600.0, SharedResources.raMaxSpeed* 360.0/SharedResources.raMaxPos) };
                     break;
                 case TelescopeAxes.axisSecondary:
                     // TODO Initialize this array with any Secondary axis rates that your driver may provide
-                    this.rates = new Rate[] { new Rate(0.01, 0.1), new Rate(0.2, 0.2), new Rate(0.5, 0.5), new Rate(1.0, 1.0) };
+                    this.rates = new Rate[] { new Rate(1.0/3600.0, SharedResources.decMaxSpeed * 360.0/SharedResources.decMaxPos) };
                     break;
                 case TelescopeAxes.axisTertiary:
                     // TODO Initialize this array with any Tertiary axis rates that your driver may provide
                     this.rates = new Rate[0];
                     break;
+                default: throw new InvalidValueException("AxisRates on non alpha/dec axes");
             }
         }
 
@@ -162,53 +149,29 @@ namespace ASCOM.EQControl.Telescope.V1
     public class TrackingRates : ITrackingRates, IEnumerable, IEnumerator
     {
         private readonly DriveRates[] trackingRates;
-
-        // this is used to make the index thread safe
         private readonly ThreadLocal<int> pos = new ThreadLocal<int>(() => { return -1; });
         private static readonly object lockObj = new object();
-
-        //
-        // Default constructor - Internal prevents public creation
-        // of instances. Returned by Telescope.AxisRates.
-        //
         internal TrackingRates()
         {
-            //
-            // This array must hold ONE or more DriveRates values, indicating
-            // the tracking rates supported by your telescope. The one value
-            // (tracking rate) that MUST be supported is driveSidereal!
-            //
-            this.trackingRates = new[] { DriveRates.driveSidereal };
-            // TODO Initialize this array with any additional tracking rates that your driver may provide
+            this.trackingRates = new[] { DriveRates.driveSidereal, DriveRates.driveLunar, DriveRates.driveSolar, DriveRates.driveKing };
         }
-
-        #region ITrackingRates Members
-
         public int Count
         {
             get { return this.trackingRates.Length; }
         }
-
         public IEnumerator GetEnumerator()
         {
             pos.Value = -1;
             return this as IEnumerator;
         }
-
         public void Dispose()
         {
             // TODO Add any required object clean-up here
         }
-
         public DriveRates this[int index]
         {
             get { return this.trackingRates[index - 1]; }   // 1-based
         }
-
-        #endregion
-
-        #region IEnumerable members
-
         public object Current
         {
             get
@@ -223,7 +186,6 @@ namespace ASCOM.EQControl.Telescope.V1
                 }
             }
         }
-
         public bool MoveNext()
         {
             lock (lockObj)
@@ -235,12 +197,10 @@ namespace ASCOM.EQControl.Telescope.V1
                 return true;
             }
         }
-
         public void Reset()
         {
             pos.Value = -1;
         }
-        #endregion
     }
     #endregion
 }

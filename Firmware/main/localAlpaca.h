@@ -6,33 +6,37 @@ protected:
     TAlpacaErr pulseguide(int dir, int length) override  // Moves the scope in the given $Direction for the given $Duration (ms). . 0: north, 1: south, 2: east, 3: west
     { 
         stopMovingOnKeyRelease= false;
-        if (dir==0 && guideratedeclination>0) { MDecOn(); decGuiding= true; float r= guideratedeclination*3600.0f*CSavedData::savedData.dec.maxPos/360.0f; MDec.guide(int32_t(length*r/1000.0f), uint32_t(r)); return ALPACA_OK; }
-        if (dir==1 && guideratedeclination>0) { MDecOn(); decGuiding= true; float r= guideratedeclination*3600.0f*CSavedData::savedData.dec.maxPos/360.0f; MDec.guide(-int32_t(length*r/1000.0f), uint32_t(r)); return ALPACA_OK; }
-        if (dir==2 && guideraterightascension>0) { float r= guideraterightascension*3600.0f*CSavedData::savedData.dec.maxPos/360.0f; MRa.guide(int32_t(length*r/1000.0f), uint32_t(r)); return ALPACA_OK; }
-        if (dir==3 && guideraterightascension>0) { float r= guideraterightascension*3600.0f*CSavedData::savedData.dec.maxPos/360.0f; MRa.guide(-int32_t(length*r/1000.0f), uint32_t(r)); return ALPACA_OK; }
+        if (dir==0 && CSavedData::savedData.guideRateDec>0) { MDecOn(); decGuiding= true; float spd= CSavedData::savedData.guideRateDec*CSavedData::savedData.dec.maxPos/(360*36000); MDec.guide(int32_t(length*spd/1000.0f), uint32_t(spd)); return ALPACA_OK; }
+        if (dir==1 && CSavedData::savedData.guideRateDec>0) { MDecOn(); decGuiding= true; float spd= CSavedData::savedData.guideRateDec*CSavedData::savedData.dec.maxPos/(360*36000); MDec.guide(-int32_t(length*spd/1000.0f), uint32_t(spd)); return ALPACA_OK; }
+        if (dir==2 && CSavedData::savedData.guideRateRA>0) { float r= CSavedData::savedData.guideRateRA*CSavedData::savedData.ra.maxPos/(360*36000); MRa.guide(int32_t(length*r/1000.0f), uint32_t(r)); return ALPACA_OK; }
+        if (dir==3 && CSavedData::savedData.guideRateRA>0) { float r= CSavedData::savedData.guideRateRA*CSavedData::savedData.ra.maxPos/(360*36000); MRa.guide(-int32_t(length*r/1000.0f), uint32_t(r)); return ALPACA_OK; }
         return ALPACA_ERR_INVALID_VALUE;
     } 
     bool ispulseguiding() override  { return decGuiding || MRa._guide!=0; }; // Indicates whether the telescope is currently executing a PulseGuide command
+    float get_guideratedeclination() override { return CSavedData::savedData.guideRateDec/36000.0f; }  // Returns the current Declination rate offset for telescope guiding
+    TAlpacaErr set_guideratedeclination(float v) override  { if (v<0.0f || v>25.0f/3600.0f) return ALPACA_ERR_INVALID_VALUE; CSavedData::savedData.guideRateDec= int(v*36000.0f); return ALPACA_OK; } // Sets the current $GuideRateDeclination rate offset for telescope guiding.
+    float get_guideraterightascension() override  { return CSavedData::savedData.guideRateRA/36000.0f; } // Returns the current RightAscension rate offset for telescope guiding
+    TAlpacaErr set_guideraterightascension(float v) override { if (v<0.0f || v>25.0f/3600.0f) return ALPACA_ERR_INVALID_VALUE; CSavedData::savedData.guideRateRA= int(v*36000.0f); return ALPACA_OK; } // Sets the current $GuideRateRightAscension  rate offset for telescope guiding.
 
-    bool get_tracking() override { return MRa.NextUncountedSteps!=0; } // Indicates whether the telescope is tracking.
+    bool get_tracking() override { return MRa.deltaBetweenUncountedSteps!=0; } // Indicates whether the telescope is tracking.
     TAlpacaErr set_tracking(bool v) override 
     { 
         if (!v) CSavedData::savedData.initUncountedStep2(0); 
-        else CSavedData::savedData.initUncountedStep2(sideralSpeeds[trackingrate]);
+        else CSavedData::savedData.initUncountedStep2(sideralSpeeds[trackingrate+1]);
         return ALPACA_OK; } // Enables or disables telescope $Tracking.
          // 0: sideral, 1: lunar, 2: solar, 3: king (15.0369 arc"/s)
-    TAlpacaErr set_trackingrate(int v) override { if (v>=0 && v<=3) { trackingrate= v; set_tracking(get_tracking()); } return ALPACA_OK; } // Sets the mount's $TrackingRate.
+    TAlpacaErr set_trackingrate(int v) override { if (v<0 || v>3) return ALPACA_ERR_INVALID_VALUE; trackingrate= v; set_tracking(get_tracking()); return ALPACA_OK; } // Sets the mount's $TrackingRate.
     int get_trackingrate() override { if (MRa.deltaBetweenUncountedSteps==0) return trackingrate; return MRa.sideralMove-1; } // Gets the mount's $TrackingRate.
 
     bool slewing() override { return MDec.isMoving()||MRa.isMoving(); }
     TAlpacaErr abortslew() override { savedGotoForFlip.flipFlags= 0; MDec.stop(); MRa.stop(); return ALPACA_OK; }; // Immediatley stops a slew in progress.
-    TAlpacaErr slewtocoordinatesasync(float ra, float dec) override { goTo(int32_t(ra*3600.0f), int32_t(dec*3600.0f)); return ALPACA_OK; } // Asynchronously slew to the given equatorial $RightAscension $Declination coordinates.
-    TAlpacaErr synctocoordinates(float ra, float dec) override { sync(int32_t(ra*3600.0f), int32_t(dec*3600.0f)); return ALPACA_OK; } // Syncs to the given $RightAscension $Declination coordinates.
+    TAlpacaErr slewtocoordinatesasync(float ra, float dec) override { if (ra<0.0f || ra>24.0f || dec<90.0f || dec>90.0f) return ALPACA_ERR_INVALID_VALUE; goTo(int32_t(ra*3600.0f), int32_t(dec*3600.0f)); return ALPACA_OK; } // Asynchronously slew to the given equatorial $RightAscension $Declination coordinates.
+    TAlpacaErr synctocoordinates(float ra, float dec) override { if (ra<0.0f || ra>24.0f || dec<90.0f || dec>90.0f) return ALPACA_ERR_INVALID_VALUE; sync(int32_t(ra*3600.0f), int32_t(dec*3600.0f)); return ALPACA_OK; } // Syncs to the given $RightAscension $Declination coordinates.
 
     TAlpacaErr axisrates(int axis, char *b) override { strcpy(b, "[{\"Maximum\": 4.001,\"Minimum\": 0.001}]"); return ALPACA_OK; } // Returns the rates at which the telescope may be moved about the specified $Axis  returns [{"Maximum": 0,"Minimum": 0}] in b (b will be 30 chr long)
-    bool canmoveaxis(int axis) override { return true; } // Indicates whether the telescope can move the requested $Axis.
     TAlpacaErr moveaxis(int axis, float rate) override   // Moves a telescope $Axis at the given $Rate.
     { 
+        if (axis>=2 || rate!=0.0f && (fabsf(rate)<0.00099 || fabsf(rate)>4.001)) return ALPACA_ERR_INVALID_VALUE;
         if (axis==0) MRa.goUpRealNoAbs(int(rate*(3600.0f/15.0f)));
         else if (axis==1) MDec.goUpRealNoAbs(int(rate*(3600.0f)));
         return ALPACA_OK; 
@@ -51,15 +55,11 @@ protected:
     float get_focallength() override { return CSavedData::savedData.FocalLength/1000.0f; } // Returns the telescope's focal length in meters.
     TAlpacaErr set_focallength(float v) override { CSavedData::savedData.FocalLength= uint16_t(v*1000.0f); return ALPACA_OK;  } // Returns the telescope's focal length in meters.
     float get_siteelevation() override { return CSavedData::savedData.Altitude; } // Returns the observing $SiteElevation above mean sea level.
-    TAlpacaErr set_siteelevation(float v) override { CSavedData::savedData.Altitude= uint16_t(v); return ALPACA_OK; } // Sets the observing site's elevation above mean sea level.
+    TAlpacaErr set_siteelevation(float v) override { if (v<-200.0f || v>9999.0f) return ALPACA_ERR_INVALID_VALUE; CSavedData::savedData.Altitude= uint16_t(v); return ALPACA_OK; } // Sets the observing site's elevation above mean sea level.
     float get_sitelatitude() override { return CSavedData::savedData.Latitude/36000.0f; } // Returns the observing $SiteLatitude .
-    TAlpacaErr set_sitelatitude(float v) override { CSavedData::savedData.Latitude= uint32_t(v*36000.0f); return ALPACA_OK; } // Sets the observing site's latitude.
+    TAlpacaErr set_sitelatitude(float v) override { if (v<-90.0f || v>90.0f) return ALPACA_ERR_INVALID_VALUE; CSavedData::savedData.Latitude= uint32_t(v*36000.0f); return ALPACA_OK; } // Sets the observing site's latitude.
     float get_sitelongitude() override { return CSavedData::savedData.Longitude/36000.0f; } // Returns the observing site's longitude.
-    TAlpacaErr set_sitelongitude(float v) override { CSavedData::savedData.Longitude= uint32_t(v*36000.0f); return ALPACA_OK; } // Sets the observing $SiteLongitude .
-    float get_guideratedeclination() override { return CSavedData::savedData.guideRateDec/10.0f; } 
-    TAlpacaErr set_guideratedeclination(float v) override { if (v>1.0f && v<20.0f) CSavedData::savedData.guideRateDec= int(v*10.0f); return ALPACA_OK; }
-    float get_guideraterightascension() override { return CSavedData::savedData.guideRateRA/10.0f;  }
-    TAlpacaErr set_guideraterightascension(float v) override { if (v>1.0f && v<20.0f) CSavedData::savedData.guideRateRA= int(v*10.0f); return ALPACA_OK; }
+    TAlpacaErr set_sitelongitude(float v) override {  if (v<-180.0f || v>180.0f) return ALPACA_ERR_INVALID_VALUE; CSavedData::savedData.Longitude= uint32_t(v*36000.0f); return ALPACA_OK; } // Sets the observing $SiteLongitude .
 
 
 
