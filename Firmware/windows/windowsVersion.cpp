@@ -157,7 +157,8 @@ static void inline portSetup() {} // set 3 kbd pins to pullup, one kbd pin to ou
 #define PORTDCLEAR(p) (PORTD&=~(p))
 static void inline portBWritePin(int8_t pin, int8_t v) { if (v) PORTB|= 1<<pin; else PORTB&=~(1<<pin);}
 static void inline portCWritePin(int8_t pin, int8_t v) { if (v) PORTC|= 1<<pin; else PORTC&=~(1<<pin); }
-
+void sendBNO() {}
+void execBNO(uint32_t n1, uint32_t n2) {}
 #define debug(...) ATLTRACE2(__VA_ARGS__)
 void udelay(uint16_t) {}
 uint16_t keys= 0;

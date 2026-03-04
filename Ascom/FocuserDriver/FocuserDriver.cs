@@ -67,5 +67,6 @@ namespace ASCOM.EQControl.Focuser.V1
         public bool TempComp { get { return FocuserHardware.TempComp; } set {  FocuserHardware.TempComp= value;} }
         public bool TempCompAvailable { get { return FocuserHardware.TempCompAvailable; } }
         public double Temperature { get { return FocuserHardware.Temperature; } }
+        public string savedPos {  get { return FocuserHardware.savedPos; } set { FocuserHardware.setSavedPos(value); } } // focuser saved positions...
     }
 }

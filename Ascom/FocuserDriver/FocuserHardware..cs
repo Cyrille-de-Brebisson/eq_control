@@ -27,6 +27,7 @@ namespace ASCOM.EQControl.Focuser.V1
                     int i;
                     if (int.TryParse(driverProfile.GetValue(DriverProgId, "slowSpeed", "10"), out i)) slowSpeed = i;
                     if (int.TryParse(driverProfile.GetValue(DriverProgId, "fastSpeed", "2000"), out i)) fastSpeed = i;
+                    savedPos= driverProfile.GetValue(DriverProgId, "savedPos", "");
                 }
             }
             catch (Exception ex)
@@ -35,7 +36,11 @@ namespace ASCOM.EQControl.Focuser.V1
                 throw;
             }
         }
-
+        public static string savedPos= "";
+        public static void setSavedPos(string s)
+        {
+            savedPos= s; saveProfile();
+        }
         public static void SetupDialog()
         {
             // Don't permit the setup dialogue if already connected
@@ -54,6 +59,7 @@ namespace ASCOM.EQControl.Focuser.V1
                 driverProfile.WriteValue(DriverProgId, comPortProfileName, SharedResources.comPort.ToString());
                 driverProfile.WriteValue(DriverProgId, "slowSpeed", slowSpeed.ToString());
                 driverProfile.WriteValue(DriverProgId, "fastSpeed", fastSpeed.ToString());
+                driverProfile.WriteValue(DriverProgId, "savedPos", savedPos);
             }
         }
         public static void Dispose() { }

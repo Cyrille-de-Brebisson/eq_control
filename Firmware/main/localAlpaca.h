@@ -36,7 +36,7 @@ protected:
     TAlpacaErr axisrates(int axis, char *b) override { strcpy(b, "[{\"Maximum\": 4.001,\"Minimum\": 0.001}]"); return ALPACA_OK; } // Returns the rates at which the telescope may be moved about the specified $Axis  returns [{"Maximum": 0,"Minimum": 0}] in b (b will be 30 chr long)
     TAlpacaErr moveaxis(int axis, float rate) override   // Moves a telescope $Axis at the given $Rate.
     { 
-        if (axis>=2 || rate!=0.0f && (fabsf(rate)<0.00099 || fabsf(rate)>4.001)) return ALPACA_ERR_INVALID_VALUE;
+        if (axis>=2 || (rate!=0.0f && (fabsf(rate)<0.00099 || fabsf(rate)>4.001))) return ALPACA_ERR_INVALID_VALUE;
         if (axis==0) MRa.goUpRealNoAbs(int(rate*(3600.0f/15.0f)));
         else if (axis==1) MDec.goUpRealNoAbs(int(rate*(3600.0f)));
         return ALPACA_OK; 
@@ -137,7 +137,7 @@ protected:
         s+= "</p>";
     }
 
-};
+} *MyTelescope= nullptr;
 
 class CMyFocuser : public CFocuser
 { public:

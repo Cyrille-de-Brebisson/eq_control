@@ -181,6 +181,9 @@ namespace ASCOM.LocalServer
             this.button32 = new System.Windows.Forms.Button();
             this.button33 = new System.Windows.Forms.Button();
             this.groupBox15 = new System.Windows.Forms.GroupBox();
+            this.BNO0 = new System.Windows.Forms.Label();
+            this.BNO2 = new System.Windows.Forms.TextBox();
+            this.BNO1 = new System.Windows.Forms.TextBox();
             this.label42 = new System.Windows.Forms.Label();
             this.label52 = new System.Windows.Forms.Label();
             this.label41 = new System.Windows.Forms.Label();
@@ -250,9 +253,10 @@ namespace ASCOM.LocalServer
             this.checkBox13 = new System.Windows.Forms.CheckBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.checkBox19 = new System.Windows.Forms.CheckBox();
-            this.BNO1 = new System.Windows.Forms.TextBox();
-            this.BNO2 = new System.Windows.Forms.TextBox();
-            this.BNO0 = new System.Windows.Forms.Label();
+            this.comboBox2 = new System.Windows.Forms.ComboBox();
+            this.button27 = new System.Windows.Forms.Button();
+            this.button28 = new System.Windows.Forms.Button();
+            this.button44 = new System.Windows.Forms.Button();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -718,6 +722,10 @@ namespace ASCOM.LocalServer
             // groupBox2
             // 
             this.groupBox2.BackColor = System.Drawing.Color.Black;
+            this.groupBox2.Controls.Add(this.button44);
+            this.groupBox2.Controls.Add(this.button27);
+            this.groupBox2.Controls.Add(this.button28);
+            this.groupBox2.Controls.Add(this.comboBox2);
             this.groupBox2.Controls.Add(this.checkBox12);
             this.groupBox2.Controls.Add(this.button10);
             this.groupBox2.Controls.Add(this.button11);
@@ -746,12 +754,12 @@ namespace ASCOM.LocalServer
             this.checkBox12.AutoSize = true;
             this.checkBox12.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox12.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox12.Location = new System.Drawing.Point(21, 26);
+            this.checkBox12.Location = new System.Drawing.Point(10, 26);
             this.checkBox12.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox12.Name = "checkBox12";
-            this.checkBox12.Size = new System.Drawing.Size(185, 24);
+            this.checkBox12.Size = new System.Drawing.Size(146, 24);
             this.checkBox12.TabIndex = 57;
-            this.checkBox12.Text = "use mm and micron/s";
+            this.checkBox12.Text = "use mm and µ/s";
             this.checkBox12.UseVisualStyleBackColor = false;
             this.checkBox12.CheckedChanged += new System.EventHandler(this.checkBox12_CheckedChanged);
             // 
@@ -2151,6 +2159,34 @@ namespace ASCOM.LocalServer
             this.groupBox15.TabStop = false;
             this.groupBox15.Text = "Motors absolute position";
             // 
+            // BNO0
+            // 
+            this.BNO0.AutoSize = true;
+            this.BNO0.ForeColor = System.Drawing.Color.White;
+            this.BNO0.Location = new System.Drawing.Point(5, 86);
+            this.BNO0.Name = "BNO0";
+            this.BNO0.Size = new System.Drawing.Size(43, 20);
+            this.BNO0.TabIndex = 59;
+            this.BNO0.Text = "BNO";
+            // 
+            // BNO2
+            // 
+            this.BNO2.Location = new System.Drawing.Point(10, 142);
+            this.BNO2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.BNO2.Name = "BNO2";
+            this.BNO2.Size = new System.Drawing.Size(193, 26);
+            this.BNO2.TabIndex = 58;
+            this.toolTip1.SetToolTip(this.BNO2, "Dec coordinates in -d:m:s format. m and s are optional");
+            // 
+            // BNO1
+            // 
+            this.BNO1.Location = new System.Drawing.Point(10, 110);
+            this.BNO1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.BNO1.Name = "BNO1";
+            this.BNO1.Size = new System.Drawing.Size(193, 26);
+            this.BNO1.TabIndex = 57;
+            this.toolTip1.SetToolTip(this.BNO1, "Dec coordinates in -d:m:s format. m and s are optional");
+            // 
             // label42
             // 
             this.label42.AutoSize = true;
@@ -3034,33 +3070,57 @@ namespace ASCOM.LocalServer
             this.checkBox19.UseVisualStyleBackColor = false;
             this.checkBox19.CheckedChanged += new System.EventHandler(this.checkBox19_CheckedChanged);
             // 
-            // BNO1
+            // comboBox2
             // 
-            this.BNO1.Location = new System.Drawing.Point(10, 110);
-            this.BNO1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.BNO1.Name = "BNO1";
-            this.BNO1.Size = new System.Drawing.Size(193, 26);
-            this.BNO1.TabIndex = 57;
-            this.toolTip1.SetToolTip(this.BNO1, "Dec coordinates in -d:m:s format. m and s are optional");
+            this.comboBox2.FormattingEnabled = true;
+            this.comboBox2.Location = new System.Drawing.Point(172, 21);
+            this.comboBox2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.comboBox2.Name = "comboBox2";
+            this.comboBox2.Size = new System.Drawing.Size(120, 28);
+            this.comboBox2.TabIndex = 65;
+            this.toolTip1.SetToolTip(this.comboBox2, "used to remember focus positions");
             // 
-            // BNO2
+            // button27
             // 
-            this.BNO2.Location = new System.Drawing.Point(10, 142);
-            this.BNO2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.BNO2.Name = "BNO2";
-            this.BNO2.Size = new System.Drawing.Size(193, 26);
-            this.BNO2.TabIndex = 58;
-            this.toolTip1.SetToolTip(this.BNO2, "Dec coordinates in -d:m:s format. m and s are optional");
+            this.button27.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.button27.ForeColor = System.Drawing.Color.White;
+            this.button27.Location = new System.Drawing.Point(339, 17);
+            this.button27.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button27.Name = "button27";
+            this.button27.Size = new System.Drawing.Size(54, 35);
+            this.button27.TabIndex = 67;
+            this.button27.Text = "Save";
+            this.toolTip1.SetToolTip(this.button27, "Press and hold button to move focusser at fast/slow speed");
+            this.button27.UseVisualStyleBackColor = false;
+            this.button27.Click += new System.EventHandler(this.button27_Click);
             // 
-            // BNO0
+            // button28
             // 
-            this.BNO0.AutoSize = true;
-            this.BNO0.ForeColor = System.Drawing.Color.White;
-            this.BNO0.Location = new System.Drawing.Point(5, 86);
-            this.BNO0.Name = "BNO0";
-            this.BNO0.Size = new System.Drawing.Size(43, 20);
-            this.BNO0.TabIndex = 59;
-            this.BNO0.Text = "BNO";
+            this.button28.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.button28.ForeColor = System.Drawing.Color.White;
+            this.button28.Location = new System.Drawing.Point(296, 17);
+            this.button28.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button28.Name = "button28";
+            this.button28.Size = new System.Drawing.Size(40, 35);
+            this.button28.TabIndex = 66;
+            this.button28.Text = "Go";
+            this.toolTip1.SetToolTip(this.button28, "Press and hold button to move focusser at fast/slow speed");
+            this.button28.UseVisualStyleBackColor = false;
+            this.button28.Click += new System.EventHandler(this.button28_Click);
+            // 
+            // button44
+            // 
+            this.button44.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.button44.ForeColor = System.Drawing.Color.White;
+            this.button44.Location = new System.Drawing.Point(397, 18);
+            this.button44.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button44.Name = "button44";
+            this.button44.Size = new System.Drawing.Size(42, 35);
+            this.button44.TabIndex = 68;
+            this.button44.Text = "Del";
+            this.toolTip1.SetToolTip(this.button44, "Press and hold button to move focusser at fast/slow speed");
+            this.button44.UseVisualStyleBackColor = false;
+            this.button44.Click += new System.EventHandler(this.button44_Click);
             // 
             // FrmMain
             // 
@@ -3357,6 +3417,10 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.TextBox BNO2;
         private System.Windows.Forms.TextBox BNO1;
         private System.Windows.Forms.Label BNO0;
+        private System.Windows.Forms.Button button27;
+        private System.Windows.Forms.Button button28;
+        private System.Windows.Forms.ComboBox comboBox2;
+        private System.Windows.Forms.Button button44;
     }
 }
 

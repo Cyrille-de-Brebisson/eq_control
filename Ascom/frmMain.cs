@@ -1,20 +1,22 @@
-﻿using ASCOM.EQControl.Focuser.V1;
-using ASCOM.EQControl.Telescope.V1;
+﻿using ASCOM.Astrometry.Transform;
 using ASCOM.DeviceInterface;
+using ASCOM.EQControl.Focuser.V1;
+using ASCOM.EQControl.Telescope.V1;
 using ASCOM.Utilities;
+using StarDisp;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
-using static ASCOM.LocalServer.SharedResources;
-using StarDisp;
-using System.Drawing;
 using System.Media;
 using System.Net;
-using ASCOM.Astrometry.Transform;
 using System.Runtime.InteropServices;
-using System.Diagnostics;
-using System.Collections.Generic;
+using System.Security.Policy;
+using System.Windows.Forms;
+using static ASCOM.LocalServer.SharedResources;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 
 namespace ASCOM.LocalServer
@@ -50,6 +52,7 @@ namespace ASCOM.LocalServer
             checkBox7.Checked= SharedResources.guideAfterSlew;
             checkBox19.Checked= SharedResources.reconnectOnDrop;
             updateLocations();  posCB.Text= "";
+            updateSavedPos();
         }
         ~FrmMain() { SharedResources.log= null; SharedResources.finish= true;  }
         private int lastFocusPos= 0x7fffffff;
@@ -1471,8 +1474,6 @@ namespace ASCOM.LocalServer
             label48.Text = ISSErr;
         }
 
-
-
         public static void ParallaxConstantsToLatAlt(
             double longitudeDeg, double rho, double rhoSinPhiPrime,
             out double latitudeDeg, out double altitudeMeters)
@@ -1508,6 +1509,55 @@ namespace ASCOM.LocalServer
 
             latitudeDeg = lat * 180.0 / Math.PI;
             altitudeMeters = h;
+        }
+
+        // Deal with focus saved positions...
+        void updateSavedPos()
+        {
+            comboBox2.Items.Clear();
+            string[] elements = f.savedPos.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            comboBox2.Items.AddRange(elements); // On ajoute le tableau complet
+            // if (comboBox1.Items.Count>0) comboBox1.SelectedIndex = 0;
+        }
+        private void button28_Click(object sender, EventArgs e) // focuser move to saved position...
+        {
+            try { 
+                string s= comboBox2.SelectedItem.ToString(); 
+                int debut = s.IndexOf('(') + 1, fin = s.IndexOf(')');
+                int pos = int.Parse(s.Substring(debut, fin - debut));
+                f.Move(pos);
+            } catch {  return; }
+        }
+        private void button44_Click(object sender, EventArgs e) // remove entry from list...
+        {
+            var elements = f.savedPos.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (comboBox2.SelectedIndex>=0 && comboBox2.SelectedIndex<elements.Count)
+            { 
+                elements.RemoveAt(comboBox2.SelectedIndex);
+                f.savedPos= string.Join(";", elements);
+                updateSavedPos();
+            }
+        }
+        private void button27_Click(object sender, EventArgs e) // focusser save new position...
+        {
+            string s= comboBox2.Text;
+            int debut = s.IndexOf('(');
+            if (debut>=0) s= s.Substring(0, debut);
+            if (s.Length<2) return;
+            s+= "(";
+            // find s in existing list...
+            string[] elements = f.savedPos.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int i=0; i<elements.Length; i++) 
+                if (elements[i].StartsWith(s))
+                {
+                    elements[i]= s+f.Position.ToString()+')'; 
+                    comboBox2.Items.Clear();
+                    comboBox2.Items.AddRange(elements); // On ajoute le tableau complet
+                    f.savedPos= string.Join(";", elements);
+                    return;
+                }
+            f.savedPos= f.savedPos+s+f.Position.ToString()+");";
+            updateSavedPos();
         }
 
     }

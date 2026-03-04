@@ -330,6 +330,8 @@ namespace CADC {
 
 #define IRAM_ATTR // esp32 thing... not used here
 #undef HASGPS     // just making sure! as there is no GPS in __AVR__ mode..
+static void sendBNO() {}
+static void execBNO(uint32_t i) {}
 
 
 
@@ -600,7 +602,7 @@ namespace MSerial {
 #define GPSUART UART_NUM_0
 int gpsGetData(char *b, int size) {     
     int l= uart_read_bytes(GPSUART, b, size, 500/portTICK_PERIOD_MS); // twice per second. Since data is normally under 300 bytes and buffer is 512B, we should get the full dataset on each go..
-    //b[l]= 0; MSerial::flush(b); 
+    MSerial::flush("->"); b[l]= 0; MSerial::flush(b); 
     return l;
 }
 void gpsDone() 
@@ -1177,7 +1179,7 @@ class CMotorUncounted : public CMotor { public:
     }
     int32_t nextGuideStep= 0, guideStepSize= 0;
     uint8_t skipNSteps= 0;
-    #define min(a,b) ((a)<(b)?(a):(b))
+    #define min(a,b) (((a) < (b)) ? (a) : (b))
     // TODO: make division performed by PC, not me!!!
     void guide(int16_t steps, uint32_t speed) { cli(); guideStepSize= 1000000UL/speed; _guide= -steps; nextGuideStep= Time::unow(); sei(); }
     void IRAM_ATTR step(uint32_t now)
@@ -2300,6 +2302,7 @@ void processSerial(char *C, int8_t nb)
             printHex2(MRa.countAllUncountedSteps, 6);           // this is also a time drift check
             printHex2(MRa.pos, 8); printHex2(MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
             printHex2((powercnt&0x0f) | (MRa.sideralMove<<5) | hasGPSData, 2);  // hasGPSData is bit 4...
+            sendBNO(); // as needed
             MSerial::flush('#');
             continue;
         }
@@ -2360,12 +2363,12 @@ void processSerial(char *C, int8_t nb)
 
         if (t1('T')) // track. provides dst in ra/dec as int24, time to be there in ms as int16. then a crc as int8
         { s--;
-        int32_t ra= readHex(s,6); int32_t dec= readHex(s,6); if ((dec&0x800000)!=0) dec|= 0xff000000; // negative extend.
-        int16_t time= readHex(s,4);
-        uint8_t crc= readHex(s,2);
-        uint8_t tcrc= uint8_t(ra)+uint8_t(ra>>8)+uint8_t(ra>>16) + uint8_t(dec)+uint8_t(dec>>8)+uint8_t(dec>>16) + uint8_t(time)+uint8_t(time>>8);
-        if (tcrc!=crc) continue;
-        goTo2(ra, dec, time); continue;
+            int32_t ra= readHex(s,6); int32_t dec= readHex(s,6); if ((dec&0x800000)!=0) dec|= 0xff000000; // negative extend.
+            int16_t time= readHex(s,4);
+            uint8_t crc= readHex(s,2);
+            uint8_t tcrc= uint8_t(ra)+uint8_t(ra>>8)+uint8_t(ra>>16) + uint8_t(dec)+uint8_t(dec>>8)+uint8_t(dec>>16) + uint8_t(time)+uint8_t(time>>8);
+            if (tcrc!=crc) continue;
+            goTo2(ra, dec, time); continue;
         }
         if (t2('M', 'R')) reboot(); // reboot the system!
         // All the commands from there on will take 1 or 2 inputs. In 8 char hex form most significant nible first in our input... We read them...
@@ -2382,6 +2385,8 @@ void processSerial(char *C, int8_t nb)
         // Focusser commands
         if (t2('F', 'G')) { MFocusOn(); MFocus.goToSteps(n1<<8, MFocus.spdMax); stopMovingOnKeyRelease= false; continue; } // -> start the motor toward destination
         if (t2('F', 'M')) { MFocusOn(); MFocus.goUp(n1<<8); stopMovingOnKeyRelease= false; continue; } // :FMxxxxxxxx# move out if x is >0, else in. x is 8 hex chars
+        // BNO commands
+        if (t1('B')) { execBNO(n1, n2); continue; }
     }
 }
 

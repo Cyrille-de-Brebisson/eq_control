@@ -514,7 +514,7 @@ protected:
 // This been tested and works :-) for once!
 class CTelescope : public CAlpacaDevice { 
     public: CTelescope(int id, char const* driverInfo, char const* driverVersion, char const* defaultName, char const* defaultDescription) : CAlpacaDevice(id, driverInfo, driverVersion, defaultName, defaultDescription) { }
-protected:
+
     uint32_t get_interfaceversion() override { return 4; }
     char const *get_type() override { return "Telescope"; }
 
@@ -614,10 +614,11 @@ protected:
     virtual int destinationsideofpier(float ra, float dec) { return -1; } // Predicts the pointing state after a German equatorial mount slews to given $RightAscension $Declination coordinates. 0: east, 1: west: -1: unknown
 
     virtual TAlpacaErr siderealtime(float &v) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the local apparent sidereal time.
-    #ifndef HASMilisecondTime
-        virtual TAlpacaErr get_utcdate(char *b) { b[0]= 0; ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the UTC date/time of the telescope's internal clock. b will be at least 20chrs... "8910-91-19T25:83:67Z"
-        virtual TAlpacaErr set_utcdate(char const *b) { return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Sets the UTC date/time of the telescope's internal clock.
+    #ifndef HASMilisecondTime // These are concidered mandatory by Ascom
+        virtual TAlpacaErr get_utcdate(char *b) =0; // Returns the UTC date/time of the telescope's internal clock. b will be at least 20chrs... "8910-91-19T25:83:67Z"
+        virtual TAlpacaErr set_utcdate(char const *b) =0; // Sets the UTC date/time of the telescope's internal clock.
     #else
+        uint64_t UTCTimeDelta= 0; // UTCdateTime = Milisecond()/1000 + UTCTimeDelta + 0h0:0 on jan 1 2024
         virtual TAlpacaErr get_utcdate(char* b);
         virtual TAlpacaErr set_utcdate(char const* b);
     #endif

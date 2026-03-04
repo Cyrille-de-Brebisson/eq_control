@@ -701,7 +701,6 @@ bool CTelescope::dispatch(bool get, char const *url, char *data, CMyStr *s)
 }
 #ifdef HASMilisecondTime  // define this if you have a function called Milisecond which will return a time counter in milisecond. This is used for UTCTime in CTelescope.
 uint32_t Milisecond(); // Must be defined elsewhere! else do not #def HASMilisecondTime
-static uint64_t UTCTimeDelta= 0;
 // format is: 2025-12-02T16:13:09.0146526Z
 static int8_t const dpm[]={31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 TAlpacaErr CTelescope::set_utcdate(char const* B) // Here we save the time given by the PC (accurate to 1s for the moment) and make a delta with our ms clock...
