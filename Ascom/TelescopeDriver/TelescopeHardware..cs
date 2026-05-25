@@ -206,14 +206,14 @@ namespace ASCOM.EQControl.Telescope.V1
         /// The current Right Ascension movement rate offset for telescope guiding (degrees/sec) <summary>
         internal static double GuideRateDeclination // deg/s
         {
-            get { SharedResources.doLog("get GuideRateDeclination "+ (SharedResources.guideRateDec/10.0f).ToString(), 1); return SharedResources.guideRateDec/10.0f; }
+            get { SharedResources.doLog("get GuideRateDeclination "+ (SharedResources.guideRateDec/10.0f/3600.0f).ToString(), 1); return SharedResources.guideRateDec/10.0f/3600.0f; }
             set { SharedResources.doLog("set GuideRateDeclination "+GuideRateDeclination.ToString(), 1); }
         }
         /// The current Right Ascension movement rate offset for telescope guiding (degrees/sec)
 
         internal static double GuideRateRightAscension // deg/s
         {
-            get { SharedResources.doLog("get GuideRateRa " + (SharedResources.guideRateRA/10.0f).ToString(), 1); return SharedResources.guideRateRA/10.0f; }
+            get { SharedResources.doLog("get GuideRateRa " + (SharedResources.guideRateRA/10.0f/3600.0f).ToString(), 1); return SharedResources.guideRateRA/10.0f/3600.0f; }
             set { return; }
         }
         /// Moves the scope in the given direction for the given interval or time at
