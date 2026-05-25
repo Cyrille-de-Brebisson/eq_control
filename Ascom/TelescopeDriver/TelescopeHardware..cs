@@ -47,6 +47,7 @@ namespace ASCOM.EQControl.Telescope.V1
                     SharedResources.isstle2= driverProfile.GetValue(DriverProgId, "isstle2", "", "");
                     SharedResources.locations= driverProfile.GetValue(DriverProgId, "locations", "", "");
                     SharedResources.scopes= driverProfile.GetValue(DriverProgId, "scopes", "", "");
+                    int.TryParse(driverProfile.GetValue(DriverProgId, "phd2GuideDelay", "", "20"), out SharedResources.phd2GuideDelay);
                 }
             }
             catch (Exception ex)
@@ -67,6 +68,8 @@ namespace ASCOM.EQControl.Telescope.V1
                 driverProfile.WriteValue(DriverProgId, "guideRaAgressivity", SharedResources.guideRaAgressivity.ToString(CultureInfo.InvariantCulture));
                 driverProfile.WriteValue(DriverProgId, "guideDecAgressivity", SharedResources.guideDecAgressivity.ToString(CultureInfo.InvariantCulture));
                 driverProfile.WriteValue(DriverProgId, "reconnectOnDrop", SharedResources.reconnectOnDrop? "1" : "0");
+                driverProfile.WriteValue(DriverProgId, "phd2GuideDelay", SharedResources.phd2GuideDelay.ToString());
+                
             }
         }
         public static void saveisstls(string isstle1, string isstle2)
@@ -203,14 +206,14 @@ namespace ASCOM.EQControl.Telescope.V1
         /// The current Right Ascension movement rate offset for telescope guiding (degrees/sec) <summary>
         internal static double GuideRateDeclination // deg/s
         {
-            get { SharedResources.doLog("get GuideRateDeclination "+ (SharedResources.guideRateDec/10.0f).ToString(), 1); return SharedResources.guideRateDec/10.0f; }
+            get { SharedResources.doLog("get GuideRateDeclination "+ (SharedResources.guideRateDec/10.0f/3600.0f).ToString(), 1); return SharedResources.guideRateDec/10.0f/3600.0f; }
             set { SharedResources.doLog("set GuideRateDeclination "+GuideRateDeclination.ToString(), 1); }
         }
         /// The current Right Ascension movement rate offset for telescope guiding (degrees/sec)
 
         internal static double GuideRateRightAscension // deg/s
         {
-            get { SharedResources.doLog("get GuideRateRa " + (SharedResources.guideRateRA/10.0f).ToString(), 1); return SharedResources.guideRateRA/10.0f; }
+            get { SharedResources.doLog("get GuideRateRa " + (SharedResources.guideRateRA/10.0f/3600.0f).ToString(), 1); return SharedResources.guideRateRA/10.0f/3600.0f; }
             set { return; }
         }
         /// Moves the scope in the given direction for the given interval or time at
