@@ -47,6 +47,7 @@ namespace ASCOM.EQControl.Telescope.V1
                     SharedResources.isstle2= driverProfile.GetValue(DriverProgId, "isstle2", "", "");
                     SharedResources.locations= driverProfile.GetValue(DriverProgId, "locations", "", "");
                     SharedResources.scopes= driverProfile.GetValue(DriverProgId, "scopes", "", "");
+                    int.TryParse(driverProfile.GetValue(DriverProgId, "phd2GuideDelay", "", "20"), out SharedResources.phd2GuideDelay);
                 }
             }
             catch (Exception ex)
@@ -67,6 +68,8 @@ namespace ASCOM.EQControl.Telescope.V1
                 driverProfile.WriteValue(DriverProgId, "guideRaAgressivity", SharedResources.guideRaAgressivity.ToString(CultureInfo.InvariantCulture));
                 driverProfile.WriteValue(DriverProgId, "guideDecAgressivity", SharedResources.guideDecAgressivity.ToString(CultureInfo.InvariantCulture));
                 driverProfile.WriteValue(DriverProgId, "reconnectOnDrop", SharedResources.reconnectOnDrop? "1" : "0");
+                driverProfile.WriteValue(DriverProgId, "phd2GuideDelay", SharedResources.phd2GuideDelay.ToString());
+                
             }
         }
         public static void saveisstls(string isstle1, string isstle2)
@@ -230,7 +233,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 speed= GuideRateDeclination* SharedResources.guideDecAgressivity;
                 fullTurn = SharedResources.decMaxPos;
                 d = 'd';
-                if (Direction == GuideDirections.guideSouth) dir = -dir;
+                if (Direction != GuideDirections.guideSouth) dir = -dir;
                 if ((SharedResources.guidingBits & 16) != 0) dir = -dir;
                 if (((SharedResources.guidingBits & 8) != 0) && SideOfPier == PierSide.pierEast) dir = -dir;
             }
@@ -240,7 +243,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 speed = GuideRateRightAscension * SharedResources.guideRaAgressivity;
                 fullTurn = SharedResources.raMaxPos;
                 d = 'r';
-                if (Direction == GuideDirections.guideEast) dir = -dir;
+                if (Direction != GuideDirections.guideEast) dir = -dir;
                 if ((SharedResources.guidingBits & 2) != 0) dir = -dir;
                 if (((SharedResources.guidingBits & 1) != 0) && SideOfPier==PierSide.pierEast) dir = -dir;
             }

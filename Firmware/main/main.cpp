@@ -185,7 +185,7 @@ namespace BNO055 {
         i2c_device_config_t dev_config = {
             .dev_addr_length = I2C_ADDR_BIT_LEN_7,
             .device_address = 0x29, 
-            .scl_speed_hz = 50000,
+            .scl_speed_hz = 10000,
         };
         ESP_ERROR_CHECK(i2c_master_bus_add_device(I2C.bus_handle, &dev_config, &dev_handle2));
     }
@@ -401,10 +401,14 @@ void BNOTask(void *)
         BNOData.hasBNO= true;
         //printf("BNO tmp%d\r\n", BNOData.temp);
         quatToAzAlt(BNOCalib.offset1*BNOData.angle, BNOData.alt, BNOData.az);
-        float lat= CGPS::hasPosInfo ? CGPS::latitude : CSavedData::savedData.Latitude/((36000.0f*180.0f)*M_PI); // get latitude from wherever we can!
         float lst= -100;
-        if (CGPS::hasPosInfo && CGPS::hasTimeInfo) lst= CGPS::localSiderealTime();
-        else if (MyTelescope->UTCTimeDelta!=0)
+        float lat= CSavedData::savedData.Latitude/((36000.0f*180.0f)*M_PI); // get latitude from wherever we can!
+        #ifdef HASGPS
+            if (CGPS::hasPosInfo) lat= CGPS::latitude; // get latitude from wherever we can!
+            if (CGPS::hasTimeInfo) lst= CGPS::localSiderealTime();
+            else 
+        #endif
+        if (MyTelescope->UTCTimeDelta!=0)
         {
             lst= fmodf((MyTelescope->UTCTimeDelta + Milisecond())*(1.00273790935/36000.0f), 24.0f) + (6+39/60.0f+45/3600.0f); // lst at grenwitch
             lst+= CSavedData::savedData.Latitude/36000.0f; // add latitude in 24h
@@ -464,7 +468,7 @@ extern "C" void app_main()
 
     xTaskCreate(UITask, "UI", 4096, NULL, 2, NULL);
 
-    if (BNO055::hasBN0()) xTaskCreate(BNOTask, "BNO", 4096, NULL, 2, NULL);
+    //if (BNO055::hasBN0()) xTaskCreate(BNOTask, "BNO", 4096, NULL, 2, NULL);
 
     // update motor speed and handle flip 100 times per second...
     bool wasGpsSynced= false;

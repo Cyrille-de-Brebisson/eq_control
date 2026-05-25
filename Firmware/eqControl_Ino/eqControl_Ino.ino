@@ -6,8 +6,15 @@
 #define TMC // in arduino (__AVR__) nano mode, you can select the TMC or non TMC driver... in esp, it is ALWAYS tmc...
 #define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
                // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply
-#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
+//#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
 //#define WEIRED_KBD // I had some early ARV boards with a slightly differnet keyboard. Uncomment for those
+//#define RED_BOARD // define for esp32 RED boards...
+#ifdef RED_BOARD
+    #define TMC
+    #define HASADC
+    #define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
+    #define HASBNO
+#endif
 
 /********************************************
 * 
@@ -359,18 +366,33 @@ static const int8_t motorSerialFocus = 4;
 static const int8_t krt= 5, krm= 6, krb= 7, kcr= 10, kcl= 20, kcm= 21;
 static const gpio_num_t LCD_SLC= GPIO_NUM_8;
 static const gpio_num_t LCD_SDA= GPIO_NUM_9;
-#else // in V2 of the board we use the ADC to handle the keyboard and monitor power supply
-static const int8_t raDirPin    = -1; 
-static const int8_t decDirPin   = -1;  // we won't use it as tmc react strangely if you use it with rs232
-static const int8_t focDirPin   = -1; 
-static const int8_t raStepPin   = 5; 
-static const int8_t decStepPin  = 7;
-static const int8_t focStepPin  = 8; 
-static const int8_t motorSerialRa = 21, raUartAddr= 1;
-static const int8_t motorSerialDec = 21, decUartAddr= 2;
-static const int8_t motorSerialFocus = 21, focUartAddr= 0;
-static const gpio_num_t LCD_SLC= GPIO_NUM_10;
-static const gpio_num_t LCD_SDA= GPIO_NUM_0;
+#else // in V2 or 3 of the board we use the ADC to handle the keyboard and monitor power supply
+    #ifndef RED_BOARD
+        static const int8_t raDirPin    = -1; 
+        static const int8_t decDirPin   = -1;  // we won't use it as tmc react strangely if you use it with rs232
+        static const int8_t focDirPin   = -1; 
+        static const int8_t raStepPin   = 5; 
+        static const int8_t decStepPin  = 7;
+        static const int8_t focStepPin  = 8; 
+        static const int8_t motorSerialRa = 21, raUartAddr= 1;
+        static const int8_t motorSerialDec = 21, decUartAddr= 2;
+        static const int8_t motorSerialFocus = 21, focUartAddr= 0;
+        static const gpio_num_t LCD_SLC= GPIO_NUM_10;
+        static const gpio_num_t LCD_SDA= GPIO_NUM_0;
+    #else
+        static const int8_t raDirPin    = -1; 
+        static const int8_t decDirPin   = -1;  // we won't use it as tmc react strangely if you use it with rs232
+        static const int8_t focDirPin   = -1; 
+        static const int8_t raStepPin   = 5; 
+        static const int8_t decStepPin  = 7;
+        static const int8_t focStepPin  = 8; 
+        static const int8_t motorSerialRa = 6, raUartAddr= 1;
+        static const int8_t motorSerialDec = 6, decUartAddr= 2;
+        static const int8_t motorSerialFocus = 6, focUartAddr= 0;
+        static const gpio_num_t LCD_SLC= GPIO_NUM_20;
+        static const gpio_num_t LCD_SDA= GPIO_NUM_21;
+        static const int8_t GPSPin= 10;
+    #endif
 #endif
 
 #include "hal/gpio_types.h"
@@ -599,10 +621,11 @@ namespace MSerial {
 
 // These are here to be manageable in PC simulation mode
 #include "driver/uart.h"
+#ifdef HASGPS // this is only valid in ESP and PC mode...
 #define GPSUART UART_NUM_0
 int gpsGetData(char *b, int size) {     
     int l= uart_read_bytes(GPSUART, b, size, 500/portTICK_PERIOD_MS); // twice per second. Since data is normally under 300 bytes and buffer is 512B, we should get the full dataset on each go..
-    MSerial::flush("->"); b[l]= 0; MSerial::flush(b); 
+    //MSerial::flush("->"); b[l]= 0; MSerial::flush(b); 
     return l;
 }
 void gpsDone() 
@@ -615,9 +638,10 @@ bool gpsBegin()
     const uart_config_t uart_config = { .baud_rate= 9600, .data_bits= UART_DATA_8_BITS, .parity= UART_PARITY_DISABLE, .stop_bits= UART_STOP_BITS_1, .flow_ctrl= UART_HW_FLOWCTRL_DISABLE };
     uart_driver_install(GPSUART, 1024*2, 1024*2, 0, NULL, 0);
     uart_param_config(GPSUART, &uart_config);
-    uart_set_pin(GPSUART, -1, 20, -1, -1);
+    uart_set_pin(GPSUART, -1, GPSPin, -1, -1);
     return true;
 }
+#endif
 
 #include "driver/i2c_master.h"
 class CI2C { public:
@@ -1980,7 +2004,6 @@ static void doUI() // Display takes around 5ms...
     // Last Screen: setup go/sync to select item, directions to change value. Esc to cancel, Menu to validate...
 
     uint16_t keys= kbdValue(); uint16_t newKeyDown= keys&~lastkbd; lastkbd= keys;
-
     if (keys!=0) display.screenOn(), returnToScreen1= 20*10, timeToScreenOff= timeToScreenOffConst;   // if a key is pressed, we reset the returnToScreen1 timer...
     if (returnToScreen1==0) UI= UIMain; else returnToScreen1--; // at 0, reset UI. else tick down timer
 	#ifndef PC // no screen auto off in PC mode...

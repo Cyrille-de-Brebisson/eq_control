@@ -481,7 +481,7 @@ namespace ASCOM.LocalServer
         }
         public static int fromHms(string s, out bool ok)
         {
-            return (int)(fromHms(s, out ok)+0.5);
+            return (int)(fromHms2(s, out ok)+0.5);
         }
         public static int getHexFromDevice(string command, out bool ok, bool acceptHms= false)
         {
@@ -592,7 +592,8 @@ namespace ASCOM.LocalServer
 
 
         static Thread phd2threadout = null;
-        static bool phd2guide= false;
+        static public int phd2GuideDelay= 20;
+        static DateTime phd2guide= DateTime.MinValue;
 
         static void phd2Thread()
         {
@@ -613,7 +614,7 @@ namespace ASCOM.LocalServer
 
                     while (!finish)
                     {
-                        if (phd2guide)
+                        if (phd2guide!=DateTime.MinValue && phd2guide<DateTime.Now)
                         { 
                             // acording to the phd data, calling guide will do a loop and find_star if needed...
                             // doLog("phd2 reguide loop", 3);
@@ -624,7 +625,7 @@ namespace ASCOM.LocalServer
                             // stream.Write(data, 0, data.Length); Thread.Sleep(7000);
                             doLog("phd2 reguide guide", 3);
                             byte[] data = Encoding.UTF8.GetBytes("{\"method\": \"guide\", \"params\": {\"settle\": {\"pixels\": 3, \"time\": 8, \"timeout\": 40}}, \"id\": 3}\n");
-                            stream.Write(data, 0, data.Length); phd2guide = false;
+                            stream.Write(data, 0, data.Length); phd2guide = DateTime.MinValue;
                             stream.Flush();
                             Thread.Sleep(200);
                         }
@@ -665,7 +666,7 @@ namespace ASCOM.LocalServer
         public static void phd2reguide()
         {
             if (phd2threadout == null) { phd2threadout = new Thread(new ThreadStart(phd2Thread)); phd2threadout.Start(); }
-            phd2guide = true;
+            phd2guide =  DateTime.Now.AddSeconds(phd2GuideDelay);
         }
         public static bool finish= false;
 

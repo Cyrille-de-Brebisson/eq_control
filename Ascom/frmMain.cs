@@ -53,6 +53,7 @@ namespace ASCOM.LocalServer
             checkBox19.Checked= SharedResources.reconnectOnDrop;
             updateLocations();  posCB.Text= "";
             updateSavedPos();
+            phd2GuideDelay.Text= SharedResources.phd2GuideDelay.ToString();
         }
         ~FrmMain() { SharedResources.log= null; SharedResources.finish= true;  }
         private int lastFocusPos= 0x7fffffff;
@@ -1202,7 +1203,7 @@ namespace ASCOM.LocalServer
 
         private void button42_Click(object sender, EventArgs e)
         {
-            SharedResources.SendSerialCommand(":Mf#");
+            SharedResources.SendSerialCommand(":Mf#", 0);
         }
 
         int testMoveCycle= -1; // > 0 is: moving...
@@ -1519,6 +1520,12 @@ namespace ASCOM.LocalServer
             comboBox2.Items.AddRange(elements); // On ajoute le tableau complet
             // if (comboBox1.Items.Count>0) comboBox1.SelectedIndex = 0;
         }
+
+        private void phd2GuideDelay_TextChanged(object sender, EventArgs e)
+        {
+            int i; if (int.TryParse(phd2GuideDelay.Text, out i)) { SharedResources.phd2GuideDelay= i; TelescopeHardware.saveProfile(); }
+        }
+
         private void button28_Click(object sender, EventArgs e) // focuser move to saved position...
         {
             try { 

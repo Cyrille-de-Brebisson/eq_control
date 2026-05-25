@@ -64,6 +64,10 @@ namespace ASCOM.LocalServer
             this.labelDec = new System.Windows.Forms.Label();
             this.labelRa = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.button44 = new System.Windows.Forms.Button();
+            this.button27 = new System.Windows.Forms.Button();
+            this.button28 = new System.Windows.Forms.Button();
+            this.comboBox2 = new System.Windows.Forms.ComboBox();
             this.checkBox12 = new System.Windows.Forms.CheckBox();
             this.button10 = new System.Windows.Forms.Button();
             this.button11 = new System.Windows.Forms.Button();
@@ -253,10 +257,7 @@ namespace ASCOM.LocalServer
             this.checkBox13 = new System.Windows.Forms.CheckBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.checkBox19 = new System.Windows.Forms.CheckBox();
-            this.comboBox2 = new System.Windows.Forms.ComboBox();
-            this.button27 = new System.Windows.Forms.Button();
-            this.button28 = new System.Windows.Forms.Button();
-            this.button44 = new System.Windows.Forms.Button();
+            this.phd2GuideDelay = new System.Windows.Forms.TextBox();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -747,6 +748,58 @@ namespace ASCOM.LocalServer
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Focusser";
+            // 
+            // button44
+            // 
+            this.button44.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.button44.ForeColor = System.Drawing.Color.White;
+            this.button44.Location = new System.Drawing.Point(397, 18);
+            this.button44.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button44.Name = "button44";
+            this.button44.Size = new System.Drawing.Size(42, 35);
+            this.button44.TabIndex = 68;
+            this.button44.Text = "Del";
+            this.toolTip1.SetToolTip(this.button44, "Press and hold button to move focusser at fast/slow speed");
+            this.button44.UseVisualStyleBackColor = false;
+            this.button44.Click += new System.EventHandler(this.button44_Click);
+            // 
+            // button27
+            // 
+            this.button27.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.button27.ForeColor = System.Drawing.Color.White;
+            this.button27.Location = new System.Drawing.Point(339, 17);
+            this.button27.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button27.Name = "button27";
+            this.button27.Size = new System.Drawing.Size(54, 35);
+            this.button27.TabIndex = 67;
+            this.button27.Text = "Save";
+            this.toolTip1.SetToolTip(this.button27, "Press and hold button to move focusser at fast/slow speed");
+            this.button27.UseVisualStyleBackColor = false;
+            this.button27.Click += new System.EventHandler(this.button27_Click);
+            // 
+            // button28
+            // 
+            this.button28.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.button28.ForeColor = System.Drawing.Color.White;
+            this.button28.Location = new System.Drawing.Point(296, 17);
+            this.button28.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button28.Name = "button28";
+            this.button28.Size = new System.Drawing.Size(40, 35);
+            this.button28.TabIndex = 66;
+            this.button28.Text = "Go";
+            this.toolTip1.SetToolTip(this.button28, "Press and hold button to move focusser at fast/slow speed");
+            this.button28.UseVisualStyleBackColor = false;
+            this.button28.Click += new System.EventHandler(this.button28_Click);
+            // 
+            // comboBox2
+            // 
+            this.comboBox2.FormattingEnabled = true;
+            this.comboBox2.Location = new System.Drawing.Point(172, 21);
+            this.comboBox2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.comboBox2.Name = "comboBox2";
+            this.comboBox2.Size = new System.Drawing.Size(120, 28);
+            this.comboBox2.TabIndex = 65;
+            this.toolTip1.SetToolTip(this.comboBox2, "used to remember focus positions");
             // 
             // checkBox12
             // 
@@ -2871,9 +2924,9 @@ namespace ASCOM.LocalServer
             this.checkBox7.Location = new System.Drawing.Point(24, 456);
             this.checkBox7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBox7.Name = "checkBox7";
-            this.checkBox7.Size = new System.Drawing.Size(250, 24);
+            this.checkBox7.Size = new System.Drawing.Size(343, 24);
             this.checkBox7.TabIndex = 55;
-            this.checkBox7.Text = "Restart PHD2 guide after slew";
+            this.checkBox7.Text = "Restart PHD2 guide after slew and ?s delay";
             this.toolTip1.SetToolTip(this.checkBox7, "If this is checked, will restart PHD2 guiding after a goto operation");
             this.checkBox7.UseVisualStyleBackColor = false;
             this.checkBox7.CheckedChanged += new System.EventHandler(this.checkBox7_CheckedChanged);
@@ -3070,57 +3123,15 @@ namespace ASCOM.LocalServer
             this.checkBox19.UseVisualStyleBackColor = false;
             this.checkBox19.CheckedChanged += new System.EventHandler(this.checkBox19_CheckedChanged);
             // 
-            // comboBox2
+            // phd2GuideDelay
             // 
-            this.comboBox2.FormattingEnabled = true;
-            this.comboBox2.Location = new System.Drawing.Point(172, 21);
-            this.comboBox2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.comboBox2.Name = "comboBox2";
-            this.comboBox2.Size = new System.Drawing.Size(120, 28);
-            this.comboBox2.TabIndex = 65;
-            this.toolTip1.SetToolTip(this.comboBox2, "used to remember focus positions");
-            // 
-            // button27
-            // 
-            this.button27.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.button27.ForeColor = System.Drawing.Color.White;
-            this.button27.Location = new System.Drawing.Point(339, 17);
-            this.button27.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.button27.Name = "button27";
-            this.button27.Size = new System.Drawing.Size(54, 35);
-            this.button27.TabIndex = 67;
-            this.button27.Text = "Save";
-            this.toolTip1.SetToolTip(this.button27, "Press and hold button to move focusser at fast/slow speed");
-            this.button27.UseVisualStyleBackColor = false;
-            this.button27.Click += new System.EventHandler(this.button27_Click);
-            // 
-            // button28
-            // 
-            this.button28.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.button28.ForeColor = System.Drawing.Color.White;
-            this.button28.Location = new System.Drawing.Point(296, 17);
-            this.button28.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.button28.Name = "button28";
-            this.button28.Size = new System.Drawing.Size(40, 35);
-            this.button28.TabIndex = 66;
-            this.button28.Text = "Go";
-            this.toolTip1.SetToolTip(this.button28, "Press and hold button to move focusser at fast/slow speed");
-            this.button28.UseVisualStyleBackColor = false;
-            this.button28.Click += new System.EventHandler(this.button28_Click);
-            // 
-            // button44
-            // 
-            this.button44.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.button44.ForeColor = System.Drawing.Color.White;
-            this.button44.Location = new System.Drawing.Point(397, 18);
-            this.button44.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.button44.Name = "button44";
-            this.button44.Size = new System.Drawing.Size(42, 35);
-            this.button44.TabIndex = 68;
-            this.button44.Text = "Del";
-            this.toolTip1.SetToolTip(this.button44, "Press and hold button to move focusser at fast/slow speed");
-            this.button44.UseVisualStyleBackColor = false;
-            this.button44.Click += new System.EventHandler(this.button44_Click);
+            this.phd2GuideDelay.Location = new System.Drawing.Point(379, 454);
+            this.phd2GuideDelay.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.phd2GuideDelay.Name = "phd2GuideDelay";
+            this.phd2GuideDelay.Size = new System.Drawing.Size(84, 26);
+            this.phd2GuideDelay.TabIndex = 62;
+            this.toolTip1.SetToolTip(this.phd2GuideDelay, "Type here a Norad satelite number");
+            this.phd2GuideDelay.TextChanged += new System.EventHandler(this.phd2GuideDelay_TextChanged);
             // 
             // FrmMain
             // 
@@ -3128,6 +3139,7 @@ namespace ASCOM.LocalServer
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
             this.ClientSize = new System.Drawing.Size(1274, 762);
+            this.Controls.Add(this.phd2GuideDelay);
             this.Controls.Add(this.checkBox19);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.checkBox11);
@@ -3421,6 +3433,7 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.Button button28;
         private System.Windows.Forms.ComboBox comboBox2;
         private System.Windows.Forms.Button button44;
+        private System.Windows.Forms.TextBox phd2GuideDelay;
     }
 }
 
