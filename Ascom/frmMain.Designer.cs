@@ -2992,9 +2992,9 @@ namespace ASCOM.LocalServer
             this.label51.Location = new System.Drawing.Point(242, -1);
             this.label51.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label51.Name = "label51";
-            this.label51.Size = new System.Drawing.Size(88, 20);
+            this.label51.Size = new System.Drawing.Size(87, 20);
             this.label51.TabIndex = 59;
-            this.label51.Text = "Norad Site";
+            this.label51.Text = "NY2O Site";
             this.toolTip1.SetToolTip(this.label51, "Click here to get to the Norad site where you can find satelite numbers");
             this.label51.Click += new System.EventHandler(this.label51_Click);
             // 

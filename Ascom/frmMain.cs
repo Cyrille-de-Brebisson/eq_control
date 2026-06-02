@@ -957,6 +957,31 @@ namespace ASCOM.LocalServer
         ///////////////////////////////////////////////////////////
         /// ISS STUFF
         ///////////////////////////////////////////////////////////
+        string[] N2YOTLE(string number)
+        {
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; // 3072 explicitly forces TLS 1.2
+            string jsonString= (new WebClient()).DownloadString("https://api.n2yo.com/rest/v1/satellite/tle/"+number+"&apiKey=59W3M5-BYK4RM-T252L2-5IUJ");
+            int startIndex = jsonString.IndexOf("\"tle\":");
+            if (startIndex == -1) throw new Exception("The 'tle' property was not found in the server response.");
+            // Move index to where the actual TLE data begins (after "tle":" )
+            startIndex += 6;
+            // look for an opening "
+            int endIndex = jsonString.IndexOf("\"", startIndex);
+            if (endIndex == -1) throw new Exception("Malformed JSON string response. 1");
+            startIndex= endIndex+1;
+            // 3. Find the closing quote of the TLE string value
+            endIndex = jsonString.IndexOf("\"", startIndex);
+            if (endIndex == -1) throw new Exception("Malformed JSON string response.");
+            // 4. Extract the substring block
+            string tleBlock = jsonString.Substring(startIndex, endIndex - startIndex);
+            // 5. Clean up JSON literal escape tokens. 
+            // In raw text responses, literal carriage returns are encoded as "\r\n" strings.
+            tleBlock = tleBlock.Replace("\\r\\n", "\n").Replace("\\n", "\n").Replace("\\r", "\n");
+            // 6. Split the cleaned text block into your 2 array rows
+            string[] lines = tleBlock.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length < 2) throw new Exception("TLE string block was missing expected line array rows.");
+            return new string[] { lines[0], lines[1] };
+        }
         string ISSErr = "";
         string issl1, issl2;
         bool gettle()
@@ -966,20 +991,26 @@ namespace ASCOM.LocalServer
             { 
                 try
                 {
-                    var client = new WebClient();
-                    string data = client.DownloadString("https://celestrak.org/NORAD/elements/stations.txt");
-                    var lines = data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    for (int i = 0; i < lines.Length - 2; i++)
-                        if (lines[i].Contains("ISS (NAUKA)"))
-                        {
-                            issl1= lines[i + 1]; issl2= lines[i + 2];
-                            TelescopeHardware.saveisstls(issl1, issl2);
-                            ISSErr = "ISS TLE OK";
-                            log(ISSErr+"\r\n"+issl1+"\r\n"+issl2, 4);
-                            return true;
-                        }
-                    ISSErr = "ISS TLE not found.";
-                    log(ISSErr, 4);
+                    //var client = new WebClient();
+                    //string data = client.DownloadString("https://celestrak.org/NORAD/elements/stations.txt");
+                    //var lines = data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    //for (int i = 0; i < lines.Length - 2; i++)
+                    //    if (lines[i].Contains("ISS (NAUKA)"))
+                    //    {
+                    //        issl1= lines[i + 1]; issl2= lines[i + 2];
+                    //        TelescopeHardware.saveisstls(issl1, issl2);
+                    //        ISSErr = "ISS TLE OK";
+                    //        log(ISSErr+"\r\n"+issl1+"\r\n"+issl2, 4);
+                    //        return true;
+                    //    }
+                    //ISSErr = "ISS TLE not found.";
+                    //log(ISSErr, 4);
+                    var lines= N2YOTLE("25544");
+                    issl1= lines[0]; issl2= lines[1];
+                    TelescopeHardware.saveisstls(issl1, issl2);
+                    ISSErr = "ISS TLE OK";
+                    log(ISSErr+"\r\n"+issl1+"\r\n"+issl2, 4);
+                    return true;
                 }
                 catch { ISSErr = "exception on ISS load"; log(ISSErr, 4); }
                 log("ISS: use saved tle", 4);
@@ -991,12 +1022,16 @@ namespace ASCOM.LocalServer
             else { // satellite
                 try
                 {
-                    var client = new WebClient();
-                    string data = client.DownloadString("https://celestrak.org/NORAD/elements/gp.php?CATNR="+textBox23.Text+"&FORMAT=TLE");
-                    var lines = data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    if (lines.Length>=3) { issl1= lines[1]; issl2= lines[2]; log(data, 4); ISSErr = textBox23.Text + " TLE OK!"; return true;  }
-                    ISSErr = textBox23.Text+" TLE not found.";
-                    log(ISSErr, 4);
+                    //var client = new WebClient();
+                    //string data = client.DownloadString("https://celestrak.org/NORAD/elements/gp.php?CATNR="+textBox23.Text+"&FORMAT=TLE");
+                    //var lines = data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    //if (lines.Length>=3) { issl1= lines[1]; issl2= lines[2]; log(data, 4); ISSErr = textBox23.Text + " TLE OK!"; return true;  }
+                    //ISSErr = textBox23.Text+" TLE not found.";
+                    //log(ISSErr, 4);
+                    var lines= N2YOTLE(textBox23.Text);
+                    issl1= lines[0]; issl2= lines[1];
+                    log(lines.ToString(), 4); ISSErr = textBox23.Text + " TLE OK!"; return true;
+
                 }
                 catch { ISSErr = "exception on TLE load"; log(ISSErr, 4); checkBox13.Checked = false; } // could not find. uncheck check box...
             }
@@ -1152,7 +1187,8 @@ namespace ASCOM.LocalServer
 
         private void label51_Click(object sender, EventArgs e)
         {
-            Process.Start(new ProcessStartInfo("cmd", "/c start https://celestrak.org/NORAD/elements/") { CreateNoWindow = true });
+            Process.Start(new ProcessStartInfo("cmd", "/c start https://www.n2yo.com") { CreateNoWindow = true });
+            //Process.Start(new ProcessStartInfo("cmd", "/c start https://celestrak.org/NORAD/elements/") { CreateNoWindow = true });
         }
 
         private void button39_Click(object sender, EventArgs e)

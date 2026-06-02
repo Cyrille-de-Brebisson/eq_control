@@ -230,7 +230,7 @@ namespace ASCOM.EQControl.Telescope.V1
             if (Direction == GuideDirections.guideNorth || Direction == GuideDirections.guideSouth) 
             { 
                 if ((SharedResources.guidingBits&32)!=0) return;
-                speed= GuideRateDeclination* SharedResources.guideDecAgressivity;
+                speed= GuideRateDeclination*3600.0f* SharedResources.guideDecAgressivity;
                 fullTurn = SharedResources.decMaxPos;
                 d = 'd';
                 if (Direction != GuideDirections.guideSouth) dir = -dir;
@@ -240,7 +240,7 @@ namespace ASCOM.EQControl.Telescope.V1
             else if (Direction == GuideDirections.guideEast || Direction == GuideDirections.guideWest) 
             { 
                 if ((SharedResources.guidingBits & 8) != 0) return;
-                speed = GuideRateRightAscension * SharedResources.guideRaAgressivity;
+                speed = GuideRateRightAscension *3600.0f* SharedResources.guideRaAgressivity;
                 fullTurn = SharedResources.raMaxPos;
                 d = 'r';
                 if (Direction != GuideDirections.guideEast) dir = -dir;

@@ -23,7 +23,7 @@ void execBNO(uint32_t i, uint32_t j);
 static void UITask(void*)
 {
     display.begin();
-    while (true) { vTaskDelay(1); doUI(); } // minimum delay to give other task time to do something
+    while (true) doUI();
 }
 static void SerialTask(void*)
 {
@@ -193,43 +193,55 @@ namespace BNO055 {
     {
         uint8_t t[2]= { reg, v };
         i2c_master_transmit(dev_handle2, t, 2, 1000/portTICK_PERIOD_MS);
-        //printf("BNO write %x = %02x\r\n", reg, v);
+        // printf("write %x = %02x\r\n", reg, v);
     }
     bool read(uint8_t reg, int len, uint8_t *buffer)
     {
         memset(buffer, 255, len);
         int ret2= i2c_master_transmit_receive(dev_handle2, &reg, 1, buffer, len, 1000/portTICK_PERIOD_MS);
-        //printf("BNO read %x (%d):%d-> %02x %02x %02x %02x %02x %02x\r\n", reg, len, ret2, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+        printf("read %x (%d):%d-> %02x %02x %02x %02x %02x %02x\r\n", reg, len, ret2, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
         return 0==ret2;
+
+        int ret= i2c_master_transmit(dev_handle2, &reg, 1, 1000/portTICK_PERIOD_MS);
+        if (ret!=0) { printf("BNO write error %d\r\n", ret); return false; }
+        ret= i2c_master_receive(dev_handle2, buffer, len, 1000/portTICK_PERIOD_MS);
+        printf("read %x (%d):%d-> %02x %02x %02x %02x %02x %02x\r\n", reg, len, ret, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
+        return 0==ret;
     }
     void getCalib(uint8_t d[22]) { read(0x55, 22, d); } // get the calibration data from the sensor to save it to flash and reuse later at startup...
     void setCalib(uint8_t const d[22])  // reset calib data to the sensor
     { 
         uint8_t t[23]; t[0]= 0x55; memcpy(t+1, d, 22);
         i2c_master_transmit(dev_handle2, t, 23, 1000/portTICK_PERIOD_MS);
+
     }
     bool hasBN0()
     {
+        printf("Start BNO\r\n");
         starti2c();
-        vTaskDelay(700/portTICK_PERIOD_MS); // wait for reboot
-        uint8_t b; read(0, 1, &b); //  register 0 is chip id, which should be a0
-        //printf("Start BNO recev %0x\r\n", b);
+        uint8_t b= 0; // register 0 is chip id, which should be a0
+        i2c_master_transmit(dev_handle2, &b, 1, 1000/portTICK_PERIOD_MS);
+        int ret= i2c_master_receive(dev_handle2, &b, 1, 1000/portTICK_PERIOD_MS);
+        printf("Start BNO recev %d %0x\r\n", ret, b);
+        if (ESP_OK!=ret) return false;
         return b==0xa0; // check chip id
     }
     void begin(uint8_t const *calibData= nullptr)
     {
         printf("BNO begin calib:%s\r\n", calibData!=nullptr?"yes":"no");
-        //writeReg(0x3f, 0x20);   // reboot
-        //uint8_t b[10];
-        //read(0, 1, b);          // readchip id, should be A0
+        starti2c();
+        writeReg(0x3f, 0x20);   // reboot
+        vTaskDelay(700/portTICK_PERIOD_MS); // wait for reboot
+        uint8_t b[10];
+        read(0, 1, b);          // readchip id, should be A0
         writeReg(0x7, 0);       // set page 0
-        writeReg(0x3d, 0); vTaskDelay(50/portTICK_PERIOD_MS); // set in config mode 
-        writeReg(0x3e, 0); vTaskDelay(50/portTICK_PERIOD_MS); // normal power mode
-        uint8_t b; read(0x3f, 1, &b);         // read sys trigger (should be 0)
-        writeReg(0x3f, b|0x80); vTaskDelay(50/portTICK_PERIOD_MS);  // use external cristal
-        ///if (calibData!=nullptr) setCalib(calibData);
+        writeReg(0x3d, 0); vTaskDelay(30 / portTICK_PERIOD_MS); // set in config mode 
+        writeReg(0x3f, 0);      // sys trigger... don't know what that means...
+        read(0x3f, 1, b);       // read mode (should be 0)
+        writeReg(0x3f, 0x80);   // use external cristal (the 0x80 is an or of what is read above and 0x80 flag)
+        if (calibData!=nullptr) setCalib(calibData);
         //writeReg(0x3d, 0x0c); vTaskDelay(30 / portTICK_PERIOD_MS); // set operating mode to Ndof (normal fusion mode)
-        writeReg(0x3d, 0x0c); vTaskDelay(50 / portTICK_PERIOD_MS); // set operating mode to full fusion. // b is no magnetometer NDOF_FMC_OFF (fusion but with limited magnetometer as it is most likely inaccurate) 
+        writeReg(0x3d, 0x0b); vTaskDelay(30 / portTICK_PERIOD_MS); // set operating mode to NDOF_FMC_OFF (fusion but with limited magnetometer as it is most likely inaccurate)
     }
     uint8_t getTemp()
     {
@@ -377,44 +389,35 @@ void execBNO(uint32_t i, uint32_t j)
 }
 void BNOTask(void *)
 {
-    if (!BNO055::hasBN0()) vTaskDelete(nullptr); // no BNO, kill task and do nothing else...
+    printf("StartBNO\r\n");
     struct { uint8_t calib[22]; Quaternion offset1, offset2; } BNOCalib;
-    if (alpaca->load("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib))) 
-        BNO055::begin(BNOCalib.calib), BNOData.hasOffset1= true; 
-    else
-        BNO055::begin();
+    if (alpaca->load("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib))) BNO055::begin(BNOCalib.calib), BNOData.hasOffset1= true; else BNO055::begin();
+    vTaskDelay(1000/portTICK_PERIOD_MS); // wait 1s for startup
     while (true)
     {
-        vTaskDelay(500/portTICK_PERIOD_MS); // 2hz
+        vTaskDelay(100/portTICK_PERIOD_MS); // ten times per second????
         if (!BNO055::getQuaternion(BNOData.angle)) { BNOData.hasBNO= false; continue; }
         BNOData.temp= BNO055::getTemp();
         BNOData.hasBNO= true;
         //printf("BNO tmp%d\r\n", BNOData.temp);
-        // BNO is used for absolute positionning. It gives a AZ/ALT type orientation.
-        // So to get a RA/DEC, we need to know latitude and LST (longitude + time)
-        // we can get longitude/latitude from GPS or user setup.
-        // but to get LST, we need time also which can can get from GPS or ascom.
-        // Assumes GPS is best, if we have, else use setup+ascom time
         quatToAzAlt(BNOCalib.offset1*BNOData.angle, BNOData.alt, BNOData.az);
-        float lst= -100; // this is in 24h format!
+        float lst= -100;
         float lat= CSavedData::savedData.Latitude/((36000.0f*180.0f)*M_PI); // get latitude from wherever we can!
         #ifdef HASGPS
-            if (CGPS::hasPosInfo && CGPS::hasTimeInfo) { lat= CGPS::latitude; lst= CGPS::localSiderealTime(); }
+            if (CGPS::hasPosInfo) lat= CGPS::latitude; // get latitude from wherever we can!
+            if (CGPS::hasTimeInfo) lst= CGPS::localSiderealTime();
             else 
         #endif
-            if (MyTelescope->UTCTimeDelta!=0)
-            {
-                lst= fmodf((MyTelescope->UTCTimeDelta + Milisecond())*(1.00273790935/36000.0f), 24.0f) + (6+39/60.0f+45/3600.0f); // lst at grenwitch
-                lst+= CSavedData::savedData.Latitude/36000.0f; // add latitude in 24h Note that this in in 24h format!
-            }
+        if (MyTelescope->UTCTimeDelta!=0)
+        {
+            lst= fmodf((MyTelescope->UTCTimeDelta + Milisecond())*(1.00273790935/36000.0f), 24.0f) + (6+39/60.0f+45/3600.0f); // lst at grenwitch
+            lst+= CSavedData::savedData.Latitude/36000.0f; // add latitude in 24h
+        }
         if (lst!=-100) altAzToRaDec(BNOData.alt, BNOData.az, lat, lst, BNOData.ra, BNOData.dec);
         else BNOData.ra= BNOData.dec= NAN;
         BNOData.scopeEast= telescopeEastFromQuaternion(BNOData.angle);
-        if (BNOData.calibrateHere) 
+        if (BNOData.calibrateHere)
         {
-            // This "saves" the angle offset from BNO to telescope 
-            // Calculates current AZ/ALT and saves  the difference with the sensor reading.
-            // it also saves the sensor callibration data
             BNOCalib.offset1= compute_calibration_offset(BNOData.angle, MRaposInReal()/3600.0f, MDec.posInReal()/3600.0f, lst, lat);
             BNO055::getCalib(BNOCalib.calib);
             alpaca->save("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib));
@@ -427,20 +430,22 @@ void BNOTask(void *)
 
 extern "C" void app_main()
 {
-    Time::begin();
-    MSerial::begin();
-    GPIOSetup();
-    #ifdef HASADC
+    Time::begin(); // these are needed for UI
+    #ifdef HASADC // This one will setup the uart system... which will not be used after...
         CADC::begin();
     #endif
+    MSerial::begin();
+
     #ifdef HASGPS
         CGPS::begin();
     #endif
 
+    GPIOSetup();
+
     alpaca= new CAlpaca("CdBTelescopeServer", "CdB", "Alpaca CdB eq telescope", "Ardeche"); // done here as it initializes the storage and provides access facilities for CSavedData::savedData.load()
 
     MRa.powerOn(); MDec.powerOn(); MFocus.powerOn(); MDecIsOn=-1; MDecOn(); // This works when power is off because the DC-DC back powers from the ESP32 5V! But this might not be true in next version! It also initializes the serial port...
-    CSavedData::savedData.load(); // motors are initialized here.. This includes a "begin" which will include serial comuncations... which is a problem with TMC that needs power for that to work...
+    CSavedData::savedData.load(); // motors are initialized here.. This includes a "begin" which will include serial comuncations... which is a problem with 
 
     if (alpaca->wifi[0]==0) { strcpy(alpaca->wifi, "EqControl"); alpaca->wifip[0]= 0; CSavedData::savedData.guidingBits&= ~0x40; } // Make sure we have connection..
     startWifi(alpaca->wifi, alpaca->wifip, "eqControl", (CSavedData::savedData.guidingBits&0x40)==0);
@@ -462,6 +467,7 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(gptimer_start(gptimer));
 
     xTaskCreate(UITask, "UI", 4096, NULL, 2, NULL);
+
     xTaskCreate(BNOTask, "BNO", 4096, NULL, 2, NULL);
 
     // update motor speed and handle flip 100 times per second...
@@ -470,7 +476,7 @@ extern "C" void app_main()
     {
         quantizePowerFlip(); // quantize motor speed, handles power and meridian flip...
         vTaskDelay(10/portTICK_PERIOD_MS);
-        #ifdef HASGPS
+        #ifdef HASGPS // This one will setup the uart system... which will not be used after...
             if (!wasGpsSynced && CGPS::hasPosInfo && CGPS::hasTimeInfo)
             {
                 if (MDec.pos>=(MDec.maxPos-(MDec.maxPos>>7)) && abs(MRa.posInReal()-(6*3600))<30)
