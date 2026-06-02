@@ -621,6 +621,7 @@ namespace MSerial {
 
 // These are here to be manageable in PC simulation mode
 #include "driver/uart.h"
+#ifdef HASGPS // this is only valid in ESP and PC mode...
 #define GPSUART UART_NUM_0
 int gpsGetData(char *b, int size) {     
     int l= uart_read_bytes(GPSUART, b, size, 500/portTICK_PERIOD_MS); // twice per second. Since data is normally under 300 bytes and buffer is 512B, we should get the full dataset on each go..
@@ -640,6 +641,7 @@ bool gpsBegin()
     uart_set_pin(GPSUART, -1, GPSPin, -1, -1);
     return true;
 }
+#endif
 
 #include "driver/i2c_master.h"
 class CI2C { public:

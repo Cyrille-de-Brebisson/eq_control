@@ -233,7 +233,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 speed= GuideRateDeclination*3600.0f* SharedResources.guideDecAgressivity;
                 fullTurn = SharedResources.decMaxPos;
                 d = 'd';
-                if (Direction == GuideDirections.guideSouth) dir = -dir;
+                if (Direction != GuideDirections.guideSouth) dir = -dir;
                 if ((SharedResources.guidingBits & 16) != 0) dir = -dir;
                 if (((SharedResources.guidingBits & 8) != 0) && SideOfPier == PierSide.pierEast) dir = -dir;
             }
@@ -243,7 +243,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 speed = GuideRateRightAscension *3600.0f* SharedResources.guideRaAgressivity;
                 fullTurn = SharedResources.raMaxPos;
                 d = 'r';
-                if (Direction == GuideDirections.guideEast) dir = -dir;
+                if (Direction != GuideDirections.guideEast) dir = -dir;
                 if ((SharedResources.guidingBits & 2) != 0) dir = -dir;
                 if (((SharedResources.guidingBits & 1) != 0) && SideOfPier==PierSide.pierEast) dir = -dir;
             }

@@ -1203,7 +1203,7 @@ namespace ASCOM.LocalServer
 
         private void button42_Click(object sender, EventArgs e)
         {
-            SharedResources.SendSerialCommand(":Mf#");
+            SharedResources.SendSerialCommand(":Mf#", 0);
         }
 
         int testMoveCycle= -1; // > 0 is: moving...
