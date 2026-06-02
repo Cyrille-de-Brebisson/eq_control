@@ -101,7 +101,7 @@ namespace ASCOM.EQControl.Focuser.V1
         }
         internal static bool TempComp { get { return false; } set { } }
         internal static bool TempCompAvailable { get { return false; } } // Temperature compensation is not available in this driver
-        internal static double Temperature { get { return 20.0; } } /// Current ambient temperature in degrees Celsius as measured by the focuser.
+        internal static double Temperature { get { return SharedResources.BNOhas ? SharedResources.BNOTemp : 20.0; } } /// Current ambient temperature in degrees Celsius as measured by the focuser.
     }
 }
 

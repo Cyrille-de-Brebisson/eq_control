@@ -1333,7 +1333,8 @@ class CDisplay { public:
     }
     bool next() // each time you call this, it will send the next byte to the screen, allowing more "pooling" type sending...
     // return true if se are starting a new screen! Should be at 50hz in our case... This can "drive" the UI rate...
-    { /// it should be interupt driven, but I do not know how to do it in arduino :-)
+    // On esp32, we are at around 25hz....
+    { /// it should be interupt driven, but I do not know how to do it in arduino :-) and it might even be slower!
         if (I2C.next()) return false;
         sendCommand= !sendCommand;
         if (sendCommand) { dopreCommand(); I2C.send(preCommand, 4); return true; }
