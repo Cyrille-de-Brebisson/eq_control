@@ -258,6 +258,7 @@ namespace ASCOM.LocalServer
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.checkBox19 = new System.Windows.Forms.CheckBox();
             this.phd2GuideDelay = new System.Windows.Forms.TextBox();
+            this.button45 = new System.Windows.Forms.Button();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -2015,11 +2016,11 @@ namespace ASCOM.LocalServer
             this.groupBox16.Controls.Add(this.checkBox15);
             this.groupBox16.Controls.Add(this.checkBox16);
             this.groupBox16.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox16.Location = new System.Drawing.Point(22, 442);
+            this.groupBox16.Location = new System.Drawing.Point(15, 442);
             this.groupBox16.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.groupBox16.Name = "groupBox16";
             this.groupBox16.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox16.Size = new System.Drawing.Size(251, 172);
+            this.groupBox16.Size = new System.Drawing.Size(235, 172);
             this.groupBox16.TabIndex = 63;
             this.groupBox16.TabStop = false;
             this.groupBox16.Text = "Log filtering";
@@ -2127,11 +2128,11 @@ namespace ASCOM.LocalServer
             this.groupBox9.Controls.Add(this.button32);
             this.groupBox9.Controls.Add(this.button33);
             this.groupBox9.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox9.Location = new System.Drawing.Point(280, 442);
+            this.groupBox9.Location = new System.Drawing.Point(261, 442);
             this.groupBox9.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.groupBox9.Name = "groupBox9";
             this.groupBox9.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox9.Size = new System.Drawing.Size(220, 172);
+            this.groupBox9.Size = new System.Drawing.Size(159, 172);
             this.groupBox9.TabIndex = 62;
             this.groupBox9.TabStop = false;
             this.groupBox9.Text = "Guide Pulse (1s)";
@@ -2141,10 +2142,10 @@ namespace ASCOM.LocalServer
             this.button26.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button26.BackColor = System.Drawing.SystemColors.WindowText;
             this.button26.ForeColor = System.Drawing.SystemColors.Window;
-            this.button26.Location = new System.Drawing.Point(82, 28);
+            this.button26.Location = new System.Drawing.Point(49, 27);
             this.button26.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button26.Name = "button26";
-            this.button26.Size = new System.Drawing.Size(66, 39);
+            this.button26.Size = new System.Drawing.Size(60, 35);
             this.button26.TabIndex = 50;
             this.button26.Text = "North";
             this.button26.UseVisualStyleBackColor = false;
@@ -2155,7 +2156,7 @@ namespace ASCOM.LocalServer
             this.button31.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button31.BackColor = System.Drawing.SystemColors.WindowText;
             this.button31.ForeColor = System.Drawing.SystemColors.Window;
-            this.button31.Location = new System.Drawing.Point(147, 78);
+            this.button31.Location = new System.Drawing.Point(85, 72);
             this.button31.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button31.Name = "button31";
             this.button31.Size = new System.Drawing.Size(60, 35);
@@ -2172,7 +2173,7 @@ namespace ASCOM.LocalServer
             this.button32.Location = new System.Drawing.Point(12, 72);
             this.button32.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button32.Name = "button32";
-            this.button32.Size = new System.Drawing.Size(60, 38);
+            this.button32.Size = new System.Drawing.Size(60, 35);
             this.button32.TabIndex = 52;
             this.button32.Text = "West";
             this.button32.UseVisualStyleBackColor = false;
@@ -2183,10 +2184,10 @@ namespace ASCOM.LocalServer
             this.button33.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button33.BackColor = System.Drawing.SystemColors.WindowText;
             this.button33.ForeColor = System.Drawing.SystemColors.Window;
-            this.button33.Location = new System.Drawing.Point(84, 119);
+            this.button33.Location = new System.Drawing.Point(49, 118);
             this.button33.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button33.Name = "button33";
-            this.button33.Size = new System.Drawing.Size(64, 32);
+            this.button33.Size = new System.Drawing.Size(60, 35);
             this.button33.TabIndex = 53;
             this.button33.Text = "South";
             this.button33.UseVisualStyleBackColor = false;
@@ -2196,6 +2197,7 @@ namespace ASCOM.LocalServer
             // 
             this.groupBox15.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
             this.groupBox15.BackColor = System.Drawing.SystemColors.WindowText;
+            this.groupBox15.Controls.Add(this.button45);
             this.groupBox15.Controls.Add(this.BNO0);
             this.groupBox15.Controls.Add(this.BNO2);
             this.groupBox15.Controls.Add(this.BNO1);
@@ -2203,14 +2205,14 @@ namespace ASCOM.LocalServer
             this.groupBox15.Controls.Add(this.label52);
             this.groupBox15.Controls.Add(this.label41);
             this.groupBox15.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox15.Location = new System.Drawing.Point(514, 442);
+            this.groupBox15.Location = new System.Drawing.Point(426, 442);
             this.groupBox15.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.groupBox15.Name = "groupBox15";
             this.groupBox15.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox15.Size = new System.Drawing.Size(220, 172);
+            this.groupBox15.Size = new System.Drawing.Size(335, 172);
             this.groupBox15.TabIndex = 49;
             this.groupBox15.TabStop = false;
-            this.groupBox15.Text = "Motors absolute position";
+            this.groupBox15.Text = "Absolute position";
             // 
             // BNO0
             // 
@@ -2227,18 +2229,18 @@ namespace ASCOM.LocalServer
             this.BNO2.Location = new System.Drawing.Point(10, 142);
             this.BNO2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.BNO2.Name = "BNO2";
-            this.BNO2.Size = new System.Drawing.Size(193, 26);
+            this.BNO2.Size = new System.Drawing.Size(314, 26);
             this.BNO2.TabIndex = 58;
-            this.toolTip1.SetToolTip(this.BNO2, "Dec coordinates in -d:m:s format. m and s are optional");
+            this.toolTip1.SetToolTip(this.BNO2, "Absolute sensor calculated ra/dec alt/az coordinates");
             // 
             // BNO1
             // 
             this.BNO1.Location = new System.Drawing.Point(10, 110);
             this.BNO1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.BNO1.Name = "BNO1";
-            this.BNO1.Size = new System.Drawing.Size(193, 26);
+            this.BNO1.Size = new System.Drawing.Size(314, 26);
             this.BNO1.TabIndex = 57;
-            this.toolTip1.SetToolTip(this.BNO1, "Dec coordinates in -d:m:s format. m and s are optional");
+            this.toolTip1.SetToolTip(this.BNO1, "Absolute position quaternion");
             // 
             // label42
             // 
@@ -2319,7 +2321,7 @@ namespace ASCOM.LocalServer
             this.logBox.Multiline = true;
             this.logBox.Name = "logBox";
             this.logBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.logBox.Size = new System.Drawing.Size(739, 390);
+            this.logBox.Size = new System.Drawing.Size(746, 390);
             this.logBox.TabIndex = 0;
             this.logBox.WordWrap = false;
             // 
@@ -3133,6 +3135,21 @@ namespace ASCOM.LocalServer
             this.toolTip1.SetToolTip(this.phd2GuideDelay, "Type here a Norad satelite number");
             this.phd2GuideDelay.TextChanged += new System.EventHandler(this.phd2GuideDelay_TextChanged);
             // 
+            // button45
+            // 
+            this.button45.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.button45.BackColor = System.Drawing.SystemColors.WindowText;
+            this.button45.ForeColor = System.Drawing.SystemColors.Window;
+            this.button45.Location = new System.Drawing.Point(225, 72);
+            this.button45.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button45.Name = "button45";
+            this.button45.Size = new System.Drawing.Size(99, 35);
+            this.button45.TabIndex = 54;
+            this.button45.Text = "Calib BNO";
+            this.toolTip1.SetToolTip(this.button45, "Click here to calibrate the absolute position sensor");
+            this.button45.UseVisualStyleBackColor = false;
+            this.button45.Click += new System.EventHandler(this.button45_Click);
+            // 
             // FrmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -3434,6 +3451,7 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.ComboBox comboBox2;
         private System.Windows.Forms.Button button44;
         private System.Windows.Forms.TextBox phd2GuideDelay;
+        private System.Windows.Forms.Button button45;
     }
 }
 

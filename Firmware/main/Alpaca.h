@@ -511,6 +511,10 @@ protected:
     void subSetup(CAlpaca *Alpaca, int sock, bool get, char *data, CMyStr &s) override; // This allows you to add stuff in the HTML or handle inputs...
 };
 
+#ifdef HASMilisecondTime // These are concidered mandatory by Ascom
+    uint32_t Milisecond(); // Must be defined elsewhere! else do not def HASMilisecondTime
+#endif
+
 // This been tested and works :-) for once!
 class CTelescope : public CAlpacaDevice { 
     public: CTelescope(int id, char const* driverInfo, char const* driverVersion, char const* defaultName, char const* defaultDescription) : CAlpacaDevice(id, driverInfo, driverVersion, defaultName, defaultDescription) { }
@@ -621,6 +625,7 @@ class CTelescope : public CAlpacaDevice {
         uint64_t UTCTimeDelta= 0; // UTCdateTime = Milisecond()/1000 + UTCTimeDelta + 0h0:0 on jan 1 2024
         virtual TAlpacaErr get_utcdate(char* b);
         virtual TAlpacaErr set_utcdate(char const* b);
+        virtual void set_utcdate(uint32_t t) { UTCTimeDelta= t-Milisecond()/1000; } // t is the number of seconds since 0:0 utc jan 1 2024
     #endif
 
     virtual TAlpacaErr axisrates(int axis, char *b) { b[0]= 0; return ALPACA_ERR_ACTION_NOT_IMPLEMENTED; } // Returns the rates at which the telescope may be moved about the specified $Axis  returns [{"Maximum": 0,"Minimum": 0}] in b (b will be 30 chr long)

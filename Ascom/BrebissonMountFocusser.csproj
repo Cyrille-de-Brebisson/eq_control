@@ -220,6 +220,8 @@
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
-    <PostBuildEvent>copy /Y "$(TargetPath)" "C:\Program Files (x86)\Common Files\ASCOM"</PostBuildEvent>
+    <PostBuildEvent>copy /Y "$(TargetPath)" "$(ProjectDir)"\..\Ascom_Driver_EQ_Controler
+copy /Y "$(TargetPath)" "C:\Program Files (x86)\Common Files\ASCOM"
+</PostBuildEvent>
   </PropertyGroup>
 </Project>

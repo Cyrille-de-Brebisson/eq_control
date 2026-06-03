@@ -700,7 +700,6 @@ bool CTelescope::dispatch(bool get, char const *url, char *data, CMyStr *s)
     return CAlpacaDevice::dispatch(get, url, data, s);
 }
 #ifdef HASMilisecondTime  // define this if you have a function called Milisecond which will return a time counter in milisecond. This is used for UTCTime in CTelescope.
-uint32_t Milisecond(); // Must be defined elsewhere! else do not #def HASMilisecondTime
 // format is: 2025-12-02T16:13:09.0146526Z
 static int8_t const dpm[]={31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 TAlpacaErr CTelescope::set_utcdate(char const* B) // Here we save the time given by the PC (accurate to 1s for the moment) and make a delta with our ms clock...
@@ -716,7 +715,7 @@ TAlpacaErr CTelescope::set_utcdate(char const* B) // Here we save the time given
     h= h*3600+m*60+s;
     while (Y>=4) D+= 365*4+1, Y-=4; if (M>2 && Y==0) D++; while (Y>0) D+= 365, Y--;
     for (int i=0; i<M-1; i++) D+= dpm[i];
-    UTCTimeDelta= uint64_t(D)*24*3600+h-Milisecond()/1000;
+    set_utcdate(D*24*3600+h);
     return ALPACA_OK;
 }
 TAlpacaErr CTelescope::get_utcdate(char* b) // here we add our ms clock to the delta given by the PC and generate UTC time...

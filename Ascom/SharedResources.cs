@@ -178,7 +178,7 @@ namespace ASCOM.LocalServer
 
         static public double BNOw=0.0, BNOx=0.0, BNOy=0.0, BNOz=0.0;
         static public int BNOTemp= 1000;
-        static public bool BNOhas= false, BNOhasOffset1= false, BNOhasOffset2= false, BNOscopeEast= false;
+        static public bool BNOhas= false, BNOhasOffset1= false, BNOhasOffset2= false, BNOscopeEast= false, BNOCalHere= false;
         static public double BNOra= 0.0, BNOdec= 0.0, BNOaz= 0.0, BNOalt= 0.0;
         static public void readHWString()
         {
@@ -231,7 +231,8 @@ namespace ASCOM.LocalServer
                     { 
                         SharedSerial.PortName = comPort;
                         SharedSerial.Speed = ASCOM.Utilities.SerialSpeed.ps38400;
-                        SharedSerial.Connected = true;
+                        try {  SharedSerial.Connected = true; }
+                        catch (Exception) { doLog("could not connect", -1); return; }
                         SharedSerial.ReceiveTimeout = 1;
                     } else tcpconnect();
                     responceCount= 0;
@@ -318,8 +319,14 @@ namespace ASCOM.LocalServer
                                     BNOw= readFloat(v, ref i, i+8);BNOx= readFloat(v, ref i, i+8);BNOy= readFloat(v, ref i, i+8);BNOz= readFloat(v, ref i, i+8);
                                     BNOTemp= readHex2(v, ref i, i+2);
                                     int tmp= readHex2(v, ref i, i+6);
-                                    BNOhasOffset1= (tmp&2)!= 0; BNOhasOffset2= (tmp&4)!= 0; BNOscopeEast= (tmp&8)!= 0;
+                                    BNOhasOffset1= (tmp&2)!= 0; BNOhasOffset2= (tmp&4)!= 0; BNOscopeEast= (tmp&8)!= 0; BNOCalHere= (tmp&256)!=0;
                                     BNOra= readFloat(v, ref i, i+8);BNOdec= readFloat(v, ref i, i+8);BNOaz= readFloat(v, ref i, i+8);BNOalt= readFloat(v, ref i, i+8);
+                                    if (!BNOhas) // just founda BNO. send it the current time to get stuff calculating OK...
+                                    {
+                                        DateTime epoch2024 = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                                        TimeSpan difference = DateTime.UtcNow - epoch2024;
+                                        SendSerialCommand(":B000000002"+((int)difference.TotalSeconds).ToString("X8")+"#", 0); // send set UTC time command... one more 0 because first one is ignored!!!
+                                    }
                                     BNOhas= true;
                                 }
 

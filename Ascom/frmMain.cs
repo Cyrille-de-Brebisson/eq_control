@@ -156,11 +156,11 @@ namespace ASCOM.LocalServer
                         if (SharedResources.hasHWPos)
                         {
                             int maxRa= (int)((Int64)SharedResources.raMaxPos*SharedResources.raAmplitude/360); if (maxRa==0) maxRa= 1;
-                            label41.Text = SharedResources.raPos.ToString() + " / " + maxRa.ToString() + " " + ((SharedResources.raPos*100)/maxRa).ToString() + "%";
+                            label41.Text = "ra "+SharedResources.raPos.ToString() + " / " + maxRa.ToString() + " " + ((SharedResources.raPos*100)/maxRa).ToString() + "%";
                             int decMaxPos= SharedResources.decMaxPos; if (decMaxPos==0) decMaxPos= 1;
-                            label42.Text = SharedResources.decPos.ToString() + " / " + (SharedResources.decMaxPos / 2).ToString() + " " + (SharedResources.decPos * 200 / decMaxPos).ToString() + "%";
+                            label42.Text = "dec "+SharedResources.decPos.ToString() + " / " + (SharedResources.decMaxPos / 2).ToString() + " " + (SharedResources.decPos * 200 / decMaxPos).ToString() + "%";
                             int focMaxPos= SharedResources.focMaxStp; if (focMaxPos==0) focMaxPos= 1;
-                            label52.Text = SharedResources._FocusserPosition.ToString() + " / " + focMaxPos.ToString() + " " + (SharedResources._FocusserPosition * 100 / focMaxPos).ToString() + "%";
+                            label52.Text = "foc "+SharedResources._FocusserPosition.ToString() + " / " + focMaxPos.ToString() + " " + (SharedResources._FocusserPosition * 100 / focMaxPos).ToString() + "%";
 
                         }
                         TestCycle(); // deal with testing
@@ -172,9 +172,9 @@ namespace ASCOM.LocalServer
                         }
                         if (SharedResources.BNOhas)
                         {
-                            BNO0.Text = "T:"+SharedResources.BNOTemp.ToString()+" "+(SharedResources.BNOhasOffset1?"O1":"")+" "+(SharedResources.BNOhasOffset2?"O2":"")+" "+(SharedResources.BNOscopeEast?"E":"W");
-                            BNO1.Text = SharedResources.BNOw.ToString()+" "+SharedResources.BNOx.ToString()+" "+SharedResources.BNOy.ToString()+" "+SharedResources.BNOz.ToString();
-                            BNO2.Text = SharedResources.BNOra.ToString()+" "+SharedResources.BNOdec.ToString()+" "+SharedResources.BNOaz.ToString()+" "+SharedResources.BNOalt.ToString();
+                            BNO0.Text = "Tmp:"+SharedResources.BNOTemp.ToString()+"° "+(SharedResources.BNOhasOffset1?"O1":"")+" "+(SharedResources.BNOscopeEast?"E":"W");
+                            BNO1.Text = SharedResources.BNOw.ToString("F4")+" "+SharedResources.BNOx.ToString("F4")+" "+SharedResources.BNOy.ToString("F4")+" "+SharedResources.BNOz.ToString("F4");
+                            BNO2.Text = SharedResources.BNOra.ToString("F4")+" "+SharedResources.BNOdec.ToString("F4")+" "+SharedResources.BNOaz.ToString("F4")+" "+SharedResources.BNOalt.ToString("F4");
 
                         }
                     }
@@ -1560,6 +1560,11 @@ namespace ASCOM.LocalServer
         private void phd2GuideDelay_TextChanged(object sender, EventArgs e)
         {
             int i; if (int.TryParse(phd2GuideDelay.Text, out i)) { SharedResources.phd2GuideDelay= i; TelescopeHardware.saveProfile(); }
+        }
+
+        private void button45_Click(object sender, EventArgs e)
+        {
+            SharedResources.SendSerialCommand(":B000000001#", 0); // BNO calibrate here (assign current position to BNO data). One more 0 because first one is ignored!
         }
 
         private void button28_Click(object sender, EventArgs e) // focuser move to saved position...
