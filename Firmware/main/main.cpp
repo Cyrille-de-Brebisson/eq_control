@@ -284,8 +284,7 @@ namespace BNO055 {
         uint8_t b; read(0x3f, 1, &b);         // read sys trigger (should be 0)
         writeReg(0x3f, b|0x80); vTaskDelay(50/portTICK_PERIOD_MS);  // use external cristal
         //if (calibData!=nullptr) setCalib(calibData);
-        //writeReg(0x3d, 0x0c); vTaskDelay(30 / portTICK_PERIOD_MS); // set operating mode to Ndof (normal fusion mode)
-        writeReg(0x3d, 0x0c); vTaskDelay(50 / portTICK_PERIOD_MS); // set operating mode to full fusion. // b is no magnetometer NDOF_FMC_OFF (fusion but with limited magnetometer as it is most likely inaccurate) 
+        writeReg(0x3d, 0x08); vTaskDelay(50 / portTICK_PERIOD_MS); // c is full fusion. // 8 is only gyro/accelerometer
     }
     uint8_t getTemp() { uint8_t b; read(0x34, 1, &b); return b; } // temperature...
     bno055_calibration_t getCalibration()
