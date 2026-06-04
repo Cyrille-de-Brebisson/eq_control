@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Ports;
 using System.Linq;
 using System.Media;
 using System.Net;
@@ -984,9 +985,10 @@ namespace ASCOM.LocalServer
         }
         string ISSErr = "";
         string issl1, issl2;
+        bool hasTLE() {  return issl1!=null && issl1.Length!=0; }
         bool gettle()
         {
-            if (issl1!=null && issl1.Length != 0) return true;
+            if (hasTLE()) return true;
             if (textBox23.Text.Length==0) // case of iss
             { 
                 try
@@ -1017,7 +1019,7 @@ namespace ASCOM.LocalServer
                 ISSErr = "ISS use saved TLE";
                 issl1 = SharedResources.isstle1;
                 issl2= SharedResources.isstle2;
-                if (issl1 == null || issl1.Length == 0) { ISSErr = "ISS TLE not found."; checkBox13.Checked = false; }
+                if (issl1 == null || issl1.Length == 0) { ISSErr = "ISS TLE not found."; stopIss= true; }
             }
             else { // satellite
                 try
@@ -1033,7 +1035,7 @@ namespace ASCOM.LocalServer
                     log(lines.ToString(), 4); ISSErr = textBox23.Text + " TLE OK!"; return true;
 
                 }
-                catch { ISSErr = "exception on TLE load"; log(ISSErr, 4); checkBox13.Checked = false; } // could not find. uncheck check box...
+                catch { ISSErr = "exception on TLE load"; log(ISSErr, 4); stopIss= true; } // could not find. uncheck check box...
             }
             return issl1!=null && issl1.Length!=0;
         }
@@ -1063,7 +1065,7 @@ namespace ASCOM.LocalServer
 
         public (double ra, double dec, double az, double alt, bool visible) GetIssRaDecFromLocation2(DateTime obstime, double inSecondsFromNow)
         {
-            if (!gettle())  return (0.0f, 0.0f, 0.0f, 0.0, false);
+            if (!hasTLE())  return (0.0f, 0.0f, 0.0f, 0.0, false);
             //set calculation parameters StartTime, EndTime and caclulation steps in minutes
             double az, alt, range;
             currentPos(TelescopeHardware.SiteLatitude, TelescopeHardware.SiteLongitude, TelescopeHardware.SiteElevation/1000.0, issl1, issl2, out az, out alt, out range);
@@ -1109,6 +1111,7 @@ namespace ASCOM.LocalServer
 
 
         System.Timers.Timer issev = null;
+        bool stopIss= false;
         private void checkBox13_CheckedChanged(object sender, EventArgs e)
         {
             if (!checkBox13.Checked)
@@ -1120,8 +1123,19 @@ namespace ASCOM.LocalServer
             }
             if (issev == null)
             {
+                stopIss= false;
                 issev = new System.Timers.Timer(500);
-                issev.Elapsed += (source, e2) => { try { BeginInvoke((MethodInvoker)delegate () { issUpdate(); }); } catch { } };
+                issev.Elapsed += (source, e2) => 
+                { 
+                    if (stopIss) 
+                    {
+                        try { BeginInvoke((MethodInvoker)delegate () { checkBox13.Checked= false; if (issev != null) { issev.Dispose(); issev = null; } textBox23.Enabled= true; }); } catch { } 
+                        return;
+                    }
+                    if (!hasTLE()) // no TLE, get them
+                        if (!gettle()) { stopIss= true; return; } // can not get them?
+                    try { BeginInvoke((MethodInvoker)delegate () { issUpdate(); }); } catch { } 
+                };
                 issev.Enabled= true;
                 textBox23.Enabled= false;
             }
@@ -1397,7 +1411,7 @@ namespace ASCOM.LocalServer
 
         private void issUpdate()
         {
-            if (!checkBox13.Checked) return;
+            if (!checkBox13.Checked || stopIss) return;
             if (!SharedResources.Connected || !SharedResources.hasHWData) return;
             DateTime utc= DateTime.UtcNow;
             var r= GetIssRaDecFromLocation2(utc, 0);
