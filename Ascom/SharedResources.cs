@@ -148,6 +148,7 @@ namespace ASCOM.LocalServer
                 serialCrahed= false;
                 connectionLive = false; hasHWPos= false; hasHWData = false; hasGpsInfo= false; dataDisplayed= false; hasPowerCount= false;
                 raMaxPos = 0; raMaxSpeed = 0; ramsToSpeed = 0; decMaxPos = 0; decMaxSpeed = 0; decmsToSpeed = 0;
+                BNOhas= false;
                 if (SharedSerial!=null) SharedSerial.Connected = false;
                 tcpdisconnect();
                 doLog("Disconnect", -1);

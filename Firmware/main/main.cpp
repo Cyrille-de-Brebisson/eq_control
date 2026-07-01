@@ -234,17 +234,8 @@ void altAzToRaDec(float alt, float az, float lat_rad, float lst, float &ra, floa
     dec = tdec * (180.0f / M_PI);
 }
 
-struct bno055_calibration_t { uint8_t sys, gyro, accel, mag; };
-struct bno055_vector_t { float x, y, z; };
 namespace BNO055 {
     i2c_master_dev_handle_t dev_handle2= nullptr;
-    void starti2c()
-    {
-        if (dev_handle2!=nullptr) return;
-        I2C.begin();
-        i2c_device_config_t dev_config = {.dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = 0x29, .scl_speed_hz = 400000 };
-        ESP_ERROR_CHECK(i2c_master_bus_add_device(I2C.bus_handle, &dev_config, &dev_handle2));
-    }
     void writeReg(uint8_t reg, uint8_t v)
     {
         uint8_t t[2]= { reg, v };
@@ -263,16 +254,18 @@ namespace BNO055 {
         uint8_t t[23]; t[0]= 0x55; memcpy(t+1, d, 22);
         i2c_master_transmit(dev_handle2, t, 23, 1000/portTICK_PERIOD_MS);
     }
-    bool hasBN0()
+    bool begin(uint8_t const *calibData= nullptr)
     {
-        starti2c();
+        if (dev_handle2==nullptr)
+        {
+            I2C.begin();
+            i2c_device_config_t dev_config = {.dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = 0x29, .scl_speed_hz = 400000 };
+            ESP_ERROR_CHECK(i2c_master_bus_add_device(I2C.bus_handle, &dev_config, &dev_handle2));
+        }
         vTaskDelay(700/portTICK_PERIOD_MS); // wait for reboot
         uint8_t b; read(0, 1, &b); //  register 0 is chip id, which should be a0
         //printf("Start BNO recev %0x\r\n", b);
-        return b==0xa0; // check chip id
-    }
-    void begin(uint8_t const *calibData= nullptr)
-    {
+        if (b!=0xa0) return false; // check chip id
         //printf("BNO begin calib:%s\r\n", calibData!=nullptr?"yes":"no");
         //writeReg(0x3f, 0x20); vTaskDelay(700/portTICK_PERIOD_MS); // reboot
         writeReg(0x7, 0);       // set page 0
@@ -281,21 +274,18 @@ namespace BNO055 {
         writeReg(0x41, 0x21); // axis mapping. inverts x and y here... should be parametrized? 2 bit per axis
         writeReg(0x42, 0);    // axis direction inversion (1 bit per axis)
         writeReg(0x3e, 0); vTaskDelay(50/portTICK_PERIOD_MS); // normal power mode
-        uint8_t b; read(0x3f, 1, &b);         // read sys trigger (should be 0)
+        read(0x3f, 1, &b);         // read sys trigger (should be 0)
         writeReg(0x3f, b|0x80); vTaskDelay(50/portTICK_PERIOD_MS);  // use external cristal
         //if (calibData!=nullptr) setCalib(calibData);
         writeReg(0x3d, 0x08); vTaskDelay(50 / portTICK_PERIOD_MS); // c is full fusion. // 8 is only gyro/accelerometer
+        return true;
     }
     uint8_t getTemp() { uint8_t b; read(0x34, 1, &b); return b; } // temperature...
-    bno055_calibration_t getCalibration()
+    struct bno055_calibration_t { uint8_t sys, gyro, accel, mag; };
+    bno055_calibration_t getCalibrationStatus()
     {
         uint8_t calData; read(0x35, 1, &calData);
-        bno055_calibration_t cal;
-        cal.sys = (calData >> 6) & 0x03;
-        cal.gyro = (calData >> 4) & 0x03;
-        cal.accel = (calData >> 2) & 0x03;
-        cal.mag = calData & 0x03;
-        return cal;
+        return {uint8_t((calData >> 6) & 0x03), uint8_t((calData >> 4) & 0x03), uint8_t((calData >> 2) & 0x03), uint8_t(calData & 0x03) };
     }
     bool getQuaternion(Quaternion &q) 
     {
@@ -355,8 +345,8 @@ bool telescopeEastFromQuaternion(Quaternion q)
 struct {
     Quaternion angle;
     uint8_t temp= 0;
-    uint8_t hasBNO: 1= 0, hasOffset1: 1= 0, hasOffset2: 1= 0, scopeEast: 1= 0, zero:4= 0;
-    uint8_t calibrateHere: 1= 0, zero2:7= 0;
+    uint8_t hasBNO: 1= 0, hasOffset1: 1= 0, hasOffset2: 1= 0, scopeEast: 1= 0, zero:3= 0;
+    uint8_t calibrateHere: 1= 0, autoCalib:1=0, zero2:6= 0;
     uint8_t t2= 0;
     float ra= 0.0f, dec= 0.0f, az= 0.0f, alt= 0.0f;
 } BNOData;
@@ -371,49 +361,171 @@ void execBNO(uint32_t i, uint32_t j)
 {
     if (i==1) BNOData.calibrateHere= true;
     if (i==2) MyTelescope->set_utcdate(j);
+    if (i==3) { BNOData.calibrateHere = false; BNOData.autoCalib = 1; }
 }
 void BNOTask(void *)
 {
-    if (!BNO055::hasBN0()) vTaskDelete(nullptr); // no BNO, kill task and do nothing else...
-    struct { uint8_t calib[22]; Quaternion offset1, offset2; } BNOCalib;
+    struct { uint8_t calib[22]; Quaternion offset1, offset2; Vec3 sensorForward; Vec3 sensorUp; float rot[9]; } BNOCalib;
+    // default sensor forward (body) vector
+    BNOCalib.sensorForward = SENSOR_FORWARD;
     if (alpaca->load("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib))) 
-        BNO055::begin(BNOCalib.calib), BNOData.hasOffset1= true; 
-    else
-        BNO055::begin();
+    {
+        if (!BNO055::begin(BNOCalib.calib)) vTaskDelete(nullptr);
+        BNOData.hasOffset1= true;
+    } else
+        if (!BNO055::begin()) vTaskDelete(nullptr);
     while (true)
     {
-        vTaskDelay(500/portTICK_PERIOD_MS); // 2hz
+        vTaskDelay(2000/portTICK_PERIOD_MS); // 2hz
         if (!BNO055::getQuaternion(BNOData.angle)) { BNOData.hasBNO= false; continue; }
         BNOData.temp= BNO055::getTemp();
         BNOData.hasBNO= true;
 
         //printf("BNO tmp%d\r\n", BNOData.temp);
         // BNO is used for absolute positionning. It gives a AZ/ALT type orientation.
-        // So to get a RA/DEC, we need to know latitude and LST (longitude + time)
+                if (MyTelescope->UTCTimeDelta != 0)
         // we can get longitude/latitude from GPS or user setup.
         // but to get LST, we need time also which can can get from GPS or ascom.
         // Assumes GPS is best, if we have, else use setup+ascom time
-        Quaternion calibrated= BNOCalib.offset1*BNOData.angle;
-        quatToAzAlt(calibrated, BNOData.alt, BNOData.az);
-
         float lst= -100.0f; // this is in 24h format!
         float lat= CSavedData::savedData.Latitude/36000.0f; // get latitude from wherever we can!
         #ifdef HASGPS
             if (CGPS::hasPosInfo && CGPS::hasTimeInfo) { lat= CGPS::latitude*(180.0f/M_PI); lst= CGPS::localSiderealTime(); }
             else 
         #endif
-            if (MyTelescope->UTCTimeDelta!=0)
+            Vec3 rawDir = BNOData.angle.rotate(SENSOR_FORWARD);
+            Vec3 calibDir;
+            if (BNOData.hasOffset2) // use saved rotation matrix if available
+            {
+                // apply R * rawDir
+                calibDir = { BNOCalib.rot[0]*rawDir.x + BNOCalib.rot[1]*rawDir.y + BNOCalib.rot[2]*rawDir.z,
+                             BNOCalib.rot[3]*rawDir.x + BNOCalib.rot[4]*rawDir.y + BNOCalib.rot[5]*rawDir.z,
+                             BNOCalib.rot[6]*rawDir.x + BNOCalib.rot[7]*rawDir.y + BNOCalib.rot[8]*rawDir.z };
+            }
+            else
+            {
+                calibDir = BNOData.angle.rotate(BNOCalib.sensorForward);
+                // If calibrated direction points opposite the expected direction, flip it (handles pier flips)
+                if (dotVec3(calibDir, expectedDir) < 0.0f) calibDir = scaleVec3(calibDir, -1.0f);
+            }
+            directionToAltAz(calibDir, BNOData.alt, BNOData.az);
             {
                 lst= fmodf((MyTelescope->UTCTimeDelta + Milisecond())*(1.00273790935/3600.0f), 24.0f) + (6+39/60.0f+45/3600.0f); // lst at grenwitch on jan 1 2024
                 lst+= CSavedData::savedData.Longitude/36000.0f; // add Longitude in 24h Note that this in in 24h format!
             }
             //printf("lst:%f %d\n", lst, int(MyTelescope->UTCTimeDelta));
-        if (lst!=-100) altAzToRaDec(BNOData.alt, BNOData.az, lat, lst, BNOData.ra, BNOData.dec);
-        else BNOData.ra= BNOData.dec= NAN;
 
         float alt, az; raDecToAltAz(MRaposInReal()/3600.0f, MDec.posInReal()/3600.0f, lst, lat, &alt, &az); // ra/dec to alt/az
-        printf("alt:%.1f az:%.1f ", alt*180.0f/M_PI, az*180.0f/M_PI); BNOData.angle.printEuler(" -> "); calibrated.printEuler("  "); printf("alt:%.1f az:%.1f\n", BNOData.alt*180.0f/M_PI, BNOData.az*180.0f/M_PI);
+        // Compute expected target direction from encoders
+            Vec3 targetDir = altAzToDirection(alt, az);
+            // raw measured direction (sensor reading) for the current boresight
+            Vec3 rawDir = BNOData.angle.rotate(SENSOR_FORWARD);
 
+            // Automatic two-point calibration: capture two sufficiently different samples
+            if (BNOData.autoCalib)
+            {
+                static bool ac_have1 = false;
+                static Vec3 ac_raw1; static Vec3 ac_tgt1;
+                static TickType_t ac_start = 0;
+                if (ac_start == 0) ac_start = xTaskGetTickCount();
+                if (!ac_have1)
+                {
+                    ac_raw1 = rawDir; ac_tgt1 = targetDir; ac_have1 = true;
+                    printf("AutoCalib: stored first sample\n");
+                }
+                else
+                {
+                    // require second sample to be non-collinear to first
+                    if (dotVec3(ac_raw1, rawDir) < 0.98f && dotVec3(ac_tgt1, targetDir) < 0.98f)
+                    {
+                        // compute rotation matrix from two non-collinear samples
+                        Vec3 raw1 = ac_raw1; Vec3 tgt1 = ac_tgt1;
+                        Vec3 raw2 = rawDir; Vec3 tgt2 = targetDir;
+                        Vec3 b1 = normalizeVec3(raw1);
+                        Vec3 b2 = raw2;
+                        float p = dotVec3(b2, b1);
+                        b2 = normalizeVec3({ b2.x - p*b1.x, b2.y - p*b1.y, b2.z - p*b1.z });
+                        Vec3 b3 = crossVec3(b1, b2);
+                        Vec3 e1 = normalizeVec3(tgt1);
+                        Vec3 e2 = tgt2;
+                        p = dotVec3(e2, e1);
+                        e2 = normalizeVec3({ e2.x - p*e1.x, e2.y - p*e1.y, e2.z - p*e1.z });
+                        Vec3 e3 = crossVec3(e1, e2);
+                        float Bmat[9] = { b1.x, b2.x, b3.x, b1.y, b2.y, b3.y, b1.z, b2.z, b3.z };
+                        float Emat[9] = { e1.x, e2.x, e3.x, e1.y, e2.y, e3.y, e1.z, e2.z, e3.z };
+                        for (int r=0;r<3;r++) for (int c=0;c<3;c++)
+                        {
+                            float sum=0.0f;
+                            for (int k=0;k<3;k++) sum += Emat[r*3 + k] * Bmat[c*3 + k];
+                            BNOCalib.rot[r*3 + c] = sum;
+                        }
+                        // store and verify
+                        printf("AutoCalib: rotation saved\n");
+                        BNO055::getCalib(BNOCalib.calib);
+                        alpaca->save("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib));
+                        BNOData.autoCalib = 0;
+                        BNOData.hasOffset2 = true;
+                        ac_have1 = false; ac_start = 0;
+                    }
+                    else if ((xTaskGetTickCount() - ac_start) > pdMS_TO_TICKS(60000))
+                    {
+                        printf("AutoCalib: timeout\n");
+                        BNOData.autoCalib = 0; ac_have1 = false; ac_start = 0;
+                    }
+                }
+            }
+            if (!BNOData.hasOffset1)
+            {
+                // store first pair: rawDir -> targetDir
+                BNOCalib.sensorForward = rawDir;
+                BNOCalib.sensorUp = targetDir; // temporarily store target1 here
+                printf("clibrate (1) stored raw->tgt\n");
+                BNO055::getCalib(BNOCalib.calib);
+                alpaca->save("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib));
+                BNOData.calibrateHere = false;
+                BNOData.hasOffset1 = true;
+            }
+            else
+            {
+                // second pair: compute rotation matrix R that maps raw->target
+                Vec3 raw1 = BNOCalib.sensorForward; Vec3 tgt1 = BNOCalib.sensorUp;
+                Vec3 raw2 = rawDir; Vec3 tgt2 = targetDir;
+                // build orthonormal bases
+                Vec3 b1 = normalizeVec3(raw1);
+                Vec3 b2 = raw2;
+                // remove projection on b1
+                float p = dotVec3(b2, b1);
+                b2 = normalizeVec3({ b2.x - p*b1.x, b2.y - p*b1.y, b2.z - p*b1.z });
+                Vec3 b3 = crossVec3(b1, b2);
+                Vec3 e1 = normalizeVec3(tgt1);
+                Vec3 e2 = tgt2;
+                p = dotVec3(e2, e1);
+                e2 = normalizeVec3({ e2.x - p*e1.x, e2.y - p*e1.y, e2.z - p*e1.z });
+                Vec3 e3 = crossVec3(e1, e2);
+                // B = [b1 b2 b3], E = [e1 e2 e3], R = E * B^T
+                float Bmat[9] = { b1.x, b2.x, b3.x, b1.y, b2.y, b3.y, b1.z, b2.z, b3.z };
+                float Emat[9] = { e1.x, e2.x, e3.x, e1.y, e2.y, e3.y, e1.z, e2.z, e3.z };
+                // compute R = E * B^T
+                for (int r=0;r<3;r++) for (int c=0;c<3;c++)
+                {
+                    float sum=0.0f;
+                    for (int k=0;k<3;k++) sum += Emat[r*3 + k] * Bmat[c*3 + k];
+                    BNOCalib.rot[r*3 + c] = sum;
+                }
+                // store and verify
+                printf("clibrate (2) rotation saved\n");
+                // verify by applying R to raw1
+                Vec3 v = raw1;
+                Vec3 vr = { BNOCalib.rot[0]*v.x + BNOCalib.rot[1]*v.y + BNOCalib.rot[2]*v.z,
+                            BNOCalib.rot[3]*v.x + BNOCalib.rot[4]*v.y + BNOCalib.rot[5]*v.z,
+                            BNOCalib.rot[6]*v.x + BNOCalib.rot[7]*v.y + BNOCalib.rot[8]*v.z };
+                float valt, vaz; directionToAltAz(vr, valt, vaz);
+                printf("verify after rot alt:%.2f az:%.2f\n", valt*180.0f/M_PI, vaz*180.0f/M_PI);
+                BNO055::getCalib(BNOCalib.calib);
+                alpaca->save("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib));
+                BNOData.calibrateHere = false;
+                BNOData.hasOffset2 = true;
+            }
         BNOData.scopeEast= telescopeEastFromQuaternion(BNOData.angle);
         if (lst!=-100.0f && BNOData.calibrateHere) // can not calibrate if no lst!
         {
@@ -422,22 +534,48 @@ void BNOTask(void *)
             // it also saves the sensor callibration data
             // CALIBRATION : compute offset (distance) between sky and sensor.
             float alt, az; raDecToAltAz(MRaposInReal()/3600.0f, MDec.posInReal()/3600.0f, lst, lat, &alt, &az); // ra/dec to alt/az
-            Quaternion q_target= target_to_quat(alt, az);             // compute quaternion representation
-            BNOCalib.offset1= q_target*(BNOData.angle.conjugate());    // compute offset : Q_target / Q_sensor. But 1/q = cong(q) when |q|=1 so offset=Q_target * conj(Q_sensor)
-
-            // Diagnostics: print target, sensor quaternion, offset and result of applying offset
-            //printf("clibrate ra:%.1f dec:%.1f lst:%.3f lat:%.1f alt:%.1f az:%.1f\n", MRaposInReal()/3600.0f, MDec.posInReal()/3600.0f, lst, lat, alt*180.0f/M_PI, az*180.0f/M_PI);
-            //printf("q_target: w=%.6f x=%.6f y=%.6f z=%.6f\n", q_target.w, q_target.x, q_target.y, q_target.z);
-            //printf("q_sensor: w=%.6f x=%.6f y=%.6f z=%.6f\n", BNOData.angle.w, BNOData.angle.x, BNOData.angle.y, BNOData.angle.z);
-            //printf("offset1:  w=%.6f x=%.6f y=%.6f z=%.6f\n", BNOCalib.offset1.w, BNOCalib.offset1.x, BNOCalib.offset1.y, BNOCalib.offset1.z);
-            Quaternion test = BNOCalib.offset1 * BNOData.angle;
-            float talt, taz; quatToAzAlt(test, talt, taz);
-            //printf("after offset alt:%.2f az:%.2f\n", talt*180.0f/M_PI, taz*180.0f/M_PI);
-
-            BNO055::getCalib(BNOCalib.calib);
-            alpaca->save("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib));
-            BNOData.calibrateHere= false;
-            BNOData.hasOffset1= true;
+            // Compute sensor-body boresight such that q_sensor.rotate(sensorForward) == targetDir
+            Vec3 targetDir = altAzToDirection(alt, az);
+            Quaternion qconj = BNOData.angle.conjugate();
+            if (!BNOData.hasOffset1)
+            {
+                // first calibration point: store sensor forward (body) vector
+                Vec3 sensorForward = normalizeVec3(qconj.rotate(targetDir));
+                BNOCalib.sensorForward = sensorForward;
+                // Diagnostics
+                printf("clibrate (1) ra:%.1f dec:%.1f lst:%.3f lat:%.1f alt:%.1f az:%.1f\n", MRaposInReal()/3600.0f, MDec.posInReal()/3600.0f, lst, lat, alt*180.0f/M_PI, az*180.0f/M_PI);
+                printf("q_sensor: w=%.6f x=%.6f y=%.6f z=%.6f\n", BNOData.angle.w, BNOData.angle.x, BNOData.angle.y, BNOData.angle.z);
+                printf("sensorForward(body): x=%.6f y=%.6f z=%.6f\n", BNOCalib.sensorForward.x, BNOCalib.sensorForward.y, BNOCalib.sensorForward.z);
+                Vec3 verifyDir = BNOData.angle.rotate(BNOCalib.sensorForward);
+                float valt, vaz; directionToAltAz(verifyDir, valt, vaz);
+                printf("verify after calib alt:%.2f az:%.2f\n", valt*180.0f/M_PI, vaz*180.0f/M_PI);
+                BNO055::getCalib(BNOCalib.calib);
+                alpaca->save("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib));
+                BNOData.calibrateHere = false;
+                BNOData.hasOffset1 = true;
+            }
+            else
+            {
+                // second calibration point: store sensor up (body) vector and orthonormalize
+                Vec3 sensorUp = qconj.rotate(targetDir);
+                Vec3 sf = BNOCalib.sensorForward;
+                float proj = dotVec3(sensorUp, sf);
+                Vec3 ortho = { sensorUp.x - proj * sf.x, sensorUp.y - proj * sf.y, sensorUp.z - proj * sf.z };
+                ortho = normalizeVec3(ortho);
+                BNOCalib.sensorUp = ortho;
+                // Diagnostics
+                printf("clibrate (2) sensorUp(body): x=%.6f y=%.6f z=%.6f\n", BNOCalib.sensorUp.x, BNOCalib.sensorUp.y, BNOCalib.sensorUp.z);
+                Vec3 verifyDir = BNOData.angle.rotate(BNOCalib.sensorForward);
+                float valt, vaz; directionToAltAz(verifyDir, valt, vaz);
+                printf("verify after calib forward alt:%.2f az:%.2f\n", valt*180.0f/M_PI, vaz*180.0f/M_PI);
+                verifyDir = BNOData.angle.rotate(BNOCalib.sensorUp);
+                directionToAltAz(verifyDir, valt, vaz);
+                printf("verify after calib up alt:%.2f az:%.2f\n", valt*180.0f/M_PI, vaz*180.0f/M_PI);
+                BNO055::getCalib(BNOCalib.calib);
+                alpaca->save("BNO", (uint8_t*)&BNOCalib, sizeof(BNOCalib));
+                BNOData.calibrateHere = false;
+                BNOData.hasOffset2 = true;
+            }
         }
     }
 }
