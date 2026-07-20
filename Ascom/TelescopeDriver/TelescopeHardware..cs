@@ -38,6 +38,7 @@ namespace ASCOM.EQControl.Telescope.V1
                     SharedResources.yellOnPower= driverProfile.GetValue(DriverProgId, "yellOnPower", "", "0")!="0";
                     SharedResources.focusInmm= driverProfile.GetValue(DriverProgId, "focusInmm", "", "0")!="0";
                     SharedResources.reconnectOnDrop= driverProfile.GetValue(DriverProgId, "reconnectOnDrop", "", "0")!="0";
+                    SharedResources.parkAtSunrise= driverProfile.GetValue(DriverProgId, "parkAtSunrise", "", "0")!="0";
                     double v;
                     if (double.TryParse(driverProfile.GetValue(DriverProgId, "guideRaAgressivity", "", "1.0"), NumberStyles.Float, CultureInfo.InvariantCulture, out v))
                         SharedResources.guideRaAgressivity = v;
@@ -68,6 +69,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 driverProfile.WriteValue(DriverProgId, "guideRaAgressivity", SharedResources.guideRaAgressivity.ToString(CultureInfo.InvariantCulture));
                 driverProfile.WriteValue(DriverProgId, "guideDecAgressivity", SharedResources.guideDecAgressivity.ToString(CultureInfo.InvariantCulture));
                 driverProfile.WriteValue(DriverProgId, "reconnectOnDrop", SharedResources.reconnectOnDrop? "1" : "0");
+                driverProfile.WriteValue(DriverProgId, "parkAtSunrise", SharedResources.parkAtSunrise? "1" : "0");
                 driverProfile.WriteValue(DriverProgId, "phd2GuideDelay", SharedResources.phd2GuideDelay.ToString());
                 
             }
@@ -133,25 +135,13 @@ namespace ASCOM.EQControl.Telescope.V1
             ra = (int)(((Int64)(SharedResources.raMaxPos)) * SharedResources.raAmplitude / 360 / 2);
             dec = SharedResources.decMaxPos / 2;
         }
-        internal static void Park()
-        {
-            SharedResources.doLog("park", 0);
-            SharedResources.TrackingDisabled = true;
-            int ra, dec; parkPos(out ra, out dec);
-            goToMotor(ra, dec);
-        }
-        public static void goToMotor(int ra, int dec)
-        {
-            SharedResources.SendSerialCommand(":Mg" + ra.ToString("X8") + dec.ToString("X8") + "#", 0);
-            SharedResources._ScopeMoving = true;
-        }
+        internal static void Park() { SharedResources.Park(); }
         internal static void Unpark() 
         {
             SharedResources.doLog("Unpark", 0);
             SharedResources.TrackingDisabled = false;
             if (SharedResources.Declinaison>89.9f) SharedResources.setToTrueNorth();
         }
-        internal static void SetPark() { throw new MethodNotImplementedException("SetPark"); }
         internal static bool AtPark { get {
                 if (!SharedResources.TrackingDisabled || !SharedResources.hasHWPos) return false;
                 int ra, dec; parkPos(out ra, out dec);
@@ -160,6 +150,7 @@ namespace ASCOM.EQControl.Telescope.V1
             } } /// True if the telescope has been put into the parked state by the seee <see cref="Park" /> method
         internal static bool CanPark { get { return true; } }
         internal static bool CanUnpark { get { return true; } }
+        internal static void SetPark() { throw new MethodNotImplementedException("SetPark"); } // set park position, I think...
         internal static bool CanSetPark { get { return false; } }
         internal static IAxisRates AxisRates(TelescopeAxes Axis) { return new AxisRates(Axis); } /// Determine the rates at which the telescope may be moved about the specified axis by the <see cref="MoveAxis" /> method.
         internal static bool CanMoveAxis(TelescopeAxes Axis) /// True if this telescope can move the requested axis

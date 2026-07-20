@@ -52,6 +52,7 @@ namespace ASCOM.LocalServer
             calcSteps();
             checkBox7.Checked= SharedResources.guideAfterSlew;
             checkBox19.Checked= SharedResources.reconnectOnDrop;
+            checkBox20.Checked= SharedResources.parkAtSunrise;
             updateLocations();  posCB.Text= "";
             updateSavedPos();
             phd2GuideDelay.Text= SharedResources.phd2GuideDelay.ToString();
@@ -176,8 +177,8 @@ namespace ASCOM.LocalServer
                             BNO0.Text = "Tmp:"+SharedResources.BNOTemp.ToString()+"° "+(SharedResources.BNOhasOffset1?"O1":"")+" "+(SharedResources.BNOscopeEast?"E":"W");
                             BNO1.Text = SharedResources.BNOw.ToString("F4")+" "+SharedResources.BNOx.ToString("F4")+" "+SharedResources.BNOy.ToString("F4")+" "+SharedResources.BNOz.ToString("F4");
                             BNO2.Text = SharedResources.BNOra.ToString("F4")+" "+SharedResources.BNOdec.ToString("F4")+" "+SharedResources.BNOaz.ToString("F4")+" "+SharedResources.BNOalt.ToString("F4");
-
                         }
+                        checkBox20.Text= "Park at sunrise "+ SharedResources.getSunRaiseTime().ToString("HH:mm");
                     }
                     else
                     {
@@ -213,6 +214,7 @@ namespace ASCOM.LocalServer
                         label21.Text = "N/A";
                         BNO0.Text = "NO BNO"; BNO1.Text = ""; BNO2.Text = "";
                         MovingLabel.Text = "";
+                        checkBox20.Text= "Park at sunrise ";
                         if (SharedResources.serialCrahed && SharedResources.reconnectOnDrop)
                         {
                             var l= (new Serial()).AvailableCOMPorts;
@@ -1265,19 +1267,19 @@ namespace ASCOM.LocalServer
             int decm = SharedResources.decMaxPos / 2;  
             int minvdec= SharedResources.Latitude/36000; // for north emisphere only!
             int decl= SharedResources.raMaxPos*minvdec/180; // min visible declinaison here... avoids scope bumping in things!
-            if (testMoveCycle==0) TelescopeHardware.goToMotor(0, decm);
-            if (testMoveCycle==1) TelescopeHardware.goToMotor(ram, decm);
-            if (testMoveCycle==2) TelescopeHardware.goToMotor(0, decm);
-            if (testMoveCycle==3) TelescopeHardware.goToMotor(ram/2, decm);
-            if (testMoveCycle==4) TelescopeHardware.goToMotor(ram/2, decl);
-            if (testMoveCycle==5) TelescopeHardware.goToMotor(ram/2, decm);
-            if (testMoveCycle==6) TelescopeHardware.goToMotor(0, decm);
-            if (testMoveCycle==7) TelescopeHardware.goToMotor(ram, decl);
-            if (testMoveCycle==8) TelescopeHardware.goToMotor(0, decm);
-            if (testMoveCycle==9) TelescopeHardware.goToMotor(ram, decm);
-            if (testMoveCycle==10) TelescopeHardware.goToMotor(0, decl);
-            if (testMoveCycle==11) TelescopeHardware.goToMotor(ram, decm);
-            if (testMoveCycle==12) TelescopeHardware.goToMotor(ram/2, decm);
+            if (testMoveCycle==0) SharedResources.goToMotor(0, decm);
+            if (testMoveCycle==1) SharedResources.goToMotor(ram, decm);
+            if (testMoveCycle==2) SharedResources.goToMotor(0, decm);
+            if (testMoveCycle==3) SharedResources.goToMotor(ram/2, decm);
+            if (testMoveCycle==4) SharedResources.goToMotor(ram/2, decl);
+            if (testMoveCycle==5) SharedResources.goToMotor(ram/2, decm);
+            if (testMoveCycle==6) SharedResources.goToMotor(0, decm);
+            if (testMoveCycle==7) SharedResources.goToMotor(ram, decl);
+            if (testMoveCycle==8) SharedResources.goToMotor(0, decm);
+            if (testMoveCycle==9) SharedResources.goToMotor(ram, decm);
+            if (testMoveCycle==10) SharedResources.goToMotor(0, decl);
+            if (testMoveCycle==11) SharedResources.goToMotor(ram, decm);
+            if (testMoveCycle==12) SharedResources.goToMotor(ram/2, decm);
             testMoveCycle= testMoveCycle+1; if (testMoveCycle==13) { testMoveCycle= -1;  button43.Text= "Test"; }
             button43.Text= "Stp "+testMoveCycle.ToString()+"/12";
         }
@@ -1579,6 +1581,17 @@ namespace ASCOM.LocalServer
         private void button45_Click(object sender, EventArgs e)
         {
             SharedResources.SendSerialCommand(":B000000001#", 0); // BNO calibrate here (assign current position to BNO data). One more 0 because first one is ignored!
+        }
+
+        private void checkBox20_CheckedChanged(object sender, EventArgs e)
+        {
+            SharedResources.parkAtSunrise = checkBox20.Checked;
+            TelescopeHardware.saveProfile();
+        }
+
+        private void checkBox20_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button==MouseButtons.Middle) SharedResources.sunRaiseTime= DateTime.UtcNow.AddSeconds(10);
         }
 
         private void button28_Click(object sender, EventArgs e) // focuser move to saved position...

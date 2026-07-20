@@ -126,7 +126,7 @@ namespace ASCOM.LocalServer
         public static bool powerBit= false;
         public static int powerCount= 0;
         public static bool hasGpsInfo= false;
-        public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false;
+        public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false, parkAtSunrise= true;
 
         public static void updateAzimutal()
         { 
@@ -214,6 +214,7 @@ namespace ASCOM.LocalServer
 
             // Assumes crc is correct and ignore extra for the moment...!!!
             hasHWData = true;
+            resetSunRaiseTime();
         }
         public static DateTime lastHeartBeat;
 
@@ -251,6 +252,7 @@ namespace ASCOM.LocalServer
                                 if (v.Length<38) { Lock= 0; return; }
                                 latestResponse1= v; latestResponse2= ""; responceCount++;
                                 int i= 0; double t;
+                                DateTime oldlastHeartBeat= lastHeartBeat;
                                 lastHeartBeat= DateTime.UtcNow;
                                 int dec= readHex(v, ref i, 6); if (dec>=0x800000) dec|= unchecked((int)0xff000000);
                                 latestResponse2= "dec:"+dec.ToString();
@@ -355,6 +357,11 @@ namespace ASCOM.LocalServer
                                     readHWString();
                                     
                                     if (_Declinaison>89.9f && _RightAssension>5.59f && _RightAssension<6.01f) setToTrueNorth();
+                                }
+                                if (parkAtSunrise && lastHeartBeat>getSunRaiseTime() && oldlastHeartBeat<getSunRaiseTime()) // send park if sunrise happens!
+                                { 
+                                    resetSunRaiseTime();
+                                    Park();
                                 }
                             }
                             catch (Exception)
@@ -706,6 +713,89 @@ namespace ASCOM.LocalServer
             if (_sideOfPier==0) sd-= 6.0f; else sd+= 6.0f; // setup ra depending on side of pier!
             while (sd<0.0f) sd+= 24.0f; while (sd>24.0f) sd-= 24.0f;
             SlewToCoordinatesAsync(sd, 90.0f, true);
+        }
+
+        // Returns solar altitude in degrees for given UTC time, lat (deg north) and lon (deg east)
+        public static double SolarAltitudeUtc(DateTime utc, double latDeg, double lonDeg)
+        {
+            // fractional hour
+            double hour = utc.Hour + utc.Minute / 60.0 + utc.Second / 3600.0 + utc.Millisecond / 3600000.0;
+            int dayOfYear = utc.DayOfYear;
+
+            double gamma = 2.0 * Math.PI / 365.0 * (dayOfYear - 1 + (hour - 12.0) / 24.0);
+
+            // solar declination (radians)
+            double decl = 0.006918 - 0.399912 * Math.Cos(gamma) + 0.070257 * Math.Sin(gamma)
+                          - 0.006758 * Math.Cos(2 * gamma) + 0.000907 * Math.Sin(2 * gamma)
+                          - 0.002697 * Math.Cos(3 * gamma) + 0.00148 * Math.Sin(3 * gamma);
+
+            // equation of time (minutes)
+            double eqTime = 229.18 * (0.000075 + 0.001868 * Math.Cos(gamma) - 0.032077 * Math.Sin(gamma)
+                                      - 0.014615 * Math.Cos(2 * gamma) - 0.040849 * Math.Sin(2 * gamma));
+
+            // true solar time in minutes
+            double minutes = hour * 60.0;
+            double timeOffset = eqTime + 4.0 * lonDeg; // working in UTC (tz offset = 0)
+            double tst = (minutes + timeOffset) % 1440.0;
+            if (tst < 0) tst += 1440.0;
+
+            // hour angle (degrees)
+            double haDeg = tst / 4.0 - 180.0;
+            double ha = haDeg * Math.PI / 180.0;
+            double lat = latDeg * Math.PI / 180.0;
+
+            double cosZenith = Math.Sin(lat) * Math.Sin(decl) + Math.Cos(lat) * Math.Cos(decl) * Math.Cos(ha);
+            cosZenith = Math.Max(-1.0, Math.Min(1.0, cosZenith));
+            double zenith = Math.Acos(cosZenith);
+            double altitude = 90.0 - (zenith * 180.0 / Math.PI);
+
+            return altitude;
+        }
+
+        // Find the UTC time on the given UTC date when solar altitude crosses targetAltDegrees upwards.
+        // Returns null if no crossing on that UTC calendar day.
+        public static DateTime FindRiseCrossingUtc(double latDeg, double lonDeg, double targetAltDegrees = -5.0)
+        {
+            DateTime start = DateTime.UtcNow.Date; // midnight UTC of that day
+            while (true) // work 1 day at a time...
+            { 
+                DateTime end = start.AddDays(1);
+                DateTime prev = start;
+                double prevAlt = SolarAltitudeUtc(prev, latDeg, lonDeg);
+
+                TimeSpan sampleStep = TimeSpan.FromMinutes(5); // coarse scan step
+                for (DateTime t = start + sampleStep; t <= end; t += sampleStep)
+                {
+                    double alt = SolarAltitudeUtc(t, latDeg, lonDeg);
+                    if (prevAlt < targetAltDegrees && alt >= targetAltDegrees) return t; // time when altitude first reaches target (UTC)
+                    prev = t;
+                    prevAlt = alt;
+                }
+            }
+        }
+        public static DateTime sunRaiseTime= DateTime.MinValue;
+        static void resetSunRaiseTime() { sunRaiseTime= DateTime.MinValue; }
+        public static DateTime getSunRaiseTime()
+        {
+            if (sunRaiseTime!=DateTime.MinValue) return sunRaiseTime;
+            return sunRaiseTime= FindRiseCrossingUtc(Latitude/36000.0f, Longitude/36000.0f);
+        }
+        internal static void parkPos(out int ra, out int dec)
+        {
+            ra = (int)(((Int64)(raMaxPos)) * raAmplitude / 360 / 2);
+            dec = decMaxPos / 2;
+        }
+        internal static void Park()
+        {
+            doLog("park", 0);
+            TrackingDisabled = true;
+            int ra, dec; parkPos(out ra, out dec);
+            goToMotor(ra, dec);
+        }
+        public static void goToMotor(int ra, int dec)
+        {
+            SendSerialCommand(":Mg" + ra.ToString("X8") + dec.ToString("X8") + "#", 0);
+            _ScopeMoving = true;
         }
     }
 }
