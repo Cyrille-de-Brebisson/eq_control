@@ -1,24 +1,17 @@
-﻿using ASCOM.Astrometry.Transform;
-using ASCOM.DeviceInterface;
+﻿using ASCOM.DeviceInterface;
 using ASCOM.EQControl.Focuser.V1;
 using ASCOM.EQControl.Telescope.V1;
 using ASCOM.Utilities;
 using StarDisp;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.IO.Ports;
 using System.Linq;
 using System.Media;
-using System.Net;
-using System.Runtime.InteropServices;
-using System.Security.Policy;
 using System.Windows.Forms;
 using static ASCOM.LocalServer.SharedResources;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
+using ASCOM.Astrometry.AstroUtils;
 
 namespace ASCOM.LocalServer
 {
@@ -56,11 +49,13 @@ namespace ASCOM.LocalServer
             updateLocations();  posCB.Text= "";
             updateSavedPos();
             phd2GuideDelay.Text= SharedResources.phd2GuideDelay.ToString();
+            labelBellowHorizon.Text= "";
         }
         ~FrmMain() { SharedResources.log= null; SharedResources.finish= true;  }
         private int lastFocusPos= 0x7fffffff;
         bool lastPowerBit= false; int lastPowerCount= 1;
         bool no_send_track_change= false;
+        AstroUtils astroUtils = new AstroUtils();
 
         private void updateConnectedLabel() // every 500ms, update UI based on driver's data
         {
@@ -82,7 +77,7 @@ namespace ASCOM.LocalServer
                                 textBox1.Text = ((SharedResources.FocusserPosition-SharedResources.focMaxStp/2)*SharedResources.FocStepdum/10000.0f).ToString("N1");
                         }
 
-                        int lastHB= DateTime.UtcNow.Subtract(SharedResources.lastHeartBeat).Seconds;
+                        int lastHB= DateTime.Now.Subtract(SharedResources.lastHeartBeat).Seconds;
                         if (lastHB<5) groupMount.Text= "Mount";
                         else groupMount.Text= "Mount ("+lastHB.ToString()+"s old)";
 
@@ -178,10 +173,18 @@ namespace ASCOM.LocalServer
                             BNO1.Text = SharedResources.BNOw.ToString("F4")+" "+SharedResources.BNOx.ToString("F4")+" "+SharedResources.BNOy.ToString("F4")+" "+SharedResources.BNOz.ToString("F4");
                             BNO2.Text = SharedResources.BNOra.ToString("F4")+" "+SharedResources.BNOdec.ToString("F4")+" "+SharedResources.BNOaz.ToString("F4")+" "+SharedResources.BNOalt.ToString("F4");
                         }
-                        checkBox20.Text= "Park at sunrise "+ SharedResources.getSunRaiseTime().ToString("HH:mm");
+                        if (!textBox21.Focused)
+                            textBox21.Text= SharedResources.getSunRaiseTime().ToString("HH:mm");
+
+                        var result = GetSettingTimeUtc(TelescopeHardware.RightAscension, TelescopeHardware.Declination, 0, TelescopeHardware.SiteLatitude, TelescopeHardware.SiteLongitude, DateTime.UtcNow);
+                        if (result.IsCircumpolar) labelBellowHorizon.Text= "Circumpolar";
+                        else if (result.NeverRises) labelBellowHorizon.Text= "Never rises";
+                        else labelBellowHorizon.Text= $"Object sets below horizon at : {result.SettingTimeUtc.ToLocalTime():HH:mm:ss}";
+
                     }
                     else
                     {
+                        labelBellowHorizon.Text= "";
                         groupMount.Text= "Mount";
                         button2.Text = "Connect";
                         textBox1.Text = ""; textBox1.Enabled = false;
@@ -214,7 +217,7 @@ namespace ASCOM.LocalServer
                         label21.Text = "N/A";
                         BNO0.Text = "NO BNO"; BNO1.Text = ""; BNO2.Text = "";
                         MovingLabel.Text = "";
-                        checkBox20.Text= "Park at sunrise ";
+                        textBox21.Text= "";
                         if (SharedResources.serialCrahed && SharedResources.reconnectOnDrop)
                         {
                             var l= (new Serial()).AvailableCOMPorts;
@@ -526,10 +529,6 @@ namespace ASCOM.LocalServer
         private void button12_Click(object sender, EventArgs e)
         {
             TelescopeHardware.SideOfPier = TelescopeHardware.SideOfPier == PierSide.pierEast ? PierSide.pierWest : PierSide.pierEast;
-        }
-
-        private void textBox4_KeyPress(object sender, KeyPressEventArgs e)
-        {
         }
         public void log(string message, int source)
         {
@@ -957,215 +956,8 @@ namespace ASCOM.LocalServer
 
 
 
-        ///////////////////////////////////////////////////////////
-        /// ISS STUFF
-        ///////////////////////////////////////////////////////////
-        string[] N2YOTLE(string number)
-        {
-            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; // 3072 explicitly forces TLS 1.2
-            string jsonString= (new WebClient()).DownloadString("https://api.n2yo.com/rest/v1/satellite/tle/"+number+"&apiKey=59W3M5-BYK4RM-T252L2-5IUJ");
-            int startIndex = jsonString.IndexOf("\"tle\":");
-            if (startIndex == -1) throw new Exception("The 'tle' property was not found in the server response.");
-            // Move index to where the actual TLE data begins (after "tle":" )
-            startIndex += 6;
-            // look for an opening "
-            int endIndex = jsonString.IndexOf("\"", startIndex);
-            if (endIndex == -1) throw new Exception("Malformed JSON string response. 1");
-            startIndex= endIndex+1;
-            // 3. Find the closing quote of the TLE string value
-            endIndex = jsonString.IndexOf("\"", startIndex);
-            if (endIndex == -1) throw new Exception("Malformed JSON string response.");
-            // 4. Extract the substring block
-            string tleBlock = jsonString.Substring(startIndex, endIndex - startIndex);
-            // 5. Clean up JSON literal escape tokens. 
-            // In raw text responses, literal carriage returns are encoded as "\r\n" strings.
-            tleBlock = tleBlock.Replace("\\r\\n", "\n").Replace("\\n", "\n").Replace("\\r", "\n");
-            // 6. Split the cleaned text block into your 2 array rows
-            string[] lines = tleBlock.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length < 2) throw new Exception("TLE string block was missing expected line array rows.");
-            return new string[] { lines[0], lines[1] };
-        }
-        string ISSErr = "";
-        string issl1, issl2;
-        bool hasTLE() {  return issl1!=null && issl1.Length!=0; }
-        bool gettle()
-        {
-            if (hasTLE()) return true;
-            if (textBox23.Text.Length==0) // case of iss
-            { 
-                try
-                {
-                    //var client = new WebClient();
-                    //string data = client.DownloadString("https://celestrak.org/NORAD/elements/stations.txt");
-                    //var lines = data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    //for (int i = 0; i < lines.Length - 2; i++)
-                    //    if (lines[i].Contains("ISS (NAUKA)"))
-                    //    {
-                    //        issl1= lines[i + 1]; issl2= lines[i + 2];
-                    //        TelescopeHardware.saveisstls(issl1, issl2);
-                    //        ISSErr = "ISS TLE OK";
-                    //        log(ISSErr+"\r\n"+issl1+"\r\n"+issl2, 4);
-                    //        return true;
-                    //    }
-                    //ISSErr = "ISS TLE not found.";
-                    //log(ISSErr, 4);
-                    var lines= N2YOTLE("25544");
-                    issl1= lines[0]; issl2= lines[1];
-                    TelescopeHardware.saveisstls(issl1, issl2);
-                    ISSErr = "ISS TLE OK";
-                    log(ISSErr+"\r\n"+issl1+"\r\n"+issl2, 4);
-                    return true;
-                }
-                catch { ISSErr = "exception on ISS load"; log(ISSErr, 4); }
-                log("ISS: use saved tle", 4);
-                ISSErr = "ISS use saved TLE";
-                issl1 = SharedResources.isstle1;
-                issl2= SharedResources.isstle2;
-                if (issl1 == null || issl1.Length == 0) { ISSErr = "ISS TLE not found."; stopIss= true; }
-            }
-            else { // satellite
-                try
-                {
-                    //var client = new WebClient();
-                    //string data = client.DownloadString("https://celestrak.org/NORAD/elements/gp.php?CATNR="+textBox23.Text+"&FORMAT=TLE");
-                    //var lines = data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-                    //if (lines.Length>=3) { issl1= lines[1]; issl2= lines[2]; log(data, 4); ISSErr = textBox23.Text + " TLE OK!"; return true;  }
-                    //ISSErr = textBox23.Text+" TLE not found.";
-                    //log(ISSErr, 4);
-                    var lines= N2YOTLE(textBox23.Text);
-                    issl1= lines[0]; issl2= lines[1];
-                    log(lines.ToString(), 4); ISSErr = textBox23.Text + " TLE OK!"; return true;
-
-                }
-                catch { ISSErr = "exception on TLE load"; log(ISSErr, 4); stopIss= true; } // could not find. uncheck check box...
-            }
-            return issl1!=null && issl1.Length!=0;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct PassDetails
-        {
-            public double timeTo_H;
-            public double duration_mn;
-            public double max_elevation_deg;
-        }
-        PassDetails[] passes= new PassDetails[5]; int nbPasses= 0; DateTime passesTime;
-        [DllImport("issposdll.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int GeneratePassList(double siteLat, double siteLong, double siteAltitude, [MarshalAs(UnmanagedType.LPStr)] string tle1, [MarshalAs(UnmanagedType.LPStr)] string tle2,
-                        [Out] PassDetails[] pass_list, int nbpassesMax);
-
-        [DllImport("issposdll.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void currentPos(double siteLat, double siteLong, double siteAltitude, [MarshalAs(UnmanagedType.LPStr)] string tle1, [MarshalAs(UnmanagedType.LPStr)] string tle2, out double az, out double alt, out double dst);
-        [StructLayout(LayoutKind.Sequential)]
-        public struct Tpos { public double az, alt, dst; };
-        // get a list of coordinate for a pass. when is in h (get from pass list). typically 600 slots in pos is enough (10mn)
-        [DllImport("issposdll.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern  int FuturePos(double siteLat, double siteLong, double siteAltitude, [MarshalAs(UnmanagedType.LPStr)] string tle1, [MarshalAs(UnmanagedType.LPStr)] string tle2, double when, [Out] Tpos[] pos, int nbpos);
-        double issNextPassMaxRaSpd=0, issNextPassMaxDecSpd=0;
-        Tpos[] poses= new Tpos[800]; int nbposes= 0;
-        Tpos[] radecposes= new Tpos[800];
-
-        public (double ra, double dec, double az, double alt, bool visible) GetIssRaDecFromLocation2(DateTime obstime, double inSecondsFromNow)
-        {
-            if (!hasTLE())  return (0.0f, 0.0f, 0.0f, 0.0, false);
-            //set calculation parameters StartTime, EndTime and caclulation steps in minutes
-            double az, alt, range;
-            currentPos(TelescopeHardware.SiteLatitude, TelescopeHardware.SiteLongitude, TelescopeHardware.SiteElevation/1000.0, issl1, issl2, out az, out alt, out range);
-
-            var transform = new Transform();
-            transform.SiteLatitude = TelescopeHardware.SiteLatitude;
-            transform.SiteLongitude = TelescopeHardware.SiteLongitude;
-            transform.SiteElevation = TelescopeHardware.SiteElevation;
-            transform.Refraction = true;
-
-            if (nbPasses==0 && alt<0.0)
-            {
-                nbPasses= GeneratePassList(TelescopeHardware.SiteLatitude, TelescopeHardware.SiteLongitude, TelescopeHardware.SiteElevation/1000.0, issl1, issl2, passes, passes.Length);
-                passesTime= obstime;
-                if (nbPasses!=0)
-                { 
-                    nbposes= FuturePos(TelescopeHardware.SiteLatitude, TelescopeHardware.SiteLongitude, TelescopeHardware.SiteElevation/1000.0, issl1, issl2, passes[0].timeTo_H, poses, poses.Length);
-                    transform.JulianDateUTC = utilities.DateUTCToJulian(obstime.AddHours(passes[0].timeTo_H));
-                    transform.SetAzimuthElevation(poses[0].az, poses[0].alt);
-                    double lra= transform.RATopocentric, ldec= transform.DECTopocentric;
-                    double mra=0, mdec=0;
-                    radecposes[0].az= lra; radecposes[0].alt= ldec; 
-                    for (int i=1; i<nbposes; i++)
-                    {
-                        transform.JulianDateUTC = utilities.DateUTCToJulian(obstime.AddHours(passes[0].timeTo_H).AddSeconds(i));
-                        transform.SetAzimuthElevation(poses[i].az, poses[i].alt);
-                        double ra= transform.RATopocentric, dec= transform.DECTopocentric;
-                        double dra= Math.Abs(ra-lra); if (dra<20/15 && dra>mra) mra= dra;
-                        double ddec= Math.Abs(dec-ldec); if (ddec<20 && ddec>mdec) mdec= ddec;
-                        lra= ra; ldec= dec;
-                        radecposes[i].az= lra; radecposes[i].alt= ldec; 
-                    }
-                    issNextPassMaxRaSpd= mra*15; issNextPassMaxDecSpd= mdec;
-                }
-            }
-            if (alt>0.0) nbPasses= 0;
-
-            // to ra/dec
-            transform.JulianDateUTC = utilities.DateUTCToJulian(obstime);
-            transform.SetAzimuthElevation(az, alt);
-            return (transform.RATopocentric, transform.DECTopocentric, az, alt, alt>0.0);
-        }
 
 
-        System.Timers.Timer issev = null;
-        bool stopIss= false;
-        private void checkBox13_CheckedChanged(object sender, EventArgs e)
-        {
-            if (!checkBox13.Checked)
-            {
-                if (issev != null) { issev.Dispose(); issev = null; }
-                issl1= "";
-                textBox23.Enabled= true;
-                return;
-            }
-            if (issev == null)
-            {
-                stopIss= false;
-                issev = new System.Timers.Timer(500);
-                issev.Elapsed += (source, e2) => 
-                { 
-                    if (stopIss) 
-                    {
-                        try { BeginInvoke((MethodInvoker)delegate () { checkBox13.Checked= false; if (issev != null) { issev.Dispose(); issev = null; } textBox23.Enabled= true; }); } catch { } 
-                        return;
-                    }
-                    if (!hasTLE()) // no TLE, get them
-                        if (!gettle()) { stopIss= true; return; } // can not get them?
-                    try { BeginInvoke((MethodInvoker)delegate () { issUpdate(); }); } catch { } 
-                };
-                issev.Enabled= true;
-                textBox23.Enabled= false;
-            }
-        }
-        public static string tohms(double v)
-        {
-            string n = "";
-            if (v < 0) { n = "-"; v = -v; }
-            n += ((int)v).ToString() + ":";
-            v = (v - Math.Floor(v)) * 60;
-            n += ((int)v).ToString() + ":";
-            v = (v - Math.Floor(v)) * 60;
-            n += ((int)v).ToString();
-            return n;
-        }
-        public static string tohms2(double v)
-        {
-            string n = "";
-            if (v < 0) { n = "-"; v = -v; }
-            n += ((int)v).ToString() + ":";
-            v = (v - Math.Floor(v)) * 60;
-            n += ((int)v).ToString();
-            return n;
-        }
-        private void button38_Click(object sender, EventArgs e)
-        {
-            nbPasses= 0;
-        }
 
         private void labelCom_DoubleClick(object sender, EventArgs e)
         {
@@ -1177,42 +969,10 @@ namespace ASCOM.LocalServer
             logBox.SelectAll(); logBox.Copy();
         }
 
-        DateTime issTrackStartTime;
-        int keyState = 0; // 1:up 2:down 3:right 4:left
-        bool keyStateShift= false;
-
-        private void FrmMain_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Up) keyState |= 1;
-            if (e.KeyCode == Keys.Down) keyState |= 2;
-            if (e.KeyCode == Keys.Right) keyState |= 4;
-            if (e.KeyCode == Keys.Left) keyState |= 8;
-            keyStateShift= e.Shift;
-        }
-
-        private void textBox22_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Up) keyState&= ~1;
-            if (e.KeyCode == Keys.Down) keyState&= ~2;
-            if (e.KeyCode == Keys.Right) keyState&= ~4;
-            if (e.KeyCode == Keys.Left) keyState&= ~8;
-        }
-
-
-        int issTrackMode = 0; // 0: no tracking. 1: first goto was sent. 2: regular tracking
-
-        private void label51_Click(object sender, EventArgs e)
-        {
-            Process.Start(new ProcessStartInfo("cmd", "/c start https://www.n2yo.com") { CreateNoWindow = true });
-            //Process.Start(new ProcessStartInfo("cmd", "/c start https://celestrak.org/NORAD/elements/") { CreateNoWindow = true });
-        }
-
         private void button39_Click(object sender, EventArgs e)
         {
             SharedResources.setToTrueNorth();
         }
-
-        double issTrackDeltaRa = 0.0, issTrackDeltaDec= 0.0;
 
         private void button40_Click(object sender, EventArgs e)
         {
@@ -1224,29 +984,6 @@ namespace ASCOM.LocalServer
             SharedResources.SendSerialCommand(":Mg" + (SharedResources.raPos-SharedResources.raMaxPos/4).ToString("X8") + SharedResources.decPos.ToString("X8") + "#", 0);
         }
 
-        double lastDelayToISSPass = 1; // last time we checked in how long the ISS will pass overhead. used to find 5mn warning...
-        bool hasStartedTracking = false;
-
-        struct TTrackingInfo { public double ra, dec, cra, cdec, az, alt; public TTrackingInfo(double pra, double pdec, double pcra, double pcdec, double _az, double _alt) {  ra= pra; dec= pdec; cra= pcra; cdec= pcdec; az = _az; alt = _alt;  }  }
-        List<TTrackingInfo> TrackingInfos;
-
-        void writeISSLog()
-        {
-            if (TrackingInfos!=null && TrackingInfos.Count > 0 )
-            {
-                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string filePath = Path.Combine(desktopPath, "iss_"+DateTime.Now.ToString("yyyy-MM-dd_HH_mm_ss") +".txt");
-                string content = "ra\tdec\tcor ra\tcordec\r\n";
-                for (int i= 0; i < TrackingInfos.Count; i++)
-                    content+= TrackingInfos[i].ra.ToString("N6")+"\t"+TrackingInfos[i].dec.ToString("N6")+"\t"+TrackingInfos[i].cra.ToString("N6")+"\t"+TrackingInfos[i].cdec.ToString("N6")+"\r\n";
-                File.WriteAllText(filePath, content);
-            }
-        }
-        private void checkBox14_CheckedChanged(object sender, EventArgs e)
-        {
-            if (checkBox14.Checked) return;
-            writeISSLog();
-        }
 
         private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
         {
@@ -1291,8 +1028,6 @@ namespace ASCOM.LocalServer
             if (testMoveCycle==-1) { testMoveCycle= 0; TestCycle(); }
             else { testMoveCycle= -1; T.AbortSlew(); button43.Text= "Test"; }
         }
-
-        DateTime lastTrackingInfo;
 
         private void posCB_SelectionChangeCommitted(object sender, EventArgs e)
         {
@@ -1363,169 +1098,12 @@ namespace ASCOM.LocalServer
 
         }
 
-        SateliteTrack sateliteTrack = new SateliteTrack();
-
         private void checkBox19_CheckedChanged(object sender, EventArgs e)
         {
             SharedResources.reconnectOnDrop = checkBox19.Checked;
             TelescopeHardware.saveProfile();
         }
 
-        void updateIssImage()
-        {
-            int w= sateliteTrack.pictureBox2.Width, h= sateliteTrack.pictureBox2.Height;
-            Bitmap b= new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-            Graphics g = Graphics.FromImage(b);
-            g.FillRectangle(new SolidBrush(Color.Black), 0, 0, w, h);
-            g.DrawEllipse(new Pen(Color.Yellow), 0, 0, w, h);
-            if (TrackingInfos.Count>=2)
-            {
-                double fx = Math.Cos(-(TrackingInfos[0].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[0].alt*Math.PI/180)*w/2+w/2;
-                double fy = Math.Sin(-(TrackingInfos[0].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[0].alt*Math.PI/180) *h/2+h/2;
-                PointF p = new PointF((float)fx, (float)fy);
-                for (int i = 0; i < TrackingInfos.Count-1; i++)
-                {
-                    fx = Math.Cos(-(TrackingInfos[i+1].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[i+1].alt*Math.PI/180) * w / 2 + w / 2;
-                    fy = Math.Sin(-(TrackingInfos[i+1].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[i+1].alt*Math.PI/180) * h / 2 + h / 2;
-                    PointF p2 = new PointF((float)fx, (float)fy);
-                    g.DrawLine(new Pen(Color.Yellow, 2), p, p2);
-                    p = p2;
-                }
-            }
-
-            for (int i = 0; i < TrackingInfos.Count-1; i++)
-            {
-                float x= (float)i*w/TrackingInfos.Count;
-
-               // spds
-                double sra= TrackingInfos[i+1].ra-TrackingInfos[i].ra, sdec= TrackingInfos[i+1].dec-TrackingInfos[i].dec;
-                float yra= ((float)sra+4)*h/8; g.FillRectangle(new SolidBrush(Color.Blue), x, yra, 1, 1);
-                float ydec= ((float)sdec+4)*h/8; g.FillRectangle(new SolidBrush(Color.Green), x, ydec, 1, 1);
-
-                // Corrections
-                float cra= ((float)TrackingInfos[i].cra*15+4)*h/8; g.FillRectangle(new SolidBrush(Color.Red), x, cra, 1, 1);
-                float cdec= ((float)TrackingInfos[i].cdec+4)*h/8; g.FillRectangle(new SolidBrush(Color.Red), x, cdec, 1, 1);
-            }
-
-            sateliteTrack.pictureBox2.Image= b;
-            sateliteTrack.Visible= true;
-        }
-
-        private void issUpdate()
-        {
-            if (!checkBox13.Checked || stopIss) return;
-            if (!SharedResources.Connected || !SharedResources.hasHWData) return;
-            DateTime utc= DateTime.UtcNow;
-            var r= GetIssRaDecFromLocation2(utc, 0);
-            //Console.WriteLine("iss ra/dec:"+r.ra.ToString("N4")+"/"+r.dec.ToString("N4")+" az/alt:"+r.az.ToString("N4")+"/"+r.alt.ToString("N4")+" az2/alt2:"+az.az.ToString("N4")+"/"+az.alt.ToString("N4"));
-            label43.Text = "pos " + tohms(r.ra) + "/" + tohms(r.dec)+" az:"+tohms(r.az)+"/"+ tohms(r.alt);
-
-            bool isTracking = false;
-
-            if (r.alt>0) // track
-            {
-                if (checkBox14.Checked)
-                {
-                    isTracking= true;
-                    if (issev.Interval!=100) // tracking starts..
-                    {
-                        SharedResources.TrackingDisabled= true; // stop tracking...
-                        issTrackStartTime= utc; // record start of track
-                        issev.Interval= 100;
-                        issTrackMode= 0;
-                    }
-                    if (!SharedResources.meridianFlip)
-                    { 
-                        r= GetIssRaDecFromLocation2(issTrackStartTime, 1.0);
-                        if (issTrackMode==0) // first track. goto coordinates...
-                        {
-                            issTrackMode= 1; SharedResources._ScopeMoving= true;
-                            TelescopeHardware.SlewToCoordinatesAsync(r.ra, r.dec);
-                        } else if (issTrackMode==1) 
-                        { 
-                            if (!SharedResources.ScopeMoving) // got to starting point. go to new coordinates as iss has moved!. but save coordinates..
-                            {
-                                int ra= (int)(r.ra*3600), dec= (int)(r.dec*3600);
-                                issTrackMode= 2;
-                                issTrackDeltaRa= 0.0; issTrackDeltaDec= 0.0;
-                                TelescopeHardware.SlewToCoordinatesAsync(r.ra, r.dec);
-                                TrackingInfos= new List<TTrackingInfo>(); 
-                                lastTrackingInfo= utc;
-                                TrackingInfos.Add(new TTrackingInfo(r.ra, r.dec, 0, 0, r.az, r.alt));
-                            }
-                        } else { // tracking. to to new coordinates at speed equal to the delta between the last 2 coordinates...
-                            double nra= r.ra+issTrackDeltaRa, ndec= r.dec+issTrackDeltaDec;
-                            int ra= (int)(nra*3600), dec= (int)(ndec*3600);
-                            int time= 1000; // be there in 1000ms
-                            int crc= ra+(ra>>8)+(ra>>16) + (dec)+(dec>>8)+(dec>>16) + (time)+(time>>8);
-                            log("Track "+nra.ToString("N4")+" "+ndec.ToString("N4")+" "+time.ToString(), 4);
-                            string cmd= ":T" + (ra&0xffffff).ToString("X6")+ (dec&0xffffff).ToString("X6")+(time&0xffff).ToString("X4") +  (crc&0xff).ToString("X2") + "#";
-                            SharedResources.SendSerialCommand(cmd, 0);
-                            double multip= 2.0; // speed up keys which are too slow...
-                            if ((keyState&1)!=0) issTrackDeltaDec+=(keyStateShift?5.0:1)*5.0/3600.0*multip;
-                            if ((keyState&2)!=0) issTrackDeltaDec-=(keyStateShift?5.0:1)*5.0/3600.0*multip;
-                            if ((keyState&4)!=0) issTrackDeltaRa+=(keyStateShift?5.0:1)*5.0/3600.0/15.0*multip;
-                            if ((keyState&8)!=0) issTrackDeltaRa-=(keyStateShift?5.0:1)*5.0/3600.0/15.0*multip;
-                            ISSErr= "correction "+(issTrackDeltaRa*3600*15).ToString("N0")+"/"+(issTrackDeltaDec*3600).ToString("N0");
-                            if (keyState!=0) log(ISSErr, 4);
-
-                            if (utc.Subtract(lastTrackingInfo).TotalMilliseconds>1000)
-                            { 
-                                lastTrackingInfo= utc;
-                                TrackingInfos.Add(new TTrackingInfo(nra, ndec, issTrackDeltaRa, issTrackDeltaDec, r.az, r.alt));
-                                updateIssImage();
-                            }
-                        }
-                    }
-                    else issTrackMode= 0;
-                } else { 
-                    issTrackMode= 0;
-                    if (issev.Interval!= 500) issev.Interval= 500;
-                }
-            } else { 
-                issTrackMode= 0;
-                if (issev!=null && issev.Interval!= 500) issev.Interval= 500;
-            }
-            if (textBox22.Visible != (issTrackMode!=0)) 
-            {
-                textBox22.Visible= issTrackMode!=0;
-                if (textBox22.Visible) textBox22.Focus();
-            }
-            
-            if (hasStartedTracking && !isTracking)
-            { 
-                TelescopeHardware.AbortSlew(); // stop movements
-                TelescopeHardware.Tracking= true; // restart normal tracking
-            }
-            hasStartedTracking= isTracking;
-
-            if (r.alt > 0) label49.Text = "Visible";
-            else
-            {
-                string next = "";
-                if (nbPasses!=0)
-                {
-                    double v= passes[0].timeTo_H-((utc-passesTime).TotalSeconds/3600.0);
-                    if (lastDelayToISSPass>5.0/60.0 && v<5.0/60.0 && checkBox17.Checked)
-                        try { SoundPlayer player = new SoundPlayer(@"iss.wav"); player.Play(); } catch { }
-                    lastDelayToISSPass= v;
-                    if (v>=1.0)
-                    { 
-                        next += ((int)v).ToString() + "h";
-                        v = (v - (int)(v)) * 60; next += ((int)v).ToString() + "m ";
-                    } else
-                    {
-                        v = (v - (int)(v)) * 60; next += ((int)v).ToString() + "m ";
-                        v = (v - (int)(v)) * 60; next += ((int)v).ToString() + "s ";
-                    }
-                    next+= "top:"+((int)passes[0].max_elevation_deg).ToString()+"°";
-                    next+= "lasts:"+((int)(passes[0].duration_mn*60)).ToString()+"mn";
-                    next+= " "+issNextPassMaxRaSpd.ToString("N1")+"°/s "+issNextPassMaxDecSpd.ToString("N1")+"°/s ";
-                }
-                label49.Text = "NotVisible "+next;
-            }
-            label48.Text = ISSErr;
-        }
 
         public static void ParallaxConstantsToLatAlt(
             double longitudeDeg, double rho, double rhoSinPhiPrime,
@@ -1635,6 +1213,107 @@ namespace ASCOM.LocalServer
             updateSavedPos();
         }
 
+        SateliteTrack sateliteTrack= null;
+        private void button38_Click(object sender, EventArgs e)
+        {
+            if (sateliteTrack==null) sateliteTrack = new SateliteTrack();
+            sateliteTrack.Show();
+        }
+
+        private void textBox21_Leave(object sender, EventArgs e)
+        {
+            bool ok;
+            int time = SharedResources.fromHms(textBox21.Text, out ok); if (!ok) return;
+            DateTime now= DateTime.Now;
+            DateTime t= now.Date.AddSeconds(time);
+            if (t< now) t = t.AddDays(1);
+            SharedResources.sunRaiseTime= t;
+        }
+
+        private void textBox21_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == 13) textBox21_Leave(sender, e);
+        }
+
+
+        public struct SettingTimeResult
+        {
+            public bool IsCircumpolar { get; set; }  
+            public bool NeverRises { get; set; }     
+            public DateTime SettingTimeUtc { get; set; }
+        }
+
+        public static SettingTimeResult GetSettingTimeUtc(
+            double raHours, 
+            double decDegrees, 
+            double targetAltDegrees, 
+            double latitudeDeg, 
+            double longitudeDeg, 
+            DateTime currentUtc)
+        {
+            var result = new SettingTimeResult();
+
+            double radLat = latitudeDeg * (Math.PI / 180.0);
+            double radDec = decDegrees * (Math.PI / 180.0);
+            double radAlt = targetAltDegrees * (Math.PI / 180.0);
+
+            // Compute cos(H)
+            double cosH = (Math.Sin(radAlt) - Math.Sin(radLat) * Math.Sin(radDec)) 
+                        / (Math.Cos(radLat) * Math.Cos(radDec));
+
+            if (cosH < -1.0)
+            {
+                result.IsCircumpolar = true; 
+                return result;
+            }
+            if (cosH > 1.0)
+            {
+                result.NeverRises = true; 
+                return result;
+            }
+
+            // Hour Angle H in hours (setting = positive angle)
+            double hHours = Math.Acos(cosH) * (12.0 / Math.PI); 
+
+            // Target LST when setting
+            double targetLstHours = (raHours + hHours) % 24.0;
+            if (targetLstHours < 0) targetLstHours += 24.0;
+
+            // Current LST using ASCOM AstroUtils or standard math
+            // (If using ASCOM: double currentLstHours = astroUtils.LocalSiderealTime(longitudeDeg);)
+            double currentLstHours = CalculateLst(currentUtc, longitudeDeg);
+
+            // Sidereal Hours until setting
+            double lstDiffHours = (targetLstHours - currentLstHours) % 24.0;
+            if (lstDiffHours < 0) lstDiffHours += 24.0;
+
+            // Convert Sidereal Hours to Solar/UTC Hours
+            double solarHoursToGo = lstDiffHours / 1.00273790935;
+
+            result.SettingTimeUtc = currentUtc.AddHours(solarHoursToGo);
+            return result;
+        }
+
+        private static double CalculateLst(DateTime utcTime, double longitudeDeg)
+        {
+            double d = GetJulianDay(utcTime) - 2451545.0;
+            double gmstDeg = 280.46061837 + 360.98564736629 * d;
+            double lstDeg = gmstDeg + longitudeDeg;
+            double lstHours = (lstDeg % 360.0 + 360.0) % 360.0 / 15.0;
+            return lstHours;
+        }
+
+        private static double GetJulianDay(DateTime utc)
+        {
+            int y = utc.Year;
+            int m = utc.Month;
+            int d = utc.Day;
+            if (m <= 2) { y -= 1; m += 12; }
+            int a = y / 100;
+            int b = 2 - a + (a / 4);
+            double dayFraction = utc.TimeOfDay.TotalSeconds / 86400.0;
+            return Math.Floor(365.25 * (y + 4716)) + Math.Floor(30.6001 * (m + 1)) + d + dayFraction + b - 1524.5;
+        }
     }
 
 }

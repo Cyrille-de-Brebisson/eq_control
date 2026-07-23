@@ -138,6 +138,7 @@ namespace ASCOM.EQControl.Telescope.V1
         internal static void Park() { SharedResources.Park(); }
         internal static void Unpark() 
         {
+            SharedResources.hasBeenParked= false;
             SharedResources.doLog("Unpark", 0);
             SharedResources.TrackingDisabled = false;
             if (SharedResources.Declinaison>89.9f) SharedResources.setToTrueNorth();
@@ -213,6 +214,7 @@ namespace ASCOM.EQControl.Telescope.V1
         /// <param name="Duration">The duration of the guide-rate motion (milliseconds)</param>
         internal static void PulseGuide(GuideDirections Direction, int Duration)
         {
+            if (SharedResources.hasBeenParked) return;
             // if (Duration > 5000) throw new InvalidValueException("PulseGuide duration invalid " + Duration.ToString());
             char d= ' ';
             double speed; // in arc"/s
@@ -253,6 +255,7 @@ namespace ASCOM.EQControl.Telescope.V1
         /// <param name="Rate">The rate of motion (deg/sec) about the specified axis</param>
         internal static void MoveAxis(TelescopeAxes Axis, double Rate)
         {
+            if (SharedResources.hasBeenParked) return;
             SharedResources.doLog("Mount move "+Axis.ToString()+" at "+Rate.ToString(), 0);
             if (Axis == TelescopeAxes.axisTertiary) throw new MethodNotImplementedException("MoveAxis ", Axis.ToString());
             if (Rate == 0) { SharedResources.SendSerialCommand(":Q#", 0); return; }
@@ -340,7 +343,9 @@ namespace ASCOM.EQControl.Telescope.V1
 
         /// Move the telescope to the given equatorial coordinates, return with Slewing set to True immediately after starting the slew.
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "VSTHRD200:Use \"Async\" suffix for async methods", Justification = "internal static method name used for many years.")]
-        internal static void SlewToCoordinatesAsync(double RightAscension, double Declination) { SharedResources.SlewToCoordinatesAsync(RightAscension, Declination, false); SharedResources.SetScopeMoving(); }
+        internal static void SlewToCoordinatesAsync(double RightAscension, double Declination) { 
+            if (SharedResources.hasBeenParked) return;
+            SharedResources.SlewToCoordinatesAsync(RightAscension, Declination, false); SharedResources.SetScopeMoving(); }
 
         /// Move the telescope to the <see cref="TargetRightAscension" /> and <see cref="TargetDeclination" /> coordinates, return when slew complete.
         internal static void SlewToTarget() { SlewToCoordinates(_TargetRightAscension, _TargetDeclination); }

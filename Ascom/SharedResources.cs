@@ -71,7 +71,8 @@ namespace ASCOM.LocalServer
             get { return ascomtrackspd; } 
             set { if (value<0 || value>3) return; ascomtrackspd= value; sendTrackSpeed(); } 
             }
-        public static bool TrackingDisabled { get { return _trackingDisabled; } set { ascomtrack= !value; _trackingDisabled= value; sendTrackSpeed(); } }
+        public static DateTime trackingStopTime; // time when tracking was stopped... used for satelite tracking...
+        public static bool TrackingDisabled { get { return _trackingDisabled; } set { ascomtrack= !value; _trackingDisabled= value; if (value) trackingStopTime= DateTime.UtcNow; sendTrackSpeed(); } }
         public static void Track(bool running, int rate) { _trackingDisabled=!running; ascomtrack= running; TrackingRate= rate; }
         public static bool meridianFlip { get { return _meridianFlip; } }
         public static long timeSpanPC { get { return _spanPC; } }
@@ -148,6 +149,7 @@ namespace ASCOM.LocalServer
                 serialCrahed= false;
                 connectionLive = false; hasHWPos= false; hasHWData = false; hasGpsInfo= false; dataDisplayed= false; hasPowerCount= false;
                 raMaxPos = 0; raMaxSpeed = 0; ramsToSpeed = 0; decMaxPos = 0; decMaxSpeed = 0; decmsToSpeed = 0;
+                hasBeenParked= false;
                 BNOhas= false;
                 if (SharedSerial!=null) SharedSerial.Connected = false;
                 tcpdisconnect();
@@ -237,6 +239,7 @@ namespace ASCOM.LocalServer
                         catch (Exception) { doLog("could not connect", -1); return; }
                         SharedSerial.ReceiveTimeout = 1;
                     } else tcpconnect();
+                    hasBeenParked= false;
                     responceCount= 0;
                     times= new Ttimes[120]; timesPos = 0;
                     startpcTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
@@ -253,7 +256,7 @@ namespace ASCOM.LocalServer
                                 latestResponse1= v; latestResponse2= ""; responceCount++;
                                 int i= 0; double t;
                                 DateTime oldlastHeartBeat= lastHeartBeat;
-                                lastHeartBeat= DateTime.UtcNow;
+                                lastHeartBeat= DateTime.Now;
                                 int dec= readHex(v, ref i, 6); if (dec>=0x800000) dec|= unchecked((int)0xff000000);
                                 latestResponse2= "dec:"+dec.ToString();
                                 t=  dec/ 3600.0;
@@ -358,7 +361,7 @@ namespace ASCOM.LocalServer
                                     
                                     if (_Declinaison>89.9f && _RightAssension>5.59f && _RightAssension<6.01f) setToTrueNorth();
                                 }
-                                if (parkAtSunrise && lastHeartBeat>getSunRaiseTime() && oldlastHeartBeat<getSunRaiseTime()) // send park if sunrise happens!
+                                if (parkAtSunrise && lastHeartBeat>getSunRaiseTime() && oldlastHeartBeat.Year>2026 && oldlastHeartBeat<getSunRaiseTime()) // send park if sunrise happens!
                                 { 
                                     resetSunRaiseTime();
                                     Park();
@@ -716,61 +719,133 @@ namespace ASCOM.LocalServer
         }
 
         // Returns solar altitude in degrees for given UTC time, lat (deg north) and lon (deg east)
-        public static double SolarAltitudeUtc(DateTime utc, double latDeg, double lonDeg)
-        {
-            // fractional hour
-            double hour = utc.Hour + utc.Minute / 60.0 + utc.Second / 3600.0 + utc.Millisecond / 3600000.0;
-            int dayOfYear = utc.DayOfYear;
+        //public static double SolarAltitudeUtc(DateTime utc, double latDeg, double lonDeg)
+        //{
+        //    // fractional hour
+        //    double hour = utc.Hour + utc.Minute / 60.0 + utc.Second / 3600.0 + utc.Millisecond / 3600000.0;
+        //    int dayOfYear = utc.DayOfYear;
+        //
+        //    double gamma = 2.0 * Math.PI / 365.0 * (dayOfYear - 1 + (hour - 12.0) / 24.0);
+        //
+        //    // solar declination (radians)
+        //    double decl = 0.006918 - 0.399912 * Math.Cos(gamma) + 0.070257 * Math.Sin(gamma)
+        //                  - 0.006758 * Math.Cos(2 * gamma) + 0.000907 * Math.Sin(2 * gamma)
+        //                  - 0.002697 * Math.Cos(3 * gamma) + 0.00148 * Math.Sin(3 * gamma);
+        //
+        //    // equation of time (minutes)
+        //    double eqTime = 229.18 * (0.000075 + 0.001868 * Math.Cos(gamma) - 0.032077 * Math.Sin(gamma)
+        //                              - 0.014615 * Math.Cos(2 * gamma) - 0.040849 * Math.Sin(2 * gamma));
+        //
+        //    // true solar time in minutes
+        //    double minutes = hour * 60.0;
+        //    double timeOffset = eqTime + 4.0 * lonDeg; // working in UTC (tz offset = 0)
+        //    double tst = (minutes + timeOffset) % 1440.0;
+        //    if (tst < 0) tst += 1440.0;
+        //
+        //    // hour angle (degrees)
+        //    double haDeg = tst / 4.0 - 180.0;
+        //    double ha = haDeg * Math.PI / 180.0;
+        //    double lat = latDeg * Math.PI / 180.0;
+        //
+        //    double cosZenith = Math.Sin(lat) * Math.Sin(decl) + Math.Cos(lat) * Math.Cos(decl) * Math.Cos(ha);
+        //    cosZenith = Math.Max(-1.0, Math.Min(1.0, cosZenith));
+        //    double zenith = Math.Acos(cosZenith);
+        //    double altitude = 90.0 - (zenith * 180.0 / Math.PI);
+        //
+        //    return altitude;
+        //}
 
-            double gamma = 2.0 * Math.PI / 365.0 * (dayOfYear - 1 + (hour - 12.0) / 24.0);
+    public static double SolarAltitudeUtc(DateTime utcTime, double latitude, double longitude)
+    {
+        // Force UTC kind to avoid accidental local conversion errors
+        if (utcTime.Kind != DateTimeKind.Utc) utcTime = DateTime.SpecifyKind(utcTime, DateTimeKind.Utc);
+        // 1. Convert UTC DateTime to Julian Day & Julian Century
+        double julianDay = GetJulianDay(utcTime);
+        double jc = (julianDay - 2451545.0) / 36525.0;
 
-            // solar declination (radians)
-            double decl = 0.006918 - 0.399912 * Math.Cos(gamma) + 0.070257 * Math.Sin(gamma)
-                          - 0.006758 * Math.Cos(2 * gamma) + 0.000907 * Math.Sin(2 * gamma)
-                          - 0.002697 * Math.Cos(3 * gamma) + 0.00148 * Math.Sin(3 * gamma);
+        // 2. Solar coordinates (Geometric Mean Longitude, Anomaly, Eccentricity)
+        double geomMeanLongSun = (280.46646 + jc * (36000.76983 + jc * 0.0003032)) % 360.0;
+        double geomMeanAnomSun = 357.52911 + jc * (35999.05029 - 0.0001537 * jc);
+        double eccentEarthOrbit = 0.016708634 - jc * (0.000042037 + 0.0000001267 * jc);
 
-            // equation of time (minutes)
-            double eqTime = 229.18 * (0.000075 + 0.001868 * Math.Cos(gamma) - 0.032077 * Math.Sin(gamma)
-                                      - 0.014615 * Math.Cos(2 * gamma) - 0.040849 * Math.Sin(2 * gamma));
+        // Sun Equation of the Center
+        double radAnom = ToRadians(geomMeanAnomSun);
+        double sunEqOfCtr = Math.Sin(radAnom) * (1.914602 - jc * (0.004817 + 0.000014 * jc))
+                          + Math.Sin(2 * radAnom) * (0.019993 - 0.000101 * jc)
+                          + Math.Sin(3 * radAnom) * 0.000289;
 
-            // true solar time in minutes
-            double minutes = hour * 60.0;
-            double timeOffset = eqTime + 4.0 * lonDeg; // working in UTC (tz offset = 0)
-            double tst = (minutes + timeOffset) % 1440.0;
-            if (tst < 0) tst += 1440.0;
+        double sunTrueLong = geomMeanLongSun + sunEqOfCtr;
+        double sunAppLong = sunTrueLong - 0.00569 - 0.00478 * Math.Sin(ToRadians(125.04 - 1934.13 * jc));
 
-            // hour angle (degrees)
-            double haDeg = tst / 4.0 - 180.0;
-            double ha = haDeg * Math.PI / 180.0;
-            double lat = latDeg * Math.PI / 180.0;
+        // Mean and Obliquity of Ecliptic
+        double meanObliqEcliptic = 23.0 + (26.0 + (21.448 - jc * (46.815 + jc * (0.00059 - jc * 0.001813))) / 60.0) / 60.0;
+        double obliqCorr = meanObliqEcliptic + 0.00256 * Math.Cos(ToRadians(125.04 - 1934.13 * jc));
 
-            double cosZenith = Math.Sin(lat) * Math.Sin(decl) + Math.Cos(lat) * Math.Cos(decl) * Math.Cos(ha);
-            cosZenith = Math.Max(-1.0, Math.Min(1.0, cosZenith));
-            double zenith = Math.Acos(cosZenith);
-            double altitude = 90.0 - (zenith * 180.0 / Math.PI);
+        // Declination of the Sun
+        double sunDeclin = ToDegrees(Math.Asin(Math.Sin(ToRadians(obliqCorr)) * Math.Sin(ToRadians(sunAppLong))));
 
-            return altitude;
-        }
+        // Equation of Time (in minutes)
+        double vary = Math.Tan(ToRadians(obliqCorr / 2.0)) * Math.Tan(ToRadians(obliqCorr / 2.0));
+        double radMeanLong = ToRadians(geomMeanLongSun);
+        double eqOfTime = 4.0 * ToDegrees(vary * Math.Sin(2.0 * radMeanLong) 
+                          - 2.0 * eccentEarthOrbit * Math.Sin(radAnom) 
+                          + 4.0 * eccentEarthOrbit * vary * Math.Sin(radAnom) * Math.Cos(2.0 * radMeanLong) 
+                          - 0.5 * vary * vary * Math.Sin(4.0 * radMeanLong) 
+                          - 1.25 * eccentEarthOrbit * eccentEarthOrbit * Math.Sin(2.0 * radAnom));
+
+        // 3. True Solar Time & Hour Angle
+        double timeOffset = eqOfTime + (4.0 * longitude);
+        double trueSolarTime = (utcTime.TimeOfDay.TotalMinutes + timeOffset + 1440.0) % 1440.0;
+        
+        double hourAngle = (trueSolarTime / 4.0 < 0) ? (trueSolarTime / 4.0 + 180.0) : (trueSolarTime / 4.0 - 180.0);
+
+        // 4. Zenith and Altitude
+        double radLat = ToRadians(latitude);
+        double radDeclin = ToRadians(sunDeclin);
+        double radHourAngle = ToRadians(hourAngle);
+
+        double solarZenith = ToDegrees(Math.Acos(Math.Sin(radLat) * Math.Sin(radDeclin) 
+                           + Math.Cos(radLat) * Math.Cos(radDeclin) * Math.Cos(radHourAngle)));
+
+        double altitude = 90.0 - solarZenith;
+
+        // 5. Azimuth
+        double azNumerator = -(Math.Sin(radHourAngle));
+        double azDenominator = (Math.Cos(radHourAngle) * Math.Sin(radLat)) - Math.Tan(radDeclin) * Math.Cos(radLat);
+        double azimuth = ToDegrees(Math.Atan2(azNumerator, azDenominator));
+        if (azimuth < 0.0) azimuth += 360.0;
+
+        return altitude;
+    }
+
+    private static double GetJulianDay(DateTime utc)
+    {
+        int year = utc.Year;
+        int month = utc.Month;
+        int day = utc.Day;
+        if (month <= 2) { year -= 1; month += 12; }
+        int a = year / 100;
+        int b = 2 - a + (a / 4);
+        double dayFraction = (utc.TimeOfDay.TotalSeconds) / 86400.0;
+        return Math.Floor(365.25 * (year + 4716)) + Math.Floor(30.6001 * (month + 1)) + day + dayFraction + b - 1524.5;
+    }
+
+    private static double ToRadians(double degrees) => degrees * (Math.PI / 180.0);
+    private static double ToDegrees(double radians) => radians * (180.0 / Math.PI);
 
         // Find the UTC time on the given UTC date when solar altitude crosses targetAltDegrees upwards.
         // Returns null if no crossing on that UTC calendar day.
         public static DateTime FindRiseCrossingUtc(double latDeg, double lonDeg, double targetAltDegrees = -5.0)
         {
-            DateTime start = DateTime.UtcNow.Date; // midnight UTC of that day
-            while (true) // work 1 day at a time...
-            { 
-                DateTime end = start.AddDays(1);
-                DateTime prev = start;
-                double prevAlt = SolarAltitudeUtc(prev, latDeg, lonDeg);
-
-                TimeSpan sampleStep = TimeSpan.FromMinutes(5); // coarse scan step
-                for (DateTime t = start + sampleStep; t <= end; t += sampleStep)
-                {
-                    double alt = SolarAltitudeUtc(t, latDeg, lonDeg);
-                    if (prevAlt < targetAltDegrees && alt >= targetAltDegrees) return t; // time when altitude first reaches target (UTC)
-                    prev = t;
-                    prevAlt = alt;
-                }
+            DateTime t = DateTime.UtcNow.Date; // midnight UTC of that day
+            double prevAlt = SolarAltitudeUtc(t, latDeg, lonDeg);
+            while (true)
+            {
+                DateTime t2= t.AddMinutes(5);
+                double alt = SolarAltitudeUtc(t2, latDeg, lonDeg);
+                if (prevAlt<targetAltDegrees && alt>=targetAltDegrees) return t; // time when altitude first reaches target (UTC)
+                t= t2;
+                prevAlt= alt;
             }
         }
         public static DateTime sunRaiseTime= DateTime.MinValue;
@@ -778,15 +853,17 @@ namespace ASCOM.LocalServer
         public static DateTime getSunRaiseTime()
         {
             if (sunRaiseTime!=DateTime.MinValue) return sunRaiseTime;
-            return sunRaiseTime= FindRiseCrossingUtc(Latitude/36000.0f, Longitude/36000.0f);
+            return sunRaiseTime= FindRiseCrossingUtc(Latitude/36000.0f, Longitude/36000.0f).ToLocalTime();
         }
         internal static void parkPos(out int ra, out int dec)
         {
             ra = (int)(((Int64)(raMaxPos)) * raAmplitude / 360 / 2);
             dec = decMaxPos / 2;
         }
+        static public bool hasBeenParked= false;
         internal static void Park()
         {
+            hasBeenParked= true;
             doLog("park", 0);
             TrackingDisabled = true;
             int ra, dec; parkPos(out ra, out dec);
