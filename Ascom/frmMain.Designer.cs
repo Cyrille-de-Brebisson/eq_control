@@ -38,6 +38,7 @@ namespace ASCOM.LocalServer
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.button2 = new System.Windows.Forms.Button();
             this.groupMount = new System.Windows.Forms.GroupBox();
+            this.labelBellowHorizon = new System.Windows.Forms.Label();
             this.MovingLabel = new System.Windows.Forms.Label();
             this.SideralSelect = new System.Windows.Forms.ComboBox();
             this.button42 = new System.Windows.Forms.Button();
@@ -173,6 +174,7 @@ namespace ASCOM.LocalServer
             this.FreezeLastResponse = new System.Windows.Forms.CheckBox();
             this.NbResponses = new System.Windows.Forms.Label();
             this.groupBox16 = new System.Windows.Forms.GroupBox();
+            this.ShowTimes = new System.Windows.Forms.CheckBox();
             this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.checkBox8 = new System.Windows.Forms.CheckBox();
             this.checkboxlogsystem = new System.Windows.Forms.CheckBox();
@@ -251,7 +253,9 @@ namespace ASCOM.LocalServer
             this.checkBox20 = new System.Windows.Forms.CheckBox();
             this.button38 = new System.Windows.Forms.Button();
             this.textBox21 = new System.Windows.Forms.TextBox();
-            this.labelBellowHorizon = new System.Windows.Forms.Label();
+            this.checkBox13 = new System.Windows.Forms.CheckBox();
+            this.ScopePos = new System.Windows.Forms.PictureBox();
+            this.horizonCheck = new System.Windows.Forms.CheckBox();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -270,15 +274,16 @@ namespace ASCOM.LocalServer
             this.groupBox10.SuspendLayout();
             this.groupBox14.SuspendLayout();
             this.groupBox11.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.ScopePos)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
             // 
             this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(18, 15);
-            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label1.Location = new System.Drawing.Point(22, 18);
+            this.label1.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(210, 51);
+            this.label1.Size = new System.Drawing.Size(257, 61);
             this.label1.TabIndex = 0;
             this.label1.Text = "Ascom driver for mount && focusser by C. de Brébisson";
             // 
@@ -286,10 +291,10 @@ namespace ASCOM.LocalServer
             // 
             this.label2.AutoSize = true;
             this.label2.ForeColor = System.Drawing.Color.White;
-            this.label2.Location = new System.Drawing.Point(18, 46);
-            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Location = new System.Drawing.Point(22, 55);
+            this.label2.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(65, 20);
+            this.label2.Size = new System.Drawing.Size(81, 25);
             this.label2.TabIndex = 1;
             this.label2.Text = "Position";
             // 
@@ -297,10 +302,10 @@ namespace ASCOM.LocalServer
             // 
             this.button1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button1.ForeColor = System.Drawing.Color.White;
-            this.button1.Location = new System.Drawing.Point(21, 106);
-            this.button1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button1.Location = new System.Drawing.Point(26, 127);
+            this.button1.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(150, 35);
+            this.button1.Size = new System.Drawing.Size(183, 42);
             this.button1.TabIndex = 3;
             this.button1.Text = "Goto";
             this.button1.UseVisualStyleBackColor = false;
@@ -308,10 +313,10 @@ namespace ASCOM.LocalServer
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(21, 71);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox1.Location = new System.Drawing.Point(26, 85);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(148, 26);
+            this.textBox1.Size = new System.Drawing.Size(180, 29);
             this.textBox1.TabIndex = 4;
             this.toolTip1.SetToolTip(this.textBox1, "type a position here and click GOTO or press enter to move the focusser where you" +
         " want");
@@ -321,10 +326,10 @@ namespace ASCOM.LocalServer
             // 
             this.button2.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button2.ForeColor = System.Drawing.Color.White;
-            this.button2.Location = new System.Drawing.Point(22, 72);
-            this.button2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button2.Location = new System.Drawing.Point(27, 86);
+            this.button2.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(147, 35);
+            this.button2.Size = new System.Drawing.Size(180, 42);
             this.button2.TabIndex = 5;
             this.button2.Text = "Connect";
             this.toolTip1.SetToolTip(this.button2, "Connect to mount. Most likely will reset mount motor positions");
@@ -334,6 +339,7 @@ namespace ASCOM.LocalServer
             // groupMount
             // 
             this.groupMount.BackColor = System.Drawing.Color.Black;
+            this.groupMount.Controls.Add(this.labelBellowHorizon);
             this.groupMount.Controls.Add(this.MovingLabel);
             this.groupMount.Controls.Add(this.SideralSelect);
             this.groupMount.Controls.Add(this.button42);
@@ -360,23 +366,34 @@ namespace ASCOM.LocalServer
             this.groupMount.Controls.Add(this.labelDec);
             this.groupMount.Controls.Add(this.labelRa);
             this.groupMount.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupMount.Location = new System.Drawing.Point(24, 111);
-            this.groupMount.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.groupMount.Location = new System.Drawing.Point(29, 133);
+            this.groupMount.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.groupMount.Name = "groupMount";
-            this.groupMount.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.groupMount.Size = new System.Drawing.Size(441, 311);
+            this.groupMount.Padding = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            this.groupMount.Size = new System.Drawing.Size(539, 373);
             this.groupMount.TabIndex = 7;
             this.groupMount.TabStop = false;
             this.groupMount.Text = "Mount";
+            // 
+            // labelBellowHorizon
+            // 
+            this.labelBellowHorizon.AutoSize = true;
+            this.labelBellowHorizon.ForeColor = System.Drawing.Color.White;
+            this.labelBellowHorizon.Location = new System.Drawing.Point(279, -2);
+            this.labelBellowHorizon.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
+            this.labelBellowHorizon.Name = "labelBellowHorizon";
+            this.labelBellowHorizon.Size = new System.Drawing.Size(134, 25);
+            this.labelBellowHorizon.TabIndex = 68;
+            this.labelBellowHorizon.Text = "bellowHorizon";
             // 
             // MovingLabel
             // 
             this.MovingLabel.AutoSize = true;
             this.MovingLabel.ForeColor = System.Drawing.Color.White;
-            this.MovingLabel.Location = new System.Drawing.Point(139, 129);
-            this.MovingLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.MovingLabel.Location = new System.Drawing.Point(170, 155);
+            this.MovingLabel.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.MovingLabel.Name = "MovingLabel";
-            this.MovingLabel.Size = new System.Drawing.Size(61, 20);
+            this.MovingLabel.Size = new System.Drawing.Size(77, 25);
             this.MovingLabel.TabIndex = 64;
             this.MovingLabel.Text = "noSlew";
             // 
@@ -390,10 +407,10 @@ namespace ASCOM.LocalServer
             "Lunar",
             "Sun",
             "King"});
-            this.SideralSelect.Location = new System.Drawing.Point(6, 222);
-            this.SideralSelect.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.SideralSelect.Location = new System.Drawing.Point(7, 266);
+            this.SideralSelect.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.SideralSelect.Name = "SideralSelect";
-            this.SideralSelect.Size = new System.Drawing.Size(130, 28);
+            this.SideralSelect.Size = new System.Drawing.Size(158, 32);
             this.SideralSelect.TabIndex = 63;
             this.toolTip1.SetToolTip(this.SideralSelect, "Select tracking speed. Note that this does not affect dec axes, so sun/moon track" +
         "ing is only valid for a day or so...");
@@ -403,10 +420,10 @@ namespace ASCOM.LocalServer
             // 
             this.button42.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button42.ForeColor = System.Drawing.Color.White;
-            this.button42.Location = new System.Drawing.Point(153, 271);
-            this.button42.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button42.Location = new System.Drawing.Point(187, 325);
+            this.button42.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button42.Name = "button42";
-            this.button42.Size = new System.Drawing.Size(76, 31);
+            this.button42.Size = new System.Drawing.Size(93, 37);
             this.button42.TabIndex = 62;
             this.button42.Text = "Flip";
             this.toolTip1.SetToolTip(this.button42, "Cause an imediate meridian flip if possible.");
@@ -417,10 +434,10 @@ namespace ASCOM.LocalServer
             // 
             this.button41.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button41.ForeColor = System.Drawing.Color.White;
-            this.button41.Location = new System.Drawing.Point(374, 271);
-            this.button41.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button41.Location = new System.Drawing.Point(457, 325);
+            this.button41.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button41.Name = "button41";
-            this.button41.Size = new System.Drawing.Size(57, 31);
+            this.button41.Size = new System.Drawing.Size(70, 37);
             this.button41.TabIndex = 61;
             this.button41.Text = "-90°";
             this.toolTip1.SetToolTip(this.button41, "Move RA axes by 90°. Used for polar align");
@@ -431,10 +448,10 @@ namespace ASCOM.LocalServer
             // 
             this.button40.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button40.ForeColor = System.Drawing.Color.White;
-            this.button40.Location = new System.Drawing.Point(312, 271);
-            this.button40.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button40.Location = new System.Drawing.Point(381, 325);
+            this.button40.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button40.Name = "button40";
-            this.button40.Size = new System.Drawing.Size(57, 31);
+            this.button40.Size = new System.Drawing.Size(70, 37);
             this.button40.TabIndex = 60;
             this.button40.Text = "+90°";
             this.toolTip1.SetToolTip(this.button40, "Move RA axes by 90°. Used for polar align");
@@ -445,10 +462,10 @@ namespace ASCOM.LocalServer
             // 
             this.button39.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button39.ForeColor = System.Drawing.Color.White;
-            this.button39.Location = new System.Drawing.Point(233, 271);
-            this.button39.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button39.Location = new System.Drawing.Point(285, 325);
+            this.button39.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button39.Name = "button39";
-            this.button39.Size = new System.Drawing.Size(76, 31);
+            this.button39.Size = new System.Drawing.Size(93, 37);
             this.button39.TabIndex = 59;
             this.button39.Text = "IsNorth";
             this.toolTip1.SetToolTip(this.button39, "Sync mount to true north at current sideral time");
@@ -459,10 +476,10 @@ namespace ASCOM.LocalServer
             // 
             this.button37.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button37.ForeColor = System.Drawing.Color.White;
-            this.button37.Location = new System.Drawing.Point(71, 271);
-            this.button37.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button37.Location = new System.Drawing.Point(87, 325);
+            this.button37.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button37.Name = "button37";
-            this.button37.Size = new System.Drawing.Size(81, 31);
+            this.button37.Size = new System.Drawing.Size(99, 37);
             this.button37.TabIndex = 57;
             this.button37.Text = "UnPark";
             this.toolTip1.SetToolTip(this.button37, "Unpark the mount. In essence restart sideral move and recalculate current RA valu" +
@@ -474,10 +491,10 @@ namespace ASCOM.LocalServer
             // 
             this.label50.AutoSize = true;
             this.label50.ForeColor = System.Drawing.Color.White;
-            this.label50.Location = new System.Drawing.Point(138, 154);
-            this.label50.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label50.Location = new System.Drawing.Point(169, 185);
+            this.label50.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label50.Name = "label50";
-            this.label50.Size = new System.Drawing.Size(55, 20);
+            this.label50.Size = new System.Drawing.Size(69, 25);
             this.label50.TabIndex = 19;
             this.label50.Text = "Fliping";
             this.label50.Visible = false;
@@ -486,10 +503,10 @@ namespace ASCOM.LocalServer
             // 
             this.button36.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button36.ForeColor = System.Drawing.Color.White;
-            this.button36.Location = new System.Drawing.Point(8, 271);
-            this.button36.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button36.Location = new System.Drawing.Point(10, 325);
+            this.button36.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button36.Name = "button36";
-            this.button36.Size = new System.Drawing.Size(60, 31);
+            this.button36.Size = new System.Drawing.Size(73, 37);
             this.button36.TabIndex = 19;
             this.button36.Text = "Park";
             this.toolTip1.SetToolTip(this.button36, "Park the mount poiting due north");
@@ -500,10 +517,10 @@ namespace ASCOM.LocalServer
             // 
             this.button34.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button34.ForeColor = System.Drawing.Color.White;
-            this.button34.Location = new System.Drawing.Point(339, 86);
-            this.button34.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button34.Location = new System.Drawing.Point(414, 103);
+            this.button34.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button34.Name = "button34";
-            this.button34.Size = new System.Drawing.Size(90, 35);
+            this.button34.Size = new System.Drawing.Size(110, 42);
             this.button34.TabIndex = 18;
             this.button34.Text = "Stop";
             this.toolTip1.SetToolTip(this.button34, "Stop current scope goto movement");
@@ -514,9 +531,10 @@ namespace ASCOM.LocalServer
             // 
             this.label31.AutoSize = true;
             this.label31.ForeColor = System.Drawing.Color.White;
-            this.label31.Location = new System.Drawing.Point(260, 209);
+            this.label31.Location = new System.Drawing.Point(318, 251);
+            this.label31.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label31.Name = "label31";
-            this.label31.Size = new System.Drawing.Size(47, 20);
+            this.label31.Size = new System.Drawing.Size(61, 25);
             this.label31.TabIndex = 7;
             this.label31.Text = "Move";
             // 
@@ -524,10 +542,10 @@ namespace ASCOM.LocalServer
             // 
             this.button25.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button25.ForeColor = System.Drawing.Color.White;
-            this.button25.Location = new System.Drawing.Point(168, 205);
-            this.button25.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button25.Location = new System.Drawing.Point(205, 246);
+            this.button25.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button25.Name = "button25";
-            this.button25.Size = new System.Drawing.Size(75, 31);
+            this.button25.Size = new System.Drawing.Size(92, 37);
             this.button25.TabIndex = 17;
             this.button25.Text = "West";
             this.toolTip1.SetToolTip(this.button25, "Click and hold to move the scope");
@@ -539,10 +557,10 @@ namespace ASCOM.LocalServer
             // 
             this.button24.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button24.ForeColor = System.Drawing.Color.White;
-            this.button24.Location = new System.Drawing.Point(321, 205);
-            this.button24.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button24.Location = new System.Drawing.Point(392, 246);
+            this.button24.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button24.Name = "button24";
-            this.button24.Size = new System.Drawing.Size(75, 31);
+            this.button24.Size = new System.Drawing.Size(92, 37);
             this.button24.TabIndex = 16;
             this.button24.Text = "East";
             this.toolTip1.SetToolTip(this.button24, "Click and hold to move the scope");
@@ -554,10 +572,10 @@ namespace ASCOM.LocalServer
             // 
             this.button23.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button23.ForeColor = System.Drawing.Color.White;
-            this.button23.Location = new System.Drawing.Point(243, 238);
-            this.button23.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button23.Location = new System.Drawing.Point(297, 286);
+            this.button23.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button23.Name = "button23";
-            this.button23.Size = new System.Drawing.Size(75, 31);
+            this.button23.Size = new System.Drawing.Size(92, 37);
             this.button23.TabIndex = 15;
             this.button23.Text = "South";
             this.toolTip1.SetToolTip(this.button23, "Click and hold to move the scope");
@@ -569,10 +587,10 @@ namespace ASCOM.LocalServer
             // 
             this.button22.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button22.ForeColor = System.Drawing.Color.White;
-            this.button22.Location = new System.Drawing.Point(243, 174);
-            this.button22.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button22.Location = new System.Drawing.Point(297, 209);
+            this.button22.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button22.Name = "button22";
-            this.button22.Size = new System.Drawing.Size(75, 31);
+            this.button22.Size = new System.Drawing.Size(92, 37);
             this.button22.TabIndex = 14;
             this.button22.Text = "North";
             this.toolTip1.SetToolTip(this.button22, "Click and hold to move the scope");
@@ -591,10 +609,10 @@ namespace ASCOM.LocalServer
             "30\'/s",
             "1°/s",
             "2°/s"});
-            this.comboBox1.Location = new System.Drawing.Point(264, 138);
-            this.comboBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.comboBox1.Location = new System.Drawing.Point(323, 166);
+            this.comboBox1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(82, 28);
+            this.comboBox1.Size = new System.Drawing.Size(99, 32);
             this.comboBox1.TabIndex = 13;
             this.toolTip1.SetToolTip(this.comboBox1, "Speed of movement with the 4 button bellow");
             // 
@@ -602,10 +620,10 @@ namespace ASCOM.LocalServer
             // 
             this.button21.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button21.ForeColor = System.Drawing.Color.White;
-            this.button21.Location = new System.Drawing.Point(6, 185);
-            this.button21.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button21.Location = new System.Drawing.Point(7, 222);
+            this.button21.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button21.Name = "button21";
-            this.button21.Size = new System.Drawing.Size(132, 35);
+            this.button21.Size = new System.Drawing.Size(161, 42);
             this.button21.TabIndex = 12;
             this.button21.Text = "Enable/Disable";
             this.toolTip1.SetToolTip(this.button21, "Click to disable meridian flip. This will allow the RA axes to move through 360°." +
@@ -617,10 +635,10 @@ namespace ASCOM.LocalServer
             // 
             this.button12.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button12.ForeColor = System.Drawing.Color.White;
-            this.button12.Location = new System.Drawing.Point(6, 146);
-            this.button12.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button12.Location = new System.Drawing.Point(7, 175);
+            this.button12.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button12.Name = "button12";
-            this.button12.Size = new System.Drawing.Size(132, 35);
+            this.button12.Size = new System.Drawing.Size(161, 42);
             this.button12.TabIndex = 8;
             this.button12.Text = "Side of pier";
             this.toolTip1.SetToolTip(this.button12, "Click to tell the mount which side of the peir is the scope. This will invert the" +
@@ -632,10 +650,10 @@ namespace ASCOM.LocalServer
             // 
             this.button7.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button7.ForeColor = System.Drawing.Color.White;
-            this.button7.Location = new System.Drawing.Point(6, 86);
-            this.button7.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button7.Location = new System.Drawing.Point(7, 103);
+            this.button7.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button7.Name = "button7";
-            this.button7.Size = new System.Drawing.Size(90, 35);
+            this.button7.Size = new System.Drawing.Size(110, 42);
             this.button7.TabIndex = 6;
             this.button7.Text = "Copy";
             this.toolTip1.SetToolTip(this.button7, "Copies the current coordinates in the 2 edit boxes above");
@@ -646,10 +664,10 @@ namespace ASCOM.LocalServer
             // 
             this.button4.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button4.ForeColor = System.Drawing.Color.White;
-            this.button4.Location = new System.Drawing.Point(234, 86);
-            this.button4.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button4.Location = new System.Drawing.Point(286, 103);
+            this.button4.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(90, 35);
+            this.button4.Size = new System.Drawing.Size(110, 42);
             this.button4.TabIndex = 5;
             this.button4.Text = "Sync";
             this.toolTip1.SetToolTip(this.button4, "Synchronizes the scope on the 2 coordinates given above. Be careful of side of pe" +
@@ -661,10 +679,10 @@ namespace ASCOM.LocalServer
             // 
             this.button3.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button3.ForeColor = System.Drawing.Color.White;
-            this.button3.Location = new System.Drawing.Point(111, 86);
-            this.button3.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button3.Location = new System.Drawing.Point(136, 103);
+            this.button3.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(90, 35);
+            this.button3.Size = new System.Drawing.Size(110, 42);
             this.button3.TabIndex = 4;
             this.button3.Text = "Goto";
             this.toolTip1.SetToolTip(this.button3, "Go to the coordinates in the 2 boxes above");
@@ -673,19 +691,19 @@ namespace ASCOM.LocalServer
             // 
             // textBox4
             // 
-            this.textBox4.Location = new System.Drawing.Point(234, 54);
-            this.textBox4.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox4.Location = new System.Drawing.Point(286, 65);
+            this.textBox4.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox4.Name = "textBox4";
-            this.textBox4.Size = new System.Drawing.Size(193, 26);
+            this.textBox4.Size = new System.Drawing.Size(235, 29);
             this.textBox4.TabIndex = 3;
             this.toolTip1.SetToolTip(this.textBox4, "Dec coordinates in -d:m:s format. m and s are optional");
             // 
             // textBox3
             // 
-            this.textBox3.Location = new System.Drawing.Point(6, 54);
-            this.textBox3.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox3.Location = new System.Drawing.Point(7, 65);
+            this.textBox3.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox3.Name = "textBox3";
-            this.textBox3.Size = new System.Drawing.Size(193, 26);
+            this.textBox3.Size = new System.Drawing.Size(235, 29);
             this.textBox3.TabIndex = 2;
             this.toolTip1.SetToolTip(this.textBox3, "RA coordinates in h:m:s format. m and s are optional");
             // 
@@ -693,10 +711,10 @@ namespace ASCOM.LocalServer
             // 
             this.labelDec.AutoSize = true;
             this.labelDec.ForeColor = System.Drawing.Color.White;
-            this.labelDec.Location = new System.Drawing.Point(234, 29);
-            this.labelDec.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.labelDec.Location = new System.Drawing.Point(286, 35);
+            this.labelDec.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.labelDec.Name = "labelDec";
-            this.labelDec.Size = new System.Drawing.Size(91, 20);
+            this.labelDec.Size = new System.Drawing.Size(113, 25);
             this.labelDec.TabIndex = 1;
             this.labelDec.Text = "Declinaison";
             // 
@@ -704,10 +722,10 @@ namespace ASCOM.LocalServer
             // 
             this.labelRa.AutoSize = true;
             this.labelRa.ForeColor = System.Drawing.Color.White;
-            this.labelRa.Location = new System.Drawing.Point(6, 29);
-            this.labelRa.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.labelRa.Location = new System.Drawing.Point(7, 35);
+            this.labelRa.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.labelRa.Name = "labelRa";
-            this.labelRa.Size = new System.Drawing.Size(125, 20);
+            this.labelRa.Size = new System.Drawing.Size(153, 25);
             this.labelRa.TabIndex = 0;
             this.labelRa.Text = "Right Assension";
             // 
@@ -732,11 +750,11 @@ namespace ASCOM.LocalServer
             this.groupBox2.Controls.Add(this.button1);
             this.groupBox2.Controls.Add(this.label2);
             this.groupBox2.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox2.Location = new System.Drawing.Point(24, 606);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.groupBox2.Location = new System.Drawing.Point(29, 727);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.groupBox2.Size = new System.Drawing.Size(441, 145);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            this.groupBox2.Size = new System.Drawing.Size(539, 174);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Focusser";
@@ -745,10 +763,10 @@ namespace ASCOM.LocalServer
             // 
             this.button44.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button44.ForeColor = System.Drawing.Color.White;
-            this.button44.Location = new System.Drawing.Point(397, 18);
-            this.button44.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button44.Location = new System.Drawing.Point(485, 22);
+            this.button44.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button44.Name = "button44";
-            this.button44.Size = new System.Drawing.Size(42, 35);
+            this.button44.Size = new System.Drawing.Size(51, 42);
             this.button44.TabIndex = 68;
             this.button44.Text = "Del";
             this.toolTip1.SetToolTip(this.button44, "Press and hold button to move focusser at fast/slow speed");
@@ -759,10 +777,10 @@ namespace ASCOM.LocalServer
             // 
             this.button27.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button27.ForeColor = System.Drawing.Color.White;
-            this.button27.Location = new System.Drawing.Point(339, 17);
-            this.button27.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button27.Location = new System.Drawing.Point(414, 20);
+            this.button27.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button27.Name = "button27";
-            this.button27.Size = new System.Drawing.Size(54, 35);
+            this.button27.Size = new System.Drawing.Size(66, 42);
             this.button27.TabIndex = 67;
             this.button27.Text = "Save";
             this.toolTip1.SetToolTip(this.button27, "Press and hold button to move focusser at fast/slow speed");
@@ -773,10 +791,10 @@ namespace ASCOM.LocalServer
             // 
             this.button28.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button28.ForeColor = System.Drawing.Color.White;
-            this.button28.Location = new System.Drawing.Point(296, 17);
-            this.button28.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button28.Location = new System.Drawing.Point(362, 20);
+            this.button28.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button28.Name = "button28";
-            this.button28.Size = new System.Drawing.Size(40, 35);
+            this.button28.Size = new System.Drawing.Size(49, 42);
             this.button28.TabIndex = 66;
             this.button28.Text = "Go";
             this.toolTip1.SetToolTip(this.button28, "Press and hold button to move focusser at fast/slow speed");
@@ -786,10 +804,10 @@ namespace ASCOM.LocalServer
             // comboBox2
             // 
             this.comboBox2.FormattingEnabled = true;
-            this.comboBox2.Location = new System.Drawing.Point(172, 21);
-            this.comboBox2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.comboBox2.Location = new System.Drawing.Point(210, 25);
+            this.comboBox2.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.comboBox2.Name = "comboBox2";
-            this.comboBox2.Size = new System.Drawing.Size(120, 28);
+            this.comboBox2.Size = new System.Drawing.Size(146, 32);
             this.comboBox2.TabIndex = 65;
             this.toolTip1.SetToolTip(this.comboBox2, "used to remember focus positions");
             // 
@@ -799,10 +817,10 @@ namespace ASCOM.LocalServer
             this.checkBox12.AutoSize = true;
             this.checkBox12.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox12.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox12.Location = new System.Drawing.Point(10, 26);
-            this.checkBox12.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox12.Location = new System.Drawing.Point(12, 31);
+            this.checkBox12.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox12.Name = "checkBox12";
-            this.checkBox12.Size = new System.Drawing.Size(146, 24);
+            this.checkBox12.Size = new System.Drawing.Size(177, 29);
             this.checkBox12.TabIndex = 57;
             this.checkBox12.Text = "use mm and µ/s";
             this.checkBox12.UseVisualStyleBackColor = false;
@@ -812,10 +830,10 @@ namespace ASCOM.LocalServer
             // 
             this.button10.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button10.ForeColor = System.Drawing.Color.White;
-            this.button10.Location = new System.Drawing.Point(369, 105);
-            this.button10.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button10.Location = new System.Drawing.Point(451, 126);
+            this.button10.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button10.Name = "button10";
-            this.button10.Size = new System.Drawing.Size(48, 35);
+            this.button10.Size = new System.Drawing.Size(59, 42);
             this.button10.TabIndex = 12;
             this.button10.Text = "out";
             this.toolTip1.SetToolTip(this.button10, "Press and hold button to move focusser at fast/slow speed");
@@ -828,10 +846,10 @@ namespace ASCOM.LocalServer
             // 
             this.button11.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button11.ForeColor = System.Drawing.Color.White;
-            this.button11.Location = new System.Drawing.Point(318, 105);
-            this.button11.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button11.Location = new System.Drawing.Point(389, 126);
+            this.button11.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button11.Name = "button11";
-            this.button11.Size = new System.Drawing.Size(48, 35);
+            this.button11.Size = new System.Drawing.Size(59, 42);
             this.button11.TabIndex = 11;
             this.button11.Text = "in";
             this.toolTip1.SetToolTip(this.button11, "Press and hold button to move focusser at fast/slow speed");
@@ -842,10 +860,10 @@ namespace ASCOM.LocalServer
             // 
             // textBox5
             // 
-            this.textBox5.Location = new System.Drawing.Point(318, 74);
-            this.textBox5.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox5.Location = new System.Drawing.Point(389, 89);
+            this.textBox5.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox5.Name = "textBox5";
-            this.textBox5.Size = new System.Drawing.Size(100, 26);
+            this.textBox5.Size = new System.Drawing.Size(121, 29);
             this.textBox5.TabIndex = 10;
             this.toolTip1.SetToolTip(this.textBox5, "Speed for slow move. In steps/s or µ/s");
             this.textBox5.TextChanged += new System.EventHandler(this.textBox5_TextChanged);
@@ -854,9 +872,10 @@ namespace ASCOM.LocalServer
             // 
             this.label5.AutoSize = true;
             this.label5.ForeColor = System.Drawing.Color.White;
-            this.label5.Location = new System.Drawing.Point(348, 49);
+            this.label5.Location = new System.Drawing.Point(425, 59);
+            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(40, 20);
+            this.label5.Size = new System.Drawing.Size(51, 25);
             this.label5.TabIndex = 9;
             this.label5.Text = "slow";
             // 
@@ -864,10 +883,10 @@ namespace ASCOM.LocalServer
             // 
             this.button9.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button9.ForeColor = System.Drawing.Color.White;
-            this.button9.Location = new System.Drawing.Point(255, 105);
-            this.button9.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button9.Location = new System.Drawing.Point(312, 126);
+            this.button9.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button9.Name = "button9";
-            this.button9.Size = new System.Drawing.Size(48, 35);
+            this.button9.Size = new System.Drawing.Size(59, 42);
             this.button9.TabIndex = 8;
             this.button9.Text = "out";
             this.toolTip1.SetToolTip(this.button9, "Press and hold button to move focusser at fast/slow speed");
@@ -880,10 +899,10 @@ namespace ASCOM.LocalServer
             // 
             this.button8.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button8.ForeColor = System.Drawing.Color.White;
-            this.button8.Location = new System.Drawing.Point(201, 105);
-            this.button8.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button8.Location = new System.Drawing.Point(246, 126);
+            this.button8.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button8.Name = "button8";
-            this.button8.Size = new System.Drawing.Size(48, 35);
+            this.button8.Size = new System.Drawing.Size(59, 42);
             this.button8.TabIndex = 7;
             this.button8.Text = "in";
             this.toolTip1.SetToolTip(this.button8, "Press and hold button to move focusser at fast/slow speed");
@@ -894,10 +913,10 @@ namespace ASCOM.LocalServer
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(201, 74);
-            this.textBox2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox2.Location = new System.Drawing.Point(246, 89);
+            this.textBox2.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(100, 26);
+            this.textBox2.Size = new System.Drawing.Size(121, 29);
             this.textBox2.TabIndex = 6;
             this.toolTip1.SetToolTip(this.textBox2, "Speed for fast move. In steps/s or µ/s");
             this.textBox2.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
@@ -906,9 +925,10 @@ namespace ASCOM.LocalServer
             // 
             this.label4.AutoSize = true;
             this.label4.ForeColor = System.Drawing.Color.White;
-            this.label4.Location = new System.Drawing.Point(231, 49);
+            this.label4.Location = new System.Drawing.Point(282, 59);
+            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(36, 20);
+            this.label4.Size = new System.Drawing.Size(43, 25);
             this.label4.TabIndex = 5;
             this.label4.Text = "fast";
             // 
@@ -916,9 +936,10 @@ namespace ASCOM.LocalServer
             // 
             this.label24.AutoSize = true;
             this.label24.ForeColor = System.Drawing.Color.White;
-            this.label24.Location = new System.Drawing.Point(4, 108);
+            this.label24.Location = new System.Drawing.Point(5, 130);
+            this.label24.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label24.Name = "label24";
-            this.label24.Size = new System.Drawing.Size(95, 20);
+            this.label24.Size = new System.Drawing.Size(118, 25);
             this.label24.TabIndex = 5;
             this.label24.Text = "Sideral error";
             // 
@@ -926,9 +947,10 @@ namespace ASCOM.LocalServer
             // 
             this.label22.AutoSize = true;
             this.label22.ForeColor = System.Drawing.Color.White;
-            this.label22.Location = new System.Drawing.Point(4, 82);
+            this.label22.Location = new System.Drawing.Point(5, 98);
+            this.label22.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label22.Name = "label22";
-            this.label22.Size = new System.Drawing.Size(130, 20);
+            this.label22.Size = new System.Drawing.Size(162, 25);
             this.label22.TabIndex = 3;
             this.label22.Text = "Sideral steps/sec";
             // 
@@ -936,9 +958,10 @@ namespace ASCOM.LocalServer
             // 
             this.labelDriftTime.AutoSize = true;
             this.labelDriftTime.ForeColor = System.Drawing.Color.White;
-            this.labelDriftTime.Location = new System.Drawing.Point(253, 55);
+            this.labelDriftTime.Location = new System.Drawing.Point(309, 66);
+            this.labelDriftTime.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelDriftTime.Name = "labelDriftTime";
-            this.labelDriftTime.Size = new System.Drawing.Size(36, 20);
+            this.labelDriftTime.Size = new System.Drawing.Size(43, 25);
             this.labelDriftTime.TabIndex = 2;
             this.labelDriftTime.Text = "drift";
             // 
@@ -946,9 +969,10 @@ namespace ASCOM.LocalServer
             // 
             this.labelHWTime.AutoSize = true;
             this.labelHWTime.ForeColor = System.Drawing.Color.White;
-            this.labelHWTime.Location = new System.Drawing.Point(127, 55);
+            this.labelHWTime.Location = new System.Drawing.Point(155, 66);
+            this.labelHWTime.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelHWTime.Name = "labelHWTime";
-            this.labelHWTime.Size = new System.Drawing.Size(70, 20);
+            this.labelHWTime.Size = new System.Drawing.Size(87, 25);
             this.labelHWTime.TabIndex = 1;
             this.labelHWTime.Text = "HW time";
             // 
@@ -956,19 +980,20 @@ namespace ASCOM.LocalServer
             // 
             this.labelPCTime.AutoSize = true;
             this.labelPCTime.ForeColor = System.Drawing.Color.White;
-            this.labelPCTime.Location = new System.Drawing.Point(4, 55);
+            this.labelPCTime.Location = new System.Drawing.Point(5, 66);
+            this.labelPCTime.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelPCTime.Name = "labelPCTime";
-            this.labelPCTime.Size = new System.Drawing.Size(64, 20);
+            this.labelPCTime.Size = new System.Drawing.Size(84, 25);
             this.labelPCTime.TabIndex = 0;
             this.labelPCTime.Text = "PCTime";
             // 
             // comboBoxComPort
             // 
             this.comboBoxComPort.FormattingEnabled = true;
-            this.comboBoxComPort.Location = new System.Drawing.Point(256, 78);
-            this.comboBoxComPort.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.comboBoxComPort.Location = new System.Drawing.Point(313, 94);
+            this.comboBoxComPort.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.comboBoxComPort.Name = "comboBoxComPort";
-            this.comboBoxComPort.Size = new System.Drawing.Size(98, 28);
+            this.comboBoxComPort.Size = new System.Drawing.Size(119, 32);
             this.comboBoxComPort.TabIndex = 9;
             this.toolTip1.SetToolTip(this.comboBoxComPort, "Select serial com to use");
             this.comboBoxComPort.SelectionChangeCommitted += new System.EventHandler(this.comboBoxComPort_SelectedIndexChanged);
@@ -977,10 +1002,10 @@ namespace ASCOM.LocalServer
             // 
             this.setup.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.setup.ForeColor = System.Drawing.Color.White;
-            this.setup.Location = new System.Drawing.Point(327, 18);
-            this.setup.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.setup.Location = new System.Drawing.Point(400, 22);
+            this.setup.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.setup.Name = "setup";
-            this.setup.Size = new System.Drawing.Size(68, 48);
+            this.setup.Size = new System.Drawing.Size(83, 58);
             this.setup.TabIndex = 10;
             this.setup.Text = "Setup";
             this.setup.UseVisualStyleBackColor = false;
@@ -990,9 +1015,10 @@ namespace ASCOM.LocalServer
             // 
             this.labelCom.AutoSize = true;
             this.labelCom.ForeColor = System.Drawing.Color.White;
-            this.labelCom.Location = new System.Drawing.Point(176, 81);
+            this.labelCom.Location = new System.Drawing.Point(215, 97);
+            this.labelCom.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelCom.Name = "labelCom";
-            this.labelCom.Size = new System.Drawing.Size(51, 20);
+            this.labelCom.Size = new System.Drawing.Size(64, 25);
             this.labelCom.TabIndex = 11;
             this.labelCom.Text = "label3";
             this.labelCom.DoubleClick += new System.EventHandler(this.labelCom_DoubleClick);
@@ -1001,10 +1027,10 @@ namespace ASCOM.LocalServer
             // 
             this.rescan.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.rescan.ForeColor = System.Drawing.Color.White;
-            this.rescan.Location = new System.Drawing.Point(363, 72);
-            this.rescan.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.rescan.Location = new System.Drawing.Point(444, 86);
+            this.rescan.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.rescan.Name = "rescan";
-            this.rescan.Size = new System.Drawing.Size(104, 34);
+            this.rescan.Size = new System.Drawing.Size(127, 41);
             this.rescan.TabIndex = 12;
             this.rescan.Text = "Scan coms";
             this.toolTip1.SetToolTip(this.rescan, "If you have connected your mount AFTER starting this program, the serial com will" +
@@ -1028,55 +1054,55 @@ namespace ASCOM.LocalServer
             this.groupBox4.Controls.Add(this.label7);
             this.groupBox4.Controls.Add(this.label6);
             this.groupBox4.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox4.Location = new System.Drawing.Point(9, 55);
-            this.groupBox4.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox4.Location = new System.Drawing.Point(11, 66);
+            this.groupBox4.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox4.Size = new System.Drawing.Size(372, 238);
+            this.groupBox4.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox4.Size = new System.Drawing.Size(455, 286);
             this.groupBox4.TabIndex = 13;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Telescope && observatory";
             // 
             // FocalLength
             // 
-            this.FocalLength.Location = new System.Drawing.Point(162, 132);
-            this.FocalLength.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.FocalLength.Location = new System.Drawing.Point(198, 158);
+            this.FocalLength.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.FocalLength.Name = "FocalLength";
-            this.FocalLength.Size = new System.Drawing.Size(108, 26);
+            this.FocalLength.Size = new System.Drawing.Size(131, 29);
             this.FocalLength.TabIndex = 36;
             // 
             // SiteElevation
             // 
-            this.SiteElevation.Location = new System.Drawing.Point(162, 94);
-            this.SiteElevation.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.SiteElevation.Location = new System.Drawing.Point(198, 113);
+            this.SiteElevation.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.SiteElevation.Name = "SiteElevation";
-            this.SiteElevation.Size = new System.Drawing.Size(108, 26);
+            this.SiteElevation.Size = new System.Drawing.Size(131, 29);
             this.SiteElevation.TabIndex = 35;
             // 
             // SiteLongitude
             // 
-            this.SiteLongitude.Location = new System.Drawing.Point(162, 65);
-            this.SiteLongitude.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.SiteLongitude.Location = new System.Drawing.Point(198, 78);
+            this.SiteLongitude.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.SiteLongitude.Name = "SiteLongitude";
-            this.SiteLongitude.Size = new System.Drawing.Size(108, 26);
+            this.SiteLongitude.Size = new System.Drawing.Size(131, 29);
             this.SiteLongitude.TabIndex = 34;
             // 
             // SiteLatitude
             // 
-            this.SiteLatitude.Location = new System.Drawing.Point(162, 35);
-            this.SiteLatitude.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.SiteLatitude.Location = new System.Drawing.Point(198, 42);
+            this.SiteLatitude.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.SiteLatitude.Name = "SiteLatitude";
-            this.SiteLatitude.Size = new System.Drawing.Size(108, 26);
+            this.SiteLatitude.Size = new System.Drawing.Size(131, 29);
             this.SiteLatitude.TabIndex = 33;
             // 
             // label11
             // 
             this.label11.AutoSize = true;
             this.label11.ForeColor = System.Drawing.Color.White;
-            this.label11.Location = new System.Drawing.Point(15, 69);
-            this.label11.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label11.Location = new System.Drawing.Point(18, 83);
+            this.label11.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(109, 20);
+            this.label11.Size = new System.Drawing.Size(133, 25);
             this.label11.TabIndex = 32;
             this.label11.Text = "site Longitude";
             // 
@@ -1084,10 +1110,10 @@ namespace ASCOM.LocalServer
             // 
             this.label10.AutoSize = true;
             this.label10.ForeColor = System.Drawing.Color.White;
-            this.label10.Location = new System.Drawing.Point(15, 98);
-            this.label10.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label10.Location = new System.Drawing.Point(18, 118);
+            this.label10.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(103, 20);
+            this.label10.Size = new System.Drawing.Size(127, 25);
             this.label10.TabIndex = 31;
             this.label10.Text = "site Elevation";
             // 
@@ -1095,10 +1121,10 @@ namespace ASCOM.LocalServer
             // 
             this.label9.AutoSize = true;
             this.label9.ForeColor = System.Drawing.Color.White;
-            this.label9.Location = new System.Drawing.Point(15, 135);
-            this.label9.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label9.Location = new System.Drawing.Point(18, 162);
+            this.label9.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(88, 20);
+            this.label9.Size = new System.Drawing.Size(111, 25);
             this.label9.TabIndex = 30;
             this.label9.Text = "Focal (mm)";
             // 
@@ -1106,37 +1132,37 @@ namespace ASCOM.LocalServer
             // 
             this.label8.AutoSize = true;
             this.label8.ForeColor = System.Drawing.Color.White;
-            this.label8.Location = new System.Drawing.Point(15, 40);
-            this.label8.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label8.Location = new System.Drawing.Point(18, 48);
+            this.label8.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(96, 20);
+            this.label8.Size = new System.Drawing.Size(116, 25);
             this.label8.TabIndex = 29;
             this.label8.Text = "site Latitude";
             // 
             // Area
             // 
-            this.Area.Location = new System.Drawing.Point(162, 191);
-            this.Area.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Area.Location = new System.Drawing.Point(198, 229);
+            this.Area.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.Area.Name = "Area";
-            this.Area.Size = new System.Drawing.Size(108, 26);
+            this.Area.Size = new System.Drawing.Size(131, 29);
             this.Area.TabIndex = 38;
             // 
             // Aperture
             // 
-            this.Aperture.Location = new System.Drawing.Point(162, 161);
-            this.Aperture.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Aperture.Location = new System.Drawing.Point(198, 193);
+            this.Aperture.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.Aperture.Name = "Aperture";
-            this.Aperture.Size = new System.Drawing.Size(108, 26);
+            this.Aperture.Size = new System.Drawing.Size(131, 29);
             this.Aperture.TabIndex = 37;
             // 
             // label7
             // 
             this.label7.AutoSize = true;
             this.label7.ForeColor = System.Drawing.Color.White;
-            this.label7.Location = new System.Drawing.Point(14, 194);
-            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label7.Location = new System.Drawing.Point(17, 233);
+            this.label7.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(83, 20);
+            this.label7.Size = new System.Drawing.Size(106, 25);
             this.label7.TabIndex = 26;
             this.label7.Text = "Area (cm²)";
             // 
@@ -1144,10 +1170,10 @@ namespace ASCOM.LocalServer
             // 
             this.label6.AutoSize = true;
             this.label6.ForeColor = System.Drawing.Color.White;
-            this.label6.Location = new System.Drawing.Point(15, 165);
-            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label6.Location = new System.Drawing.Point(18, 198);
+            this.label6.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(114, 20);
+            this.label6.Size = new System.Drawing.Size(141, 25);
             this.label6.TabIndex = 25;
             this.label6.Text = "Diametre (mm)";
             // 
@@ -1155,10 +1181,10 @@ namespace ASCOM.LocalServer
             // 
             this.posDel.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.posDel.ForeColor = System.Drawing.Color.White;
-            this.posDel.Location = new System.Drawing.Point(300, 21);
-            this.posDel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.posDel.Location = new System.Drawing.Point(367, 25);
+            this.posDel.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.posDel.Name = "posDel";
-            this.posDel.Size = new System.Drawing.Size(84, 35);
+            this.posDel.Size = new System.Drawing.Size(103, 42);
             this.posDel.TabIndex = 65;
             this.posDel.Text = "Delete";
             this.toolTip1.SetToolTip(this.posDel, "Stop current scope goto movement");
@@ -1169,10 +1195,10 @@ namespace ASCOM.LocalServer
             // 
             this.posSave.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.posSave.ForeColor = System.Drawing.Color.White;
-            this.posSave.Location = new System.Drawing.Point(210, 21);
-            this.posSave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.posSave.Location = new System.Drawing.Point(257, 25);
+            this.posSave.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.posSave.Name = "posSave";
-            this.posSave.Size = new System.Drawing.Size(84, 35);
+            this.posSave.Size = new System.Drawing.Size(103, 42);
             this.posSave.TabIndex = 64;
             this.posSave.Text = "Save";
             this.toolTip1.SetToolTip(this.posSave, "Stop current scope goto movement");
@@ -1182,10 +1208,10 @@ namespace ASCOM.LocalServer
             // posCB
             // 
             this.posCB.FormattingEnabled = true;
-            this.posCB.Location = new System.Drawing.Point(12, 21);
-            this.posCB.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.posCB.Location = new System.Drawing.Point(15, 25);
+            this.posCB.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.posCB.Name = "posCB";
-            this.posCB.Size = new System.Drawing.Size(185, 28);
+            this.posCB.Size = new System.Drawing.Size(225, 32);
             this.posCB.TabIndex = 43;
             this.posCB.SelectionChangeCommitted += new System.EventHandler(this.posCB_SelectionChangeCommitted);
             // 
@@ -1206,11 +1232,11 @@ namespace ASCOM.LocalServer
             this.groupBox5.Controls.Add(this.label36);
             this.groupBox5.Controls.Add(this.FocMaxAcc);
             this.groupBox5.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox5.Location = new System.Drawing.Point(9, 294);
-            this.groupBox5.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox5.Location = new System.Drawing.Point(11, 353);
+            this.groupBox5.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox5.Name = "groupBox5";
-            this.groupBox5.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox5.Size = new System.Drawing.Size(372, 191);
+            this.groupBox5.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox5.Size = new System.Drawing.Size(455, 229);
             this.groupBox5.TabIndex = 37;
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "Focusser";
@@ -1219,37 +1245,38 @@ namespace ASCOM.LocalServer
             // 
             this.label56.AutoSize = true;
             this.label56.ForeColor = System.Drawing.Color.White;
-            this.label56.Location = new System.Drawing.Point(274, 61);
+            this.label56.Location = new System.Drawing.Point(329, 73);
+            this.label56.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label56.Name = "label56";
-            this.label56.Size = new System.Drawing.Size(96, 20);
+            this.label56.Size = new System.Drawing.Size(123, 25);
             this.label56.TabIndex = 48;
             this.label56.Text = "(0=>disable)";
             this.label56.Click += new System.EventHandler(this.label56_Click);
             // 
             // textBox19
             // 
-            this.textBox19.Location = new System.Drawing.Point(159, 114);
-            this.textBox19.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox19.Location = new System.Drawing.Point(194, 137);
+            this.textBox19.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox19.Name = "textBox19";
-            this.textBox19.Size = new System.Drawing.Size(108, 26);
+            this.textBox19.Size = new System.Drawing.Size(131, 29);
             this.textBox19.TabIndex = 47;
             // 
             // StepSize
             // 
-            this.StepSize.Location = new System.Drawing.Point(159, 142);
-            this.StepSize.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.StepSize.Location = new System.Drawing.Point(194, 170);
+            this.StepSize.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.StepSize.Name = "StepSize";
-            this.StepSize.Size = new System.Drawing.Size(108, 26);
+            this.StepSize.Size = new System.Drawing.Size(131, 29);
             this.StepSize.TabIndex = 11;
             // 
             // label45
             // 
             this.label45.AutoSize = true;
             this.label45.ForeColor = System.Drawing.Color.White;
-            this.label45.Location = new System.Drawing.Point(15, 118);
-            this.label45.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label45.Location = new System.Drawing.Point(18, 142);
+            this.label45.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label45.Name = "label45";
-            this.label45.Size = new System.Drawing.Size(115, 20);
+            this.label45.Size = new System.Drawing.Size(142, 25);
             this.label45.TabIndex = 46;
             this.label45.Text = "backlash steps";
             // 
@@ -1257,10 +1284,10 @@ namespace ASCOM.LocalServer
             // 
             this.label3.AutoSize = true;
             this.label3.ForeColor = System.Drawing.Color.White;
-            this.label3.Location = new System.Drawing.Point(15, 146);
-            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label3.Location = new System.Drawing.Point(18, 175);
+            this.label3.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(106, 20);
+            this.label3.Size = new System.Drawing.Size(133, 25);
             this.label3.TabIndex = 10;
             this.label3.Text = "Step Size in µ";
             // 
@@ -1268,9 +1295,10 @@ namespace ASCOM.LocalServer
             // 
             this.label33.AutoSize = true;
             this.label33.ForeColor = System.Drawing.Color.White;
-            this.label33.Location = new System.Drawing.Point(15, 60);
+            this.label33.Location = new System.Drawing.Point(18, 72);
+            this.label33.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label33.Name = "label33";
-            this.label33.Size = new System.Drawing.Size(124, 20);
+            this.label33.Size = new System.Drawing.Size(155, 25);
             this.label33.TabIndex = 25;
             this.label33.Text = "Foc max steps/s";
             // 
@@ -1278,37 +1306,38 @@ namespace ASCOM.LocalServer
             // 
             this.label34.AutoSize = true;
             this.label34.ForeColor = System.Drawing.Color.White;
-            this.label34.Location = new System.Drawing.Point(15, 31);
+            this.label34.Location = new System.Drawing.Point(18, 37);
+            this.label34.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label34.Name = "label34";
-            this.label34.Size = new System.Drawing.Size(115, 20);
+            this.label34.Size = new System.Drawing.Size(144, 25);
             this.label34.TabIndex = 24;
             this.label34.Text = "Foc Max Steps";
             // 
             // FocMaxPos
             // 
-            this.FocMaxPos.Location = new System.Drawing.Point(159, 28);
-            this.FocMaxPos.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.FocMaxPos.Location = new System.Drawing.Point(194, 34);
+            this.FocMaxPos.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.FocMaxPos.Name = "FocMaxPos";
-            this.FocMaxPos.Size = new System.Drawing.Size(108, 26);
+            this.FocMaxPos.Size = new System.Drawing.Size(131, 29);
             this.FocMaxPos.TabIndex = 21;
             this.FocMaxPos.Text = " ";
             // 
             // FocMaxSpd
             // 
-            this.FocMaxSpd.Location = new System.Drawing.Point(159, 55);
-            this.FocMaxSpd.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.FocMaxSpd.Location = new System.Drawing.Point(194, 66);
+            this.FocMaxSpd.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.FocMaxSpd.Name = "FocMaxSpd";
-            this.FocMaxSpd.Size = new System.Drawing.Size(108, 26);
+            this.FocMaxSpd.Size = new System.Drawing.Size(131, 29);
             this.FocMaxSpd.TabIndex = 22;
             this.toolTip1.SetToolTip(this.FocMaxSpd, "Set to 0 to disable focusser UI on device");
             // 
             // checkBox6
             // 
             this.checkBox6.AutoSize = true;
-            this.checkBox6.Location = new System.Drawing.Point(273, 89);
-            this.checkBox6.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox6.Location = new System.Drawing.Point(334, 107);
+            this.checkBox6.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox6.Name = "checkBox6";
-            this.checkBox6.Size = new System.Drawing.Size(73, 24);
+            this.checkBox6.Size = new System.Drawing.Size(85, 29);
             this.checkBox6.TabIndex = 43;
             this.checkBox6.Text = "invert";
             this.checkBox6.UseVisualStyleBackColor = true;
@@ -1317,31 +1346,34 @@ namespace ASCOM.LocalServer
             // 
             this.label32.AutoSize = true;
             this.label32.ForeColor = System.Drawing.Color.White;
-            this.label32.Location = new System.Drawing.Point(15, 89);
+            this.label32.Location = new System.Drawing.Point(18, 107);
+            this.label32.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label32.Name = "label32";
-            this.label32.Size = new System.Drawing.Size(133, 20);
+            this.label32.Size = new System.Drawing.Size(163, 25);
             this.label32.TabIndex = 26;
             this.label32.Text = "Foc ms to full spd";
             // 
             // label36
             // 
             this.label36.AutoSize = true;
-            this.label36.Location = new System.Drawing.Point(291, 32);
+            this.label36.Location = new System.Drawing.Point(356, 38);
+            this.label36.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label36.Name = "label36";
-            this.label36.Size = new System.Drawing.Size(0, 20);
+            this.label36.Size = new System.Drawing.Size(0, 25);
             this.label36.TabIndex = 27;
             // 
             // FocMaxAcc
             // 
-            this.FocMaxAcc.Location = new System.Drawing.Point(159, 85);
-            this.FocMaxAcc.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.FocMaxAcc.Location = new System.Drawing.Point(194, 102);
+            this.FocMaxAcc.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.FocMaxAcc.Name = "FocMaxAcc";
-            this.FocMaxAcc.Size = new System.Drawing.Size(108, 26);
+            this.FocMaxAcc.Size = new System.Drawing.Size(131, 29);
             this.FocMaxAcc.TabIndex = 23;
             // 
             // groupBox6
             // 
             this.groupBox6.BackColor = System.Drawing.Color.Black;
+            this.groupBox6.Controls.Add(this.horizonCheck);
             this.groupBox6.Controls.Add(this.AutoMeridianFlip);
             this.groupBox6.Controls.Add(this.button43);
             this.groupBox6.Controls.Add(this.RAMaxMovement);
@@ -1369,11 +1401,11 @@ namespace ASCOM.LocalServer
             this.groupBox6.Controls.Add(this.raMaxPos);
             this.groupBox6.Controls.Add(this.label12);
             this.groupBox6.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox6.Location = new System.Drawing.Point(410, 19);
-            this.groupBox6.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox6.Location = new System.Drawing.Point(501, 23);
+            this.groupBox6.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox6.Name = "groupBox6";
-            this.groupBox6.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox6.Size = new System.Drawing.Size(345, 331);
+            this.groupBox6.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox6.Size = new System.Drawing.Size(422, 397);
             this.groupBox6.TabIndex = 38;
             this.groupBox6.TabStop = false;
             this.groupBox6.Text = "RA/Dec setup";
@@ -1381,10 +1413,10 @@ namespace ASCOM.LocalServer
             // AutoMeridianFlip
             // 
             this.AutoMeridianFlip.AutoSize = true;
-            this.AutoMeridianFlip.Location = new System.Drawing.Point(8, 166);
-            this.AutoMeridianFlip.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.AutoMeridianFlip.Location = new System.Drawing.Point(10, 199);
+            this.AutoMeridianFlip.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.AutoMeridianFlip.Name = "AutoMeridianFlip";
-            this.AutoMeridianFlip.Size = new System.Drawing.Size(157, 24);
+            this.AutoMeridianFlip.Size = new System.Drawing.Size(187, 29);
             this.AutoMeridianFlip.TabIndex = 46;
             this.AutoMeridianFlip.Text = "Auto meridian flip";
             this.toolTip1.SetToolTip(this.AutoMeridianFlip, "Automatically flip ahen reaching meridian");
@@ -1394,10 +1426,10 @@ namespace ASCOM.LocalServer
             // 
             this.button43.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button43.ForeColor = System.Drawing.Color.White;
-            this.button43.Location = new System.Drawing.Point(266, 121);
-            this.button43.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button43.Location = new System.Drawing.Point(325, 145);
+            this.button43.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button43.Name = "button43";
-            this.button43.Size = new System.Drawing.Size(72, 71);
+            this.button43.Size = new System.Drawing.Size(88, 41);
             this.button43.TabIndex = 19;
             this.button43.Text = "Test";
             this.button43.UseVisualStyleBackColor = false;
@@ -1405,68 +1437,68 @@ namespace ASCOM.LocalServer
             // 
             // RAMaxMovement
             // 
-            this.RAMaxMovement.Location = new System.Drawing.Point(148, 134);
-            this.RAMaxMovement.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.RAMaxMovement.Location = new System.Drawing.Point(181, 161);
+            this.RAMaxMovement.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.RAMaxMovement.Name = "RAMaxMovement";
-            this.RAMaxMovement.Size = new System.Drawing.Size(108, 26);
+            this.RAMaxMovement.Size = new System.Drawing.Size(131, 29);
             this.RAMaxMovement.TabIndex = 11;
             // 
             // label35
             // 
             this.label35.AutoSize = true;
             this.label35.ForeColor = System.Drawing.Color.White;
-            this.label35.Location = new System.Drawing.Point(4, 134);
-            this.label35.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label35.Location = new System.Drawing.Point(5, 161);
+            this.label35.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label35.Name = "label35";
-            this.label35.Size = new System.Drawing.Size(135, 20);
+            this.label35.Size = new System.Drawing.Size(168, 25);
             this.label35.TabIndex = 10;
             this.label35.Text = "RA movement in °";
             // 
             // textBox18
             // 
-            this.textBox18.Location = new System.Drawing.Point(148, 289);
-            this.textBox18.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox18.Location = new System.Drawing.Point(181, 347);
+            this.textBox18.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox18.Name = "textBox18";
-            this.textBox18.Size = new System.Drawing.Size(108, 26);
+            this.textBox18.Size = new System.Drawing.Size(131, 29);
             this.textBox18.TabIndex = 45;
             // 
             // label44
             // 
             this.label44.AutoSize = true;
             this.label44.ForeColor = System.Drawing.Color.White;
-            this.label44.Location = new System.Drawing.Point(4, 292);
-            this.label44.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label44.Location = new System.Drawing.Point(5, 350);
+            this.label44.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label44.Name = "label44";
-            this.label44.Size = new System.Drawing.Size(104, 20);
+            this.label44.Size = new System.Drawing.Size(129, 25);
             this.label44.TabIndex = 44;
             this.label44.Text = "backlash arc\"";
             // 
             // textBox14
             // 
-            this.textBox14.Location = new System.Drawing.Point(148, 105);
-            this.textBox14.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox14.Location = new System.Drawing.Point(181, 126);
+            this.textBox14.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox14.Name = "textBox14";
-            this.textBox14.Size = new System.Drawing.Size(108, 26);
+            this.textBox14.Size = new System.Drawing.Size(131, 29);
             this.textBox14.TabIndex = 34;
             // 
             // label30
             // 
             this.label30.AutoSize = true;
             this.label30.ForeColor = System.Drawing.Color.White;
-            this.label30.Location = new System.Drawing.Point(4, 106);
-            this.label30.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label30.Location = new System.Drawing.Point(5, 127);
+            this.label30.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label30.Name = "label30";
-            this.label30.Size = new System.Drawing.Size(104, 20);
+            this.label30.Size = new System.Drawing.Size(129, 25);
             this.label30.TabIndex = 33;
             this.label30.Text = "backlash arc\"";
             // 
             // checkBox5
             // 
             this.checkBox5.AutoSize = true;
-            this.checkBox5.Location = new System.Drawing.Point(262, 265);
-            this.checkBox5.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox5.Location = new System.Drawing.Point(320, 318);
+            this.checkBox5.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox5.Name = "checkBox5";
-            this.checkBox5.Size = new System.Drawing.Size(73, 24);
+            this.checkBox5.Size = new System.Drawing.Size(85, 29);
             this.checkBox5.TabIndex = 42;
             this.checkBox5.Text = "invert";
             this.checkBox5.UseVisualStyleBackColor = true;
@@ -1474,10 +1506,10 @@ namespace ASCOM.LocalServer
             // checkBox4
             // 
             this.checkBox4.AutoSize = true;
-            this.checkBox4.Location = new System.Drawing.Point(262, 80);
-            this.checkBox4.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox4.Location = new System.Drawing.Point(320, 96);
+            this.checkBox4.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox4.Name = "checkBox4";
-            this.checkBox4.Size = new System.Drawing.Size(73, 24);
+            this.checkBox4.Size = new System.Drawing.Size(85, 29);
             this.checkBox4.TabIndex = 41;
             this.checkBox4.Text = "invert";
             this.checkBox4.UseVisualStyleBackColor = true;
@@ -1486,9 +1518,10 @@ namespace ASCOM.LocalServer
             // 
             this.decsps.AutoSize = true;
             this.decsps.ForeColor = System.Drawing.Color.White;
-            this.decsps.Location = new System.Drawing.Point(264, 206);
+            this.decsps.Location = new System.Drawing.Point(323, 247);
+            this.decsps.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.decsps.Name = "decsps";
-            this.decsps.Size = new System.Drawing.Size(21, 20);
+            this.decsps.Size = new System.Drawing.Size(28, 25);
             this.decsps.TabIndex = 20;
             this.decsps.Text = "/s";
             // 
@@ -1496,9 +1529,10 @@ namespace ASCOM.LocalServer
             // 
             this.rasps.AutoSize = true;
             this.rasps.ForeColor = System.Drawing.Color.White;
-            this.rasps.Location = new System.Drawing.Point(264, 22);
+            this.rasps.Location = new System.Drawing.Point(323, 26);
+            this.rasps.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.rasps.Name = "rasps";
-            this.rasps.Size = new System.Drawing.Size(21, 20);
+            this.rasps.Size = new System.Drawing.Size(28, 25);
             this.rasps.TabIndex = 19;
             this.rasps.Text = "/s";
             // 
@@ -1506,9 +1540,10 @@ namespace ASCOM.LocalServer
             // 
             this.decdps.AutoSize = true;
             this.decdps.ForeColor = System.Drawing.Color.White;
-            this.decdps.Location = new System.Drawing.Point(264, 235);
+            this.decdps.Location = new System.Drawing.Point(323, 282);
+            this.decdps.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.decdps.Name = "decdps";
-            this.decdps.Size = new System.Drawing.Size(21, 20);
+            this.decdps.Size = new System.Drawing.Size(28, 25);
             this.decdps.TabIndex = 18;
             this.decdps.Text = "/s";
             // 
@@ -1516,54 +1551,57 @@ namespace ASCOM.LocalServer
             // 
             this.radps.AutoSize = true;
             this.radps.ForeColor = System.Drawing.Color.White;
-            this.radps.Location = new System.Drawing.Point(264, 51);
+            this.radps.Location = new System.Drawing.Point(323, 61);
+            this.radps.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.radps.Name = "radps";
-            this.radps.Size = new System.Drawing.Size(21, 20);
+            this.radps.Size = new System.Drawing.Size(28, 25);
             this.radps.TabIndex = 17;
             this.radps.Text = "/s";
             // 
             // decMsToSpd
             // 
-            this.decMsToSpd.Location = new System.Drawing.Point(148, 260);
-            this.decMsToSpd.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.decMsToSpd.Location = new System.Drawing.Point(181, 312);
+            this.decMsToSpd.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.decMsToSpd.Name = "decMsToSpd";
-            this.decMsToSpd.Size = new System.Drawing.Size(108, 26);
+            this.decMsToSpd.Size = new System.Drawing.Size(131, 29);
             this.decMsToSpd.TabIndex = 6;
             // 
             // label15
             // 
             this.label15.AutoSize = true;
             this.label15.ForeColor = System.Drawing.Color.White;
-            this.label15.Location = new System.Drawing.Point(3, 265);
+            this.label15.Location = new System.Drawing.Point(4, 318);
+            this.label15.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label15.Name = "label15";
-            this.label15.Size = new System.Drawing.Size(132, 20);
+            this.label15.Size = new System.Drawing.Size(162, 25);
             this.label15.TabIndex = 10;
             this.label15.Text = "dec ms to full spd";
             // 
             // decMaxSpd
             // 
-            this.decMaxSpd.Location = new System.Drawing.Point(148, 231);
-            this.decMaxSpd.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.decMaxSpd.Location = new System.Drawing.Point(181, 277);
+            this.decMaxSpd.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.decMaxSpd.Name = "decMaxSpd";
-            this.decMaxSpd.Size = new System.Drawing.Size(108, 26);
+            this.decMaxSpd.Size = new System.Drawing.Size(131, 29);
             this.decMaxSpd.TabIndex = 5;
             // 
             // label16
             // 
             this.label16.AutoSize = true;
             this.label16.ForeColor = System.Drawing.Color.White;
-            this.label16.Location = new System.Drawing.Point(3, 235);
+            this.label16.Location = new System.Drawing.Point(4, 282);
+            this.label16.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(123, 20);
+            this.label16.Size = new System.Drawing.Size(154, 25);
             this.label16.TabIndex = 8;
             this.label16.Text = "dec max steps/s";
             // 
             // decMaxPos
             // 
-            this.decMaxPos.Location = new System.Drawing.Point(148, 202);
-            this.decMaxPos.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.decMaxPos.Location = new System.Drawing.Point(181, 242);
+            this.decMaxPos.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.decMaxPos.Name = "decMaxPos";
-            this.decMaxPos.Size = new System.Drawing.Size(108, 26);
+            this.decMaxPos.Size = new System.Drawing.Size(131, 29);
             this.decMaxPos.TabIndex = 4;
             this.decMaxPos.Text = " ";
             // 
@@ -1571,63 +1609,67 @@ namespace ASCOM.LocalServer
             // 
             this.label17.AutoSize = true;
             this.label17.ForeColor = System.Drawing.Color.White;
-            this.label17.Location = new System.Drawing.Point(3, 206);
+            this.label17.Location = new System.Drawing.Point(4, 247);
+            this.label17.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label17.Name = "label17";
-            this.label17.Size = new System.Drawing.Size(134, 20);
+            this.label17.Size = new System.Drawing.Size(163, 25);
             this.label17.TabIndex = 6;
             this.label17.Text = "dec steps full turn";
             // 
             // ramsToSpd
             // 
-            this.ramsToSpd.Location = new System.Drawing.Point(148, 75);
-            this.ramsToSpd.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.ramsToSpd.Location = new System.Drawing.Point(181, 90);
+            this.ramsToSpd.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.ramsToSpd.Name = "ramsToSpd";
-            this.ramsToSpd.Size = new System.Drawing.Size(108, 26);
+            this.ramsToSpd.Size = new System.Drawing.Size(131, 29);
             this.ramsToSpd.TabIndex = 3;
             // 
             // label14
             // 
             this.label14.AutoSize = true;
             this.label14.ForeColor = System.Drawing.Color.White;
-            this.label14.Location = new System.Drawing.Point(3, 78);
+            this.label14.Location = new System.Drawing.Point(4, 94);
+            this.label14.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(120, 20);
+            this.label14.Size = new System.Drawing.Size(147, 25);
             this.label14.TabIndex = 4;
             this.label14.Text = "ra ms to full spd";
             // 
             // raMaxSpd
             // 
-            this.raMaxSpd.Location = new System.Drawing.Point(148, 48);
-            this.raMaxSpd.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.raMaxSpd.Location = new System.Drawing.Point(181, 58);
+            this.raMaxSpd.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.raMaxSpd.Name = "raMaxSpd";
-            this.raMaxSpd.Size = new System.Drawing.Size(108, 26);
+            this.raMaxSpd.Size = new System.Drawing.Size(131, 29);
             this.raMaxSpd.TabIndex = 2;
             // 
             // label13
             // 
             this.label13.AutoSize = true;
             this.label13.ForeColor = System.Drawing.Color.White;
-            this.label13.Location = new System.Drawing.Point(3, 51);
+            this.label13.Location = new System.Drawing.Point(4, 61);
+            this.label13.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(111, 20);
+            this.label13.Size = new System.Drawing.Size(139, 25);
             this.label13.TabIndex = 2;
             this.label13.Text = "ra max steps/s";
             // 
             // raMaxPos
             // 
-            this.raMaxPos.Location = new System.Drawing.Point(148, 19);
-            this.raMaxPos.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.raMaxPos.Location = new System.Drawing.Point(181, 23);
+            this.raMaxPos.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.raMaxPos.Name = "raMaxPos";
-            this.raMaxPos.Size = new System.Drawing.Size(108, 26);
+            this.raMaxPos.Size = new System.Drawing.Size(131, 29);
             this.raMaxPos.TabIndex = 1;
             // 
             // label12
             // 
             this.label12.AutoSize = true;
             this.label12.ForeColor = System.Drawing.Color.White;
-            this.label12.Location = new System.Drawing.Point(3, 22);
+            this.label12.Location = new System.Drawing.Point(4, 26);
+            this.label12.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(122, 20);
+            this.label12.Size = new System.Drawing.Size(148, 25);
             this.label12.TabIndex = 0;
             this.label12.Text = "ra steps full turn";
             // 
@@ -1635,10 +1677,10 @@ namespace ASCOM.LocalServer
             // 
             this.button16.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button16.ForeColor = System.Drawing.Color.White;
-            this.button16.Location = new System.Drawing.Point(270, 15);
-            this.button16.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button16.Location = new System.Drawing.Point(330, 18);
+            this.button16.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button16.Name = "button16";
-            this.button16.Size = new System.Drawing.Size(68, 35);
+            this.button16.Size = new System.Drawing.Size(83, 42);
             this.button16.TabIndex = 16;
             this.button16.Text = "Auto";
             this.toolTip1.SetToolTip(this.button16, "Wait at least 5 minutes after the mount starts. click here and it will automatica" +
@@ -1648,10 +1690,10 @@ namespace ASCOM.LocalServer
             // 
             // timeComp
             // 
-            this.timeComp.Location = new System.Drawing.Point(148, 20);
-            this.timeComp.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.timeComp.Location = new System.Drawing.Point(181, 24);
+            this.timeComp.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.timeComp.Name = "timeComp";
-            this.timeComp.Size = new System.Drawing.Size(108, 26);
+            this.timeComp.Size = new System.Drawing.Size(131, 29);
             this.timeComp.TabIndex = 7;
             this.toolTip1.SetToolTip(this.timeComp, "This is a compensation factor (with a 2^24). Use \"auto\" on the right");
             // 
@@ -1659,9 +1701,10 @@ namespace ASCOM.LocalServer
             // 
             this.label21.AutoSize = true;
             this.label21.ForeColor = System.Drawing.Color.White;
-            this.label21.Location = new System.Drawing.Point(4, 25);
+            this.label21.Location = new System.Drawing.Point(5, 30);
+            this.label21.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label21.Name = "label21";
-            this.label21.Size = new System.Drawing.Size(112, 20);
+            this.label21.Size = new System.Drawing.Size(139, 25);
             this.label21.TabIndex = 14;
             this.label21.Text = "Compensation";
             // 
@@ -1669,10 +1712,10 @@ namespace ASCOM.LocalServer
             // 
             this.button6.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button6.ForeColor = System.Drawing.Color.White;
-            this.button6.Location = new System.Drawing.Point(636, 525);
-            this.button6.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button6.Location = new System.Drawing.Point(777, 630);
+            this.button6.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button6.Name = "button6";
-            this.button6.Size = new System.Drawing.Size(122, 38);
+            this.button6.Size = new System.Drawing.Size(149, 46);
             this.button6.TabIndex = 13;
             this.button6.Text = "Reload HW";
             this.button6.UseVisualStyleBackColor = false;
@@ -1682,10 +1725,10 @@ namespace ASCOM.LocalServer
             // 
             this.button5.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button5.ForeColor = System.Drawing.Color.White;
-            this.button5.Location = new System.Drawing.Point(636, 489);
-            this.button5.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button5.Location = new System.Drawing.Point(777, 587);
+            this.button5.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button5.Name = "button5";
-            this.button5.Size = new System.Drawing.Size(122, 38);
+            this.button5.Size = new System.Drawing.Size(149, 46);
             this.button5.TabIndex = 12;
             this.button5.Text = "Save in HW";
             this.button5.UseVisualStyleBackColor = false;
@@ -1698,11 +1741,11 @@ namespace ASCOM.LocalServer
             this.groupBox1.Controls.Add(this.groupBox13);
             this.groupBox1.Controls.Add(this.groupBox12);
             this.groupBox1.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox1.Location = new System.Drawing.Point(9, 486);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox1.Location = new System.Drawing.Point(11, 583);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox1.Size = new System.Drawing.Size(615, 125);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox1.Size = new System.Drawing.Size(752, 150);
             this.groupBox1.TabIndex = 39;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "guiding rate";
@@ -1711,9 +1754,10 @@ namespace ASCOM.LocalServer
             // 
             this.labelGuiding.AutoSize = true;
             this.labelGuiding.ForeColor = System.Drawing.Color.White;
-            this.labelGuiding.Location = new System.Drawing.Point(190, 118);
+            this.labelGuiding.Location = new System.Drawing.Point(232, 142);
+            this.labelGuiding.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelGuiding.Name = "labelGuiding";
-            this.labelGuiding.Size = new System.Drawing.Size(0, 20);
+            this.labelGuiding.Size = new System.Drawing.Size(0, 25);
             this.labelGuiding.TabIndex = 43;
             // 
             // groupBox13
@@ -1727,11 +1771,11 @@ namespace ASCOM.LocalServer
             this.groupBox13.Controls.Add(this.checkBox2);
             this.groupBox13.Controls.Add(this.raGuideStop);
             this.groupBox13.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox13.Location = new System.Drawing.Point(9, 20);
-            this.groupBox13.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox13.Location = new System.Drawing.Point(11, 24);
+            this.groupBox13.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox13.Name = "groupBox13";
-            this.groupBox13.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox13.Size = new System.Drawing.Size(288, 94);
+            this.groupBox13.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox13.Size = new System.Drawing.Size(352, 113);
             this.groupBox13.TabIndex = 42;
             this.groupBox13.TabStop = false;
             this.groupBox13.Text = "Right Assension";
@@ -1739,10 +1783,10 @@ namespace ASCOM.LocalServer
             // checkBox9
             // 
             this.checkBox9.AutoSize = true;
-            this.checkBox9.Location = new System.Drawing.Point(12, 60);
-            this.checkBox9.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox9.Location = new System.Drawing.Point(15, 72);
+            this.checkBox9.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox9.Name = "checkBox9";
-            this.checkBox9.Size = new System.Drawing.Size(106, 24);
+            this.checkBox9.Size = new System.Drawing.Size(125, 29);
             this.checkBox9.TabIndex = 43;
             this.checkBox9.Text = "Pier Invert";
             this.checkBox9.UseVisualStyleBackColor = true;
@@ -1750,10 +1794,10 @@ namespace ASCOM.LocalServer
             // 
             // textBox20
             // 
-            this.textBox20.Location = new System.Drawing.Point(231, 22);
-            this.textBox20.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox20.Location = new System.Drawing.Point(282, 26);
+            this.textBox20.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox20.Name = "textBox20";
-            this.textBox20.Size = new System.Drawing.Size(44, 26);
+            this.textBox20.Size = new System.Drawing.Size(53, 29);
             this.textBox20.TabIndex = 42;
             this.textBox20.Text = "1.0";
             this.toolTip1.SetToolTip(this.textBox20, "Multiply any move request by this number");
@@ -1761,19 +1805,20 @@ namespace ASCOM.LocalServer
             // 
             // textBox15
             // 
-            this.textBox15.Location = new System.Drawing.Point(12, 22);
-            this.textBox15.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox15.Location = new System.Drawing.Point(15, 26);
+            this.textBox15.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox15.Name = "textBox15";
-            this.textBox15.Size = new System.Drawing.Size(66, 26);
+            this.textBox15.Size = new System.Drawing.Size(80, 29);
             this.textBox15.TabIndex = 40;
             // 
             // label46
             // 
             this.label46.AutoSize = true;
             this.label46.ForeColor = System.Drawing.Color.White;
-            this.label46.Location = new System.Drawing.Point(140, 26);
+            this.label46.Location = new System.Drawing.Point(171, 31);
+            this.label46.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label46.Name = "label46";
-            this.label46.Size = new System.Drawing.Size(84, 20);
+            this.label46.Size = new System.Drawing.Size(107, 25);
             this.label46.TabIndex = 41;
             this.label46.Text = "Agressivity";
             // 
@@ -1781,20 +1826,20 @@ namespace ASCOM.LocalServer
             // 
             this.label20.AutoSize = true;
             this.label20.ForeColor = System.Drawing.Color.White;
-            this.label20.Location = new System.Drawing.Point(86, 26);
-            this.label20.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label20.Location = new System.Drawing.Point(105, 31);
+            this.label20.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label20.Name = "label20";
-            this.label20.Size = new System.Drawing.Size(49, 20);
+            this.label20.Size = new System.Drawing.Size(62, 25);
             this.label20.TabIndex = 39;
             this.label20.Text = "arc\"/s";
             // 
             // checkBox2
             // 
             this.checkBox2.AutoSize = true;
-            this.checkBox2.Location = new System.Drawing.Point(132, 60);
-            this.checkBox2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox2.Location = new System.Drawing.Point(161, 72);
+            this.checkBox2.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(73, 24);
+            this.checkBox2.Size = new System.Drawing.Size(85, 29);
             this.checkBox2.TabIndex = 35;
             this.checkBox2.Text = "invert";
             this.checkBox2.UseVisualStyleBackColor = true;
@@ -1803,10 +1848,10 @@ namespace ASCOM.LocalServer
             // raGuideStop
             // 
             this.raGuideStop.AutoSize = true;
-            this.raGuideStop.Location = new System.Drawing.Point(217, 60);
-            this.raGuideStop.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.raGuideStop.Location = new System.Drawing.Point(265, 72);
+            this.raGuideStop.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.raGuideStop.Name = "raGuideStop";
-            this.raGuideStop.Size = new System.Drawing.Size(66, 24);
+            this.raGuideStop.Size = new System.Drawing.Size(75, 29);
             this.raGuideStop.TabIndex = 37;
             this.raGuideStop.Text = "stop";
             this.raGuideStop.UseVisualStyleBackColor = true;
@@ -1823,11 +1868,11 @@ namespace ASCOM.LocalServer
             this.groupBox12.Controls.Add(this.checkBox3);
             this.groupBox12.Controls.Add(this.label18);
             this.groupBox12.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox12.Location = new System.Drawing.Point(309, 20);
-            this.groupBox12.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox12.Location = new System.Drawing.Point(378, 24);
+            this.groupBox12.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox12.Name = "groupBox12";
-            this.groupBox12.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox12.Size = new System.Drawing.Size(291, 94);
+            this.groupBox12.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox12.Size = new System.Drawing.Size(356, 113);
             this.groupBox12.TabIndex = 41;
             this.groupBox12.TabStop = false;
             this.groupBox12.Text = "Declinaison";
@@ -1835,10 +1880,10 @@ namespace ASCOM.LocalServer
             // checkBox10
             // 
             this.checkBox10.AutoSize = true;
-            this.checkBox10.Location = new System.Drawing.Point(14, 59);
-            this.checkBox10.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox10.Location = new System.Drawing.Point(17, 71);
+            this.checkBox10.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox10.Name = "checkBox10";
-            this.checkBox10.Size = new System.Drawing.Size(106, 24);
+            this.checkBox10.Size = new System.Drawing.Size(125, 29);
             this.checkBox10.TabIndex = 44;
             this.checkBox10.Text = "Pier Invert";
             this.checkBox10.UseVisualStyleBackColor = true;
@@ -1846,30 +1891,30 @@ namespace ASCOM.LocalServer
             // 
             // textBox6
             // 
-            this.textBox6.Location = new System.Drawing.Point(14, 22);
-            this.textBox6.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox6.Location = new System.Drawing.Point(17, 26);
+            this.textBox6.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox6.Name = "textBox6";
-            this.textBox6.Size = new System.Drawing.Size(66, 26);
+            this.textBox6.Size = new System.Drawing.Size(80, 29);
             this.textBox6.TabIndex = 32;
             // 
             // label19
             // 
             this.label19.AutoSize = true;
             this.label19.ForeColor = System.Drawing.Color.White;
-            this.label19.Location = new System.Drawing.Point(87, 26);
-            this.label19.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label19.Location = new System.Drawing.Point(106, 31);
+            this.label19.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label19.Name = "label19";
-            this.label19.Size = new System.Drawing.Size(49, 20);
+            this.label19.Size = new System.Drawing.Size(62, 25);
             this.label19.TabIndex = 30;
             this.label19.Text = "arc\"/s";
             // 
             // decGuideStop
             // 
             this.decGuideStop.AutoSize = true;
-            this.decGuideStop.Location = new System.Drawing.Point(216, 59);
-            this.decGuideStop.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.decGuideStop.Location = new System.Drawing.Point(264, 71);
+            this.decGuideStop.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.decGuideStop.Name = "decGuideStop";
-            this.decGuideStop.Size = new System.Drawing.Size(66, 24);
+            this.decGuideStop.Size = new System.Drawing.Size(75, 29);
             this.decGuideStop.TabIndex = 38;
             this.decGuideStop.Text = "stop";
             this.decGuideStop.UseVisualStyleBackColor = true;
@@ -1877,10 +1922,10 @@ namespace ASCOM.LocalServer
             // 
             // textBox7
             // 
-            this.textBox7.Location = new System.Drawing.Point(233, 22);
-            this.textBox7.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox7.Location = new System.Drawing.Point(285, 26);
+            this.textBox7.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox7.Name = "textBox7";
-            this.textBox7.Size = new System.Drawing.Size(44, 26);
+            this.textBox7.Size = new System.Drawing.Size(53, 29);
             this.textBox7.TabIndex = 40;
             this.textBox7.Text = "1.0";
             this.toolTip1.SetToolTip(this.textBox7, "Multiply any move request by this number");
@@ -1889,10 +1934,10 @@ namespace ASCOM.LocalServer
             // checkBox3
             // 
             this.checkBox3.AutoSize = true;
-            this.checkBox3.Location = new System.Drawing.Point(136, 59);
-            this.checkBox3.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox3.Location = new System.Drawing.Point(166, 71);
+            this.checkBox3.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox3.Name = "checkBox3";
-            this.checkBox3.Size = new System.Drawing.Size(73, 24);
+            this.checkBox3.Size = new System.Drawing.Size(85, 29);
             this.checkBox3.TabIndex = 36;
             this.checkBox3.Text = "invert";
             this.checkBox3.UseVisualStyleBackColor = true;
@@ -1902,9 +1947,10 @@ namespace ASCOM.LocalServer
             // 
             this.label18.AutoSize = true;
             this.label18.ForeColor = System.Drawing.Color.White;
-            this.label18.Location = new System.Drawing.Point(141, 26);
+            this.label18.Location = new System.Drawing.Point(172, 31);
+            this.label18.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(84, 20);
+            this.label18.Size = new System.Drawing.Size(107, 25);
             this.label18.TabIndex = 39;
             this.label18.Text = "Agressivity";
             // 
@@ -1922,11 +1968,11 @@ namespace ASCOM.LocalServer
             this.groupBox7.Controls.Add(this.button13);
             this.groupBox7.Controls.Add(this.logBox);
             this.groupBox7.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox7.Location = new System.Drawing.Point(489, 12);
-            this.groupBox7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox7.Location = new System.Drawing.Point(598, 14);
+            this.groupBox7.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox7.Name = "groupBox7";
-            this.groupBox7.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox7.Size = new System.Drawing.Size(771, 737);
+            this.groupBox7.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox7.Size = new System.Drawing.Size(942, 884);
             this.groupBox7.TabIndex = 40;
             this.groupBox7.TabStop = false;
             this.groupBox7.Text = "Log";
@@ -1940,11 +1986,11 @@ namespace ASCOM.LocalServer
             this.groupBox17.Controls.Add(this.FreezeLastResponse);
             this.groupBox17.Controls.Add(this.NbResponses);
             this.groupBox17.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox17.Location = new System.Drawing.Point(9, 622);
-            this.groupBox17.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox17.Location = new System.Drawing.Point(11, 746);
+            this.groupBox17.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox17.Name = "groupBox17";
-            this.groupBox17.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox17.Size = new System.Drawing.Size(752, 105);
+            this.groupBox17.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox17.Size = new System.Drawing.Size(919, 126);
             this.groupBox17.TabIndex = 63;
             this.groupBox17.TabStop = false;
             this.groupBox17.Text = "HW raw comunication";
@@ -1956,10 +2002,10 @@ namespace ASCOM.LocalServer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.lastRep1.BackColor = System.Drawing.SystemColors.WindowText;
             this.lastRep1.ForeColor = System.Drawing.SystemColors.Window;
-            this.lastRep1.Location = new System.Drawing.Point(9, 26);
-            this.lastRep1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.lastRep1.Location = new System.Drawing.Point(11, 31);
+            this.lastRep1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.lastRep1.Name = "lastRep1";
-            this.lastRep1.Size = new System.Drawing.Size(638, 26);
+            this.lastRep1.Size = new System.Drawing.Size(779, 29);
             this.lastRep1.TabIndex = 59;
             this.lastRep1.WordWrap = false;
             // 
@@ -1970,20 +2016,20 @@ namespace ASCOM.LocalServer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.lastRep2.BackColor = System.Drawing.SystemColors.WindowText;
             this.lastRep2.ForeColor = System.Drawing.SystemColors.Window;
-            this.lastRep2.Location = new System.Drawing.Point(9, 62);
-            this.lastRep2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.lastRep2.Location = new System.Drawing.Point(11, 74);
+            this.lastRep2.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.lastRep2.Name = "lastRep2";
-            this.lastRep2.Size = new System.Drawing.Size(638, 26);
+            this.lastRep2.Size = new System.Drawing.Size(779, 29);
             this.lastRep2.TabIndex = 60;
             this.lastRep2.WordWrap = false;
             // 
             // FreezeLastResponse
             // 
             this.FreezeLastResponse.AutoSize = true;
-            this.FreezeLastResponse.Location = new System.Drawing.Point(656, 34);
-            this.FreezeLastResponse.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.FreezeLastResponse.Location = new System.Drawing.Point(802, 41);
+            this.FreezeLastResponse.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.FreezeLastResponse.Name = "FreezeLastResponse";
-            this.FreezeLastResponse.Size = new System.Drawing.Size(85, 24);
+            this.FreezeLastResponse.Size = new System.Drawing.Size(99, 29);
             this.FreezeLastResponse.TabIndex = 48;
             this.FreezeLastResponse.Text = "Freeze";
             this.FreezeLastResponse.UseVisualStyleBackColor = true;
@@ -1992,9 +2038,10 @@ namespace ASCOM.LocalServer
             // 
             this.NbResponses.AutoSize = true;
             this.NbResponses.ForeColor = System.Drawing.Color.White;
-            this.NbResponses.Location = new System.Drawing.Point(651, 68);
+            this.NbResponses.Location = new System.Drawing.Point(796, 82);
+            this.NbResponses.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.NbResponses.Name = "NbResponses";
-            this.NbResponses.Size = new System.Drawing.Size(38, 20);
+            this.NbResponses.Size = new System.Drawing.Size(49, 25);
             this.NbResponses.TabIndex = 61;
             this.NbResponses.Text = "Cnt:";
             // 
@@ -2002,6 +2049,7 @@ namespace ASCOM.LocalServer
             // 
             this.groupBox16.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
             this.groupBox16.BackColor = System.Drawing.SystemColors.WindowText;
+            this.groupBox16.Controls.Add(this.ShowTimes);
             this.groupBox16.Controls.Add(this.checkBox1);
             this.groupBox16.Controls.Add(this.checkBox8);
             this.groupBox16.Controls.Add(this.checkboxlogsystem);
@@ -2009,14 +2057,28 @@ namespace ASCOM.LocalServer
             this.groupBox16.Controls.Add(this.checkBox15);
             this.groupBox16.Controls.Add(this.checkBox16);
             this.groupBox16.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox16.Location = new System.Drawing.Point(15, 447);
-            this.groupBox16.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox16.Location = new System.Drawing.Point(18, 536);
+            this.groupBox16.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox16.Name = "groupBox16";
-            this.groupBox16.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox16.Size = new System.Drawing.Size(235, 172);
+            this.groupBox16.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox16.Size = new System.Drawing.Size(287, 206);
             this.groupBox16.TabIndex = 63;
             this.groupBox16.TabStop = false;
             this.groupBox16.Text = "Log filtering";
+            // 
+            // ShowTimes
+            // 
+            this.ShowTimes.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.ShowTimes.AutoSize = true;
+            this.ShowTimes.BackColor = System.Drawing.SystemColors.WindowText;
+            this.ShowTimes.ForeColor = System.Drawing.SystemColors.Window;
+            this.ShowTimes.Location = new System.Drawing.Point(181, 172);
+            this.ShowTimes.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.ShowTimes.Name = "ShowTimes";
+            this.ShowTimes.Size = new System.Drawing.Size(92, 29);
+            this.ShowTimes.TabIndex = 59;
+            this.ShowTimes.Text = "Times";
+            this.ShowTimes.UseVisualStyleBackColor = false;
             // 
             // checkBox1
             // 
@@ -2024,10 +2086,10 @@ namespace ASCOM.LocalServer
             this.checkBox1.AutoSize = true;
             this.checkBox1.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox1.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox1.Location = new System.Drawing.Point(12, 96);
-            this.checkBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox1.Location = new System.Drawing.Point(15, 115);
+            this.checkBox1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(198, 24);
+            this.checkBox1.Size = new System.Drawing.Size(240, 29);
             this.checkBox1.TabIndex = 58;
             this.checkBox1.Text = "Show serial commands";
             this.checkBox1.UseVisualStyleBackColor = false;
@@ -2038,10 +2100,10 @@ namespace ASCOM.LocalServer
             this.checkBox8.AutoSize = true;
             this.checkBox8.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox8.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox8.Location = new System.Drawing.Point(12, 74);
-            this.checkBox8.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox8.Location = new System.Drawing.Point(15, 89);
+            this.checkBox8.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox8.Name = "checkBox8";
-            this.checkBox8.Size = new System.Drawing.Size(212, 24);
+            this.checkBox8.Size = new System.Drawing.Size(254, 29);
             this.checkBox8.TabIndex = 55;
             this.checkBox8.Text = "show frequent ascom log";
             this.checkBox8.UseVisualStyleBackColor = false;
@@ -2054,10 +2116,10 @@ namespace ASCOM.LocalServer
             this.checkboxlogsystem.Checked = true;
             this.checkboxlogsystem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkboxlogsystem.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkboxlogsystem.Location = new System.Drawing.Point(12, 26);
-            this.checkboxlogsystem.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkboxlogsystem.Location = new System.Drawing.Point(15, 31);
+            this.checkboxlogsystem.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkboxlogsystem.Name = "checkboxlogsystem";
-            this.checkboxlogsystem.Size = new System.Drawing.Size(154, 24);
+            this.checkboxlogsystem.Size = new System.Drawing.Size(186, 29);
             this.checkboxlogsystem.TabIndex = 49;
             this.checkboxlogsystem.Text = "Show system log";
             this.checkboxlogsystem.UseVisualStyleBackColor = false;
@@ -2071,10 +2133,10 @@ namespace ASCOM.LocalServer
             this.checkboxascom.Checked = true;
             this.checkboxascom.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkboxascom.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkboxascom.Location = new System.Drawing.Point(12, 51);
-            this.checkboxascom.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkboxascom.Location = new System.Drawing.Point(15, 61);
+            this.checkboxascom.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkboxascom.Name = "checkboxascom";
-            this.checkboxascom.Size = new System.Drawing.Size(148, 24);
+            this.checkboxascom.Size = new System.Drawing.Size(178, 29);
             this.checkboxascom.TabIndex = 54;
             this.checkboxascom.Text = "show ascom log";
             this.checkboxascom.UseVisualStyleBackColor = false;
@@ -2088,10 +2150,10 @@ namespace ASCOM.LocalServer
             this.checkBox15.Checked = true;
             this.checkBox15.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox15.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox15.Location = new System.Drawing.Point(12, 120);
-            this.checkBox15.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox15.Location = new System.Drawing.Point(15, 144);
+            this.checkBox15.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox15.Name = "checkBox15";
-            this.checkBox15.Size = new System.Drawing.Size(137, 24);
+            this.checkBox15.Size = new System.Drawing.Size(164, 29);
             this.checkBox15.TabIndex = 56;
             this.checkBox15.Text = "show phd2 log";
             this.checkBox15.UseVisualStyleBackColor = false;
@@ -2104,10 +2166,10 @@ namespace ASCOM.LocalServer
             this.checkBox16.Checked = true;
             this.checkBox16.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox16.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox16.Location = new System.Drawing.Point(12, 142);
-            this.checkBox16.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox16.Location = new System.Drawing.Point(15, 170);
+            this.checkBox16.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox16.Name = "checkBox16";
-            this.checkBox16.Size = new System.Drawing.Size(120, 24);
+            this.checkBox16.Size = new System.Drawing.Size(144, 29);
             this.checkBox16.TabIndex = 57;
             this.checkBox16.Text = "show iss log";
             this.checkBox16.UseVisualStyleBackColor = false;
@@ -2121,11 +2183,11 @@ namespace ASCOM.LocalServer
             this.groupBox9.Controls.Add(this.button32);
             this.groupBox9.Controls.Add(this.button33);
             this.groupBox9.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox9.Location = new System.Drawing.Point(261, 447);
-            this.groupBox9.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox9.Location = new System.Drawing.Point(319, 536);
+            this.groupBox9.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox9.Name = "groupBox9";
-            this.groupBox9.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox9.Size = new System.Drawing.Size(159, 172);
+            this.groupBox9.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox9.Size = new System.Drawing.Size(194, 206);
             this.groupBox9.TabIndex = 62;
             this.groupBox9.TabStop = false;
             this.groupBox9.Text = "Guide Pulse (1s)";
@@ -2135,10 +2197,10 @@ namespace ASCOM.LocalServer
             this.button26.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button26.BackColor = System.Drawing.SystemColors.WindowText;
             this.button26.ForeColor = System.Drawing.SystemColors.Window;
-            this.button26.Location = new System.Drawing.Point(49, 27);
-            this.button26.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button26.Location = new System.Drawing.Point(60, 32);
+            this.button26.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button26.Name = "button26";
-            this.button26.Size = new System.Drawing.Size(60, 35);
+            this.button26.Size = new System.Drawing.Size(73, 42);
             this.button26.TabIndex = 50;
             this.button26.Text = "North";
             this.button26.UseVisualStyleBackColor = false;
@@ -2149,10 +2211,10 @@ namespace ASCOM.LocalServer
             this.button31.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button31.BackColor = System.Drawing.SystemColors.WindowText;
             this.button31.ForeColor = System.Drawing.SystemColors.Window;
-            this.button31.Location = new System.Drawing.Point(85, 72);
-            this.button31.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button31.Location = new System.Drawing.Point(104, 86);
+            this.button31.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button31.Name = "button31";
-            this.button31.Size = new System.Drawing.Size(60, 35);
+            this.button31.Size = new System.Drawing.Size(73, 42);
             this.button31.TabIndex = 51;
             this.button31.Text = "East";
             this.button31.UseVisualStyleBackColor = false;
@@ -2163,10 +2225,10 @@ namespace ASCOM.LocalServer
             this.button32.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button32.BackColor = System.Drawing.SystemColors.WindowText;
             this.button32.ForeColor = System.Drawing.SystemColors.Window;
-            this.button32.Location = new System.Drawing.Point(12, 72);
-            this.button32.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button32.Location = new System.Drawing.Point(15, 86);
+            this.button32.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button32.Name = "button32";
-            this.button32.Size = new System.Drawing.Size(60, 35);
+            this.button32.Size = new System.Drawing.Size(73, 42);
             this.button32.TabIndex = 52;
             this.button32.Text = "West";
             this.button32.UseVisualStyleBackColor = false;
@@ -2177,10 +2239,10 @@ namespace ASCOM.LocalServer
             this.button33.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button33.BackColor = System.Drawing.SystemColors.WindowText;
             this.button33.ForeColor = System.Drawing.SystemColors.Window;
-            this.button33.Location = new System.Drawing.Point(49, 118);
-            this.button33.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button33.Location = new System.Drawing.Point(60, 142);
+            this.button33.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button33.Name = "button33";
-            this.button33.Size = new System.Drawing.Size(60, 35);
+            this.button33.Size = new System.Drawing.Size(73, 42);
             this.button33.TabIndex = 53;
             this.button33.Text = "South";
             this.button33.UseVisualStyleBackColor = false;
@@ -2198,11 +2260,11 @@ namespace ASCOM.LocalServer
             this.groupBox15.Controls.Add(this.label52);
             this.groupBox15.Controls.Add(this.label41);
             this.groupBox15.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox15.Location = new System.Drawing.Point(426, 447);
-            this.groupBox15.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox15.Location = new System.Drawing.Point(521, 536);
+            this.groupBox15.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox15.Name = "groupBox15";
-            this.groupBox15.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox15.Size = new System.Drawing.Size(335, 172);
+            this.groupBox15.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox15.Size = new System.Drawing.Size(409, 206);
             this.groupBox15.TabIndex = 49;
             this.groupBox15.TabStop = false;
             this.groupBox15.Text = "Absolute position";
@@ -2212,10 +2274,10 @@ namespace ASCOM.LocalServer
             this.button45.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.button45.BackColor = System.Drawing.SystemColors.WindowText;
             this.button45.ForeColor = System.Drawing.SystemColors.Window;
-            this.button45.Location = new System.Drawing.Point(225, 72);
-            this.button45.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button45.Location = new System.Drawing.Point(275, 86);
+            this.button45.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button45.Name = "button45";
-            this.button45.Size = new System.Drawing.Size(99, 35);
+            this.button45.Size = new System.Drawing.Size(121, 42);
             this.button45.TabIndex = 54;
             this.button45.Text = "Calib BNO";
             this.toolTip1.SetToolTip(this.button45, "Click here to calibrate the absolute position sensor");
@@ -2226,27 +2288,28 @@ namespace ASCOM.LocalServer
             // 
             this.BNO0.AutoSize = true;
             this.BNO0.ForeColor = System.Drawing.Color.White;
-            this.BNO0.Location = new System.Drawing.Point(5, 86);
+            this.BNO0.Location = new System.Drawing.Point(6, 103);
+            this.BNO0.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.BNO0.Name = "BNO0";
-            this.BNO0.Size = new System.Drawing.Size(43, 20);
+            this.BNO0.Size = new System.Drawing.Size(55, 25);
             this.BNO0.TabIndex = 59;
             this.BNO0.Text = "BNO";
             // 
             // BNO2
             // 
-            this.BNO2.Location = new System.Drawing.Point(10, 142);
-            this.BNO2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.BNO2.Location = new System.Drawing.Point(12, 170);
+            this.BNO2.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.BNO2.Name = "BNO2";
-            this.BNO2.Size = new System.Drawing.Size(314, 26);
+            this.BNO2.Size = new System.Drawing.Size(383, 29);
             this.BNO2.TabIndex = 58;
             this.toolTip1.SetToolTip(this.BNO2, "Absolute sensor calculated ra/dec alt/az coordinates");
             // 
             // BNO1
             // 
-            this.BNO1.Location = new System.Drawing.Point(10, 110);
-            this.BNO1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.BNO1.Location = new System.Drawing.Point(12, 132);
+            this.BNO1.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.BNO1.Name = "BNO1";
-            this.BNO1.Size = new System.Drawing.Size(314, 26);
+            this.BNO1.Size = new System.Drawing.Size(383, 29);
             this.BNO1.TabIndex = 57;
             this.toolTip1.SetToolTip(this.BNO1, "Absolute position quaternion");
             // 
@@ -2254,9 +2317,10 @@ namespace ASCOM.LocalServer
             // 
             this.label42.AutoSize = true;
             this.label42.ForeColor = System.Drawing.Color.White;
-            this.label42.Location = new System.Drawing.Point(6, 40);
+            this.label42.Location = new System.Drawing.Point(7, 48);
+            this.label42.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label42.Name = "label42";
-            this.label42.Size = new System.Drawing.Size(83, 20);
+            this.label42.Size = new System.Drawing.Size(102, 25);
             this.label42.TabIndex = 56;
             this.label42.Text = "Motor Dec";
             // 
@@ -2264,9 +2328,10 @@ namespace ASCOM.LocalServer
             // 
             this.label52.AutoSize = true;
             this.label52.ForeColor = System.Drawing.Color.White;
-            this.label52.Location = new System.Drawing.Point(6, 62);
+            this.label52.Location = new System.Drawing.Point(7, 74);
+            this.label52.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label52.Name = "label52";
-            this.label52.Size = new System.Drawing.Size(98, 20);
+            this.label52.Size = new System.Drawing.Size(121, 25);
             this.label52.TabIndex = 56;
             this.label52.Text = "Motor Focus";
             // 
@@ -2274,9 +2339,10 @@ namespace ASCOM.LocalServer
             // 
             this.label41.AutoSize = true;
             this.label41.ForeColor = System.Drawing.Color.White;
-            this.label41.Location = new System.Drawing.Point(6, 18);
+            this.label41.Location = new System.Drawing.Point(7, 22);
+            this.label41.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label41.Name = "label41";
-            this.label41.Size = new System.Drawing.Size(77, 20);
+            this.label41.Size = new System.Drawing.Size(94, 25);
             this.label41.TabIndex = 55;
             this.label41.Text = "Motor RA";
             // 
@@ -2284,9 +2350,10 @@ namespace ASCOM.LocalServer
             // 
             this.label37.AutoSize = true;
             this.label37.ForeColor = System.Drawing.Color.White;
-            this.label37.Location = new System.Drawing.Point(306, 559);
+            this.label37.Location = new System.Drawing.Point(374, 671);
+            this.label37.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label37.Name = "label37";
-            this.label37.Size = new System.Drawing.Size(0, 20);
+            this.label37.Size = new System.Drawing.Size(0, 25);
             this.label37.TabIndex = 13;
             // 
             // button14
@@ -2294,10 +2361,10 @@ namespace ASCOM.LocalServer
             this.button14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button14.BackColor = System.Drawing.SystemColors.WindowText;
             this.button14.ForeColor = System.Drawing.SystemColors.Window;
-            this.button14.Location = new System.Drawing.Point(651, 9);
-            this.button14.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button14.Location = new System.Drawing.Point(796, 11);
+            this.button14.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button14.Name = "button14";
-            this.button14.Size = new System.Drawing.Size(102, 31);
+            this.button14.Size = new System.Drawing.Size(125, 37);
             this.button14.TabIndex = 2;
             this.button14.Text = "Clear";
             this.button14.UseVisualStyleBackColor = false;
@@ -2308,10 +2375,10 @@ namespace ASCOM.LocalServer
             this.button13.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button13.BackColor = System.Drawing.SystemColors.WindowText;
             this.button13.ForeColor = System.Drawing.SystemColors.Window;
-            this.button13.Location = new System.Drawing.Point(492, 9);
-            this.button13.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button13.Location = new System.Drawing.Point(601, 11);
+            this.button13.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button13.Name = "button13";
-            this.button13.Size = new System.Drawing.Size(153, 31);
+            this.button13.Size = new System.Drawing.Size(187, 37);
             this.button13.TabIndex = 1;
             this.button13.Text = "Save to Clipboard";
             this.button13.UseVisualStyleBackColor = false;
@@ -2324,12 +2391,12 @@ namespace ASCOM.LocalServer
             | System.Windows.Forms.AnchorStyles.Right)));
             this.logBox.BackColor = System.Drawing.SystemColors.WindowText;
             this.logBox.ForeColor = System.Drawing.SystemColors.Window;
-            this.logBox.Location = new System.Drawing.Point(15, 46);
-            this.logBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.logBox.Location = new System.Drawing.Point(18, 55);
+            this.logBox.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.logBox.Multiline = true;
             this.logBox.Name = "logBox";
             this.logBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.logBox.Size = new System.Drawing.Size(746, 395);
+            this.logBox.Size = new System.Drawing.Size(911, 473);
             this.logBox.TabIndex = 0;
             this.logBox.WordWrap = false;
             // 
@@ -2337,10 +2404,10 @@ namespace ASCOM.LocalServer
             // 
             this.button15.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button15.ForeColor = System.Drawing.Color.White;
-            this.button15.Location = new System.Drawing.Point(400, 18);
-            this.button15.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button15.Location = new System.Drawing.Point(489, 22);
+            this.button15.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button15.Name = "button15";
-            this.button15.Size = new System.Drawing.Size(68, 48);
+            this.button15.Size = new System.Drawing.Size(83, 58);
             this.button15.TabIndex = 41;
             this.button15.Text = "Log";
             this.button15.UseVisualStyleBackColor = false;
@@ -2350,10 +2417,10 @@ namespace ASCOM.LocalServer
             // 
             this.button17.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button17.ForeColor = System.Drawing.Color.White;
-            this.button17.Location = new System.Drawing.Point(234, 18);
-            this.button17.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button17.Location = new System.Drawing.Point(286, 22);
+            this.button17.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button17.Name = "button17";
-            this.button17.Size = new System.Drawing.Size(86, 48);
+            this.button17.Size = new System.Drawing.Size(105, 58);
             this.button17.TabIndex = 42;
             this.button17.Text = "Catalogs";
             this.button17.UseVisualStyleBackColor = false;
@@ -2375,11 +2442,11 @@ namespace ASCOM.LocalServer
             this.groupBox8.Controls.Add(this.rbC);
             this.groupBox8.Controls.Add(this.rbMessier);
             this.groupBox8.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox8.Location = new System.Drawing.Point(490, 15);
-            this.groupBox8.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox8.Location = new System.Drawing.Point(599, 18);
+            this.groupBox8.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox8.Name = "groupBox8";
-            this.groupBox8.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox8.Size = new System.Drawing.Size(771, 734);
+            this.groupBox8.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox8.Size = new System.Drawing.Size(942, 881);
             this.groupBox8.TabIndex = 43;
             this.groupBox8.TabStop = false;
             this.groupBox8.Text = "Catalog";
@@ -2387,19 +2454,20 @@ namespace ASCOM.LocalServer
             // label40
             // 
             this.label40.AutoSize = true;
-            this.label40.Location = new System.Drawing.Point(27, 655);
+            this.label40.Location = new System.Drawing.Point(33, 786);
+            this.label40.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label40.Name = "label40";
-            this.label40.Size = new System.Drawing.Size(0, 20);
+            this.label40.Size = new System.Drawing.Size(0, 25);
             this.label40.TabIndex = 10;
             // 
             // button35
             // 
             this.button35.BackColor = System.Drawing.SystemColors.WindowText;
             this.button35.ForeColor = System.Drawing.SystemColors.Window;
-            this.button35.Location = new System.Drawing.Point(638, 35);
-            this.button35.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button35.Location = new System.Drawing.Point(780, 42);
+            this.button35.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button35.Name = "button35";
-            this.button35.Size = new System.Drawing.Size(94, 32);
+            this.button35.Size = new System.Drawing.Size(115, 38);
             this.button35.TabIndex = 9;
             this.button35.Text = "OnScope";
             this.button35.UseVisualStyleBackColor = false;
@@ -2408,10 +2476,10 @@ namespace ASCOM.LocalServer
             // 
             // pictureBox1
             // 
-            this.pictureBox1.Location = new System.Drawing.Point(42, 92);
-            this.pictureBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.pictureBox1.Location = new System.Drawing.Point(51, 110);
+            this.pictureBox1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(584, 585);
+            this.pictureBox1.Size = new System.Drawing.Size(714, 702);
             this.pictureBox1.TabIndex = 8;
             this.pictureBox1.TabStop = false;
             this.pictureBox1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBox1_MouseDown);
@@ -2422,10 +2490,10 @@ namespace ASCOM.LocalServer
             // rbPlanets
             // 
             this.rbPlanets.AutoSize = true;
-            this.rbPlanets.Location = new System.Drawing.Point(356, 34);
-            this.rbPlanets.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.rbPlanets.Location = new System.Drawing.Point(435, 41);
+            this.rbPlanets.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.rbPlanets.Name = "rbPlanets";
-            this.rbPlanets.Size = new System.Drawing.Size(87, 24);
+            this.rbPlanets.Size = new System.Drawing.Size(102, 29);
             this.rbPlanets.TabIndex = 7;
             this.rbPlanets.Text = "Planets";
             this.rbPlanets.UseVisualStyleBackColor = true;
@@ -2439,21 +2507,21 @@ namespace ASCOM.LocalServer
             this.catalog.BackColor = System.Drawing.SystemColors.WindowText;
             this.catalog.ForeColor = System.Drawing.SystemColors.Window;
             this.catalog.FormattingEnabled = true;
-            this.catalog.ItemHeight = 20;
-            this.catalog.Location = new System.Drawing.Point(651, 89);
-            this.catalog.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.catalog.ItemHeight = 24;
+            this.catalog.Location = new System.Drawing.Point(796, 107);
+            this.catalog.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.catalog.Name = "catalog";
-            this.catalog.Size = new System.Drawing.Size(111, 584);
+            this.catalog.Size = new System.Drawing.Size(135, 700);
             this.catalog.TabIndex = 6;
             // 
             // button19
             // 
             this.button19.BackColor = System.Drawing.SystemColors.WindowText;
             this.button19.ForeColor = System.Drawing.SystemColors.Window;
-            this.button19.Location = new System.Drawing.Point(536, 35);
-            this.button19.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button19.Location = new System.Drawing.Point(655, 42);
+            this.button19.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button19.Name = "button19";
-            this.button19.Size = new System.Drawing.Size(75, 32);
+            this.button19.Size = new System.Drawing.Size(92, 38);
             this.button19.TabIndex = 5;
             this.button19.Text = "Sync";
             this.button19.UseVisualStyleBackColor = false;
@@ -2463,10 +2531,10 @@ namespace ASCOM.LocalServer
             // 
             this.button18.BackColor = System.Drawing.SystemColors.WindowText;
             this.button18.ForeColor = System.Drawing.SystemColors.Window;
-            this.button18.Location = new System.Drawing.Point(454, 35);
-            this.button18.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button18.Location = new System.Drawing.Point(555, 42);
+            this.button18.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button18.Name = "button18";
-            this.button18.Size = new System.Drawing.Size(75, 32);
+            this.button18.Size = new System.Drawing.Size(92, 38);
             this.button18.TabIndex = 4;
             this.button18.Text = "GoTo";
             this.button18.UseVisualStyleBackColor = false;
@@ -2475,10 +2543,10 @@ namespace ASCOM.LocalServer
             // rbStars
             // 
             this.rbStars.AutoSize = true;
-            this.rbStars.Location = new System.Drawing.Point(276, 34);
-            this.rbStars.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.rbStars.Location = new System.Drawing.Point(337, 41);
+            this.rbStars.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.rbStars.Name = "rbStars";
-            this.rbStars.Size = new System.Drawing.Size(72, 24);
+            this.rbStars.Size = new System.Drawing.Size(83, 29);
             this.rbStars.TabIndex = 3;
             this.rbStars.Text = "Stars";
             this.rbStars.UseVisualStyleBackColor = true;
@@ -2487,10 +2555,10 @@ namespace ASCOM.LocalServer
             // rbNgc
             // 
             this.rbNgc.AutoSize = true;
-            this.rbNgc.Location = new System.Drawing.Point(210, 34);
-            this.rbNgc.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.rbNgc.Location = new System.Drawing.Point(257, 41);
+            this.rbNgc.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.rbNgc.Name = "rbNgc";
-            this.rbNgc.Size = new System.Drawing.Size(62, 24);
+            this.rbNgc.Size = new System.Drawing.Size(72, 29);
             this.rbNgc.TabIndex = 2;
             this.rbNgc.Text = "Ngc";
             this.rbNgc.UseVisualStyleBackColor = true;
@@ -2499,10 +2567,10 @@ namespace ASCOM.LocalServer
             // rbC
             // 
             this.rbC.AutoSize = true;
-            this.rbC.Location = new System.Drawing.Point(112, 34);
-            this.rbC.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.rbC.Location = new System.Drawing.Point(137, 41);
+            this.rbC.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.rbC.Name = "rbC";
-            this.rbC.Size = new System.Drawing.Size(89, 24);
+            this.rbC.Size = new System.Drawing.Size(107, 29);
             this.rbC.TabIndex = 1;
             this.rbC.Text = "Cadwell";
             this.rbC.UseVisualStyleBackColor = true;
@@ -2512,10 +2580,10 @@ namespace ASCOM.LocalServer
             // 
             this.rbMessier.AutoSize = true;
             this.rbMessier.Checked = true;
-            this.rbMessier.Location = new System.Drawing.Point(18, 34);
-            this.rbMessier.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.rbMessier.Location = new System.Drawing.Point(22, 41);
+            this.rbMessier.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.rbMessier.Name = "rbMessier";
-            this.rbMessier.Size = new System.Drawing.Size(89, 24);
+            this.rbMessier.Size = new System.Drawing.Size(106, 29);
             this.rbMessier.TabIndex = 0;
             this.rbMessier.TabStop = true;
             this.rbMessier.Text = "Messier";
@@ -2526,10 +2594,10 @@ namespace ASCOM.LocalServer
             // 
             this.button29.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button29.ForeColor = System.Drawing.Color.White;
-            this.button29.Location = new System.Drawing.Point(636, 560);
-            this.button29.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button29.Location = new System.Drawing.Point(777, 672);
+            this.button29.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button29.Name = "button29";
-            this.button29.Size = new System.Drawing.Size(122, 38);
+            this.button29.Size = new System.Drawing.Size(149, 46);
             this.button29.TabIndex = 3;
             this.button29.Text = "Save conf";
             this.button29.UseVisualStyleBackColor = false;
@@ -2539,10 +2607,10 @@ namespace ASCOM.LocalServer
             // 
             this.button30.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button30.ForeColor = System.Drawing.Color.White;
-            this.button30.Location = new System.Drawing.Point(636, 595);
-            this.button30.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button30.Location = new System.Drawing.Point(777, 714);
+            this.button30.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button30.Name = "button30";
-            this.button30.Size = new System.Drawing.Size(122, 38);
+            this.button30.Size = new System.Drawing.Size(149, 46);
             this.button30.TabIndex = 4;
             this.button30.Text = "load conf";
             this.button30.UseVisualStyleBackColor = false;
@@ -2578,11 +2646,11 @@ namespace ASCOM.LocalServer
             this.groupBox10.Controls.Add(this.button6);
             this.groupBox10.Controls.Add(this.button5);
             this.groupBox10.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox10.Location = new System.Drawing.Point(492, 12);
-            this.groupBox10.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox10.Location = new System.Drawing.Point(601, 14);
+            this.groupBox10.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox10.Name = "groupBox10";
-            this.groupBox10.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox10.Size = new System.Drawing.Size(770, 740);
+            this.groupBox10.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox10.Size = new System.Drawing.Size(941, 888);
             this.groupBox10.TabIndex = 44;
             this.groupBox10.TabStop = false;
             this.groupBox10.Text = "Setup";
@@ -2590,10 +2658,10 @@ namespace ASCOM.LocalServer
             // checkBox18
             // 
             this.checkBox18.AutoSize = true;
-            this.checkBox18.Location = new System.Drawing.Point(12, 618);
-            this.checkBox18.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox18.Location = new System.Drawing.Point(15, 742);
+            this.checkBox18.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox18.Name = "checkBox18";
-            this.checkBox18.Size = new System.Drawing.Size(56, 24);
+            this.checkBox18.Size = new System.Drawing.Size(65, 29);
             this.checkBox18.TabIndex = 44;
             this.checkBox18.Text = "AP";
             this.toolTip1.SetToolTip(this.checkBox18, "Check to use access point mode");
@@ -2602,11 +2670,11 @@ namespace ASCOM.LocalServer
             // textBox26
             // 
             this.textBox26.Enabled = false;
-            this.textBox26.Location = new System.Drawing.Point(507, 612);
-            this.textBox26.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox26.Location = new System.Drawing.Point(620, 734);
+            this.textBox26.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox26.Name = "textBox26";
             this.textBox26.ReadOnly = true;
-            this.textBox26.Size = new System.Drawing.Size(116, 26);
+            this.textBox26.Size = new System.Drawing.Size(141, 29);
             this.textBox26.TabIndex = 69;
             this.toolTip1.SetToolTip(this.textBox26, "IP will apear here when it is valid");
             // 
@@ -2615,20 +2683,20 @@ namespace ASCOM.LocalServer
             this.label55.AutoSize = true;
             this.label55.Enabled = false;
             this.label55.ForeColor = System.Drawing.Color.White;
-            this.label55.Location = new System.Drawing.Point(476, 619);
-            this.label55.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label55.Location = new System.Drawing.Point(582, 743);
+            this.label55.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label55.Name = "label55";
-            this.label55.Size = new System.Drawing.Size(24, 20);
+            this.label55.Size = new System.Drawing.Size(30, 25);
             this.label55.TabIndex = 68;
             this.label55.Text = "IP";
             // 
             // textBox25
             // 
             this.textBox25.Enabled = false;
-            this.textBox25.Location = new System.Drawing.Point(343, 612);
-            this.textBox25.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox25.Location = new System.Drawing.Point(419, 734);
+            this.textBox25.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox25.Name = "textBox25";
-            this.textBox25.Size = new System.Drawing.Size(124, 26);
+            this.textBox25.Size = new System.Drawing.Size(151, 29);
             this.textBox25.TabIndex = 67;
             this.toolTip1.SetToolTip(this.textBox25, "Wifi password");
             // 
@@ -2637,20 +2705,20 @@ namespace ASCOM.LocalServer
             this.label54.AutoSize = true;
             this.label54.Enabled = false;
             this.label54.ForeColor = System.Drawing.Color.White;
-            this.label54.Location = new System.Drawing.Point(269, 619);
-            this.label54.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label54.Location = new System.Drawing.Point(329, 743);
+            this.label54.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label54.Name = "label54";
-            this.label54.Size = new System.Drawing.Size(75, 20);
+            this.label54.Size = new System.Drawing.Size(96, 25);
             this.label54.TabIndex = 66;
             this.label54.Text = "WiFiPass";
             // 
             // textBox24
             // 
             this.textBox24.Enabled = false;
-            this.textBox24.Location = new System.Drawing.Point(127, 612);
-            this.textBox24.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.textBox24.Location = new System.Drawing.Point(155, 734);
+            this.textBox24.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.textBox24.Name = "textBox24";
-            this.textBox24.Size = new System.Drawing.Size(133, 26);
+            this.textBox24.Size = new System.Drawing.Size(162, 29);
             this.textBox24.TabIndex = 49;
             this.toolTip1.SetToolTip(this.textBox24, "Wifi network name");
             // 
@@ -2659,10 +2727,10 @@ namespace ASCOM.LocalServer
             this.label53.AutoSize = true;
             this.label53.Enabled = false;
             this.label53.ForeColor = System.Drawing.Color.White;
-            this.label53.Location = new System.Drawing.Point(78, 619);
-            this.label53.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label53.Location = new System.Drawing.Point(95, 743);
+            this.label53.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label53.Name = "label53";
-            this.label53.Size = new System.Drawing.Size(40, 20);
+            this.label53.Size = new System.Drawing.Size(52, 25);
             this.label53.TabIndex = 48;
             this.label53.Text = "WiFi";
             // 
@@ -2680,11 +2748,11 @@ namespace ASCOM.LocalServer
             this.groupBox14.Controls.Add(this.labelPCTime);
             this.groupBox14.Controls.Add(this.labelHWTime);
             this.groupBox14.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox14.Location = new System.Drawing.Point(410, 354);
-            this.groupBox14.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox14.Location = new System.Drawing.Point(501, 425);
+            this.groupBox14.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox14.Name = "groupBox14";
-            this.groupBox14.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox14.Size = new System.Drawing.Size(345, 134);
+            this.groupBox14.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox14.Size = new System.Drawing.Size(422, 161);
             this.groupBox14.TabIndex = 42;
             this.groupBox14.TabStop = false;
             this.groupBox14.Text = "Time base (not usefull for esp)";
@@ -2693,9 +2761,10 @@ namespace ASCOM.LocalServer
             // 
             this.labelSideralEr.AutoSize = true;
             this.labelSideralEr.ForeColor = System.Drawing.Color.White;
-            this.labelSideralEr.Location = new System.Drawing.Point(150, 108);
+            this.labelSideralEr.Location = new System.Drawing.Point(183, 130);
+            this.labelSideralEr.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelSideralEr.Name = "labelSideralEr";
-            this.labelSideralEr.Size = new System.Drawing.Size(78, 20);
+            this.labelSideralEr.Size = new System.Drawing.Size(97, 25);
             this.labelSideralEr.TabIndex = 18;
             this.labelSideralEr.Text = "Sideral Er";
             // 
@@ -2703,9 +2772,10 @@ namespace ASCOM.LocalServer
             // 
             this.UncountedPerHouse.AutoSize = true;
             this.UncountedPerHouse.ForeColor = System.Drawing.Color.White;
-            this.UncountedPerHouse.Location = new System.Drawing.Point(148, 82);
+            this.UncountedPerHouse.Location = new System.Drawing.Point(181, 98);
+            this.UncountedPerHouse.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.UncountedPerHouse.Name = "UncountedPerHouse";
-            this.UncountedPerHouse.Size = new System.Drawing.Size(108, 20);
+            this.UncountedPerHouse.Size = new System.Drawing.Size(133, 25);
             this.UncountedPerHouse.TabIndex = 17;
             this.UncountedPerHouse.Text = "Uncounted / s";
             // 
@@ -2729,11 +2799,11 @@ namespace ASCOM.LocalServer
             this.groupBox11.Controls.Add(this.textBox8);
             this.groupBox11.Controls.Add(this.label23);
             this.groupBox11.ForeColor = System.Drawing.SystemColors.Window;
-            this.groupBox11.Location = new System.Drawing.Point(9, 651);
-            this.groupBox11.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox11.Location = new System.Drawing.Point(11, 781);
+            this.groupBox11.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.groupBox11.Name = "groupBox11";
-            this.groupBox11.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox11.Size = new System.Drawing.Size(746, 80);
+            this.groupBox11.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.groupBox11.Size = new System.Drawing.Size(912, 96);
             this.groupBox11.TabIndex = 42;
             this.groupBox11.TabStop = false;
             this.groupBox11.Text = "Step Calculator";
@@ -2744,9 +2814,10 @@ namespace ASCOM.LocalServer
             // 
             this.label39.AutoSize = true;
             this.label39.ForeColor = System.Drawing.Color.White;
-            this.label39.Location = new System.Drawing.Point(654, 18);
+            this.label39.Location = new System.Drawing.Point(799, 22);
+            this.label39.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label39.Name = "label39";
-            this.label39.Size = new System.Drawing.Size(81, 20);
+            this.label39.Size = new System.Drawing.Size(103, 25);
             this.label39.TabIndex = 54;
             this.label39.Text = "= max spd";
             // 
@@ -2754,28 +2825,29 @@ namespace ASCOM.LocalServer
             // 
             this.label38.AutoSize = true;
             this.label38.ForeColor = System.Drawing.Color.White;
-            this.label38.Location = new System.Drawing.Point(570, 19);
+            this.label38.Location = new System.Drawing.Point(697, 23);
+            this.label38.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label38.Name = "label38";
-            this.label38.Size = new System.Drawing.Size(34, 20);
+            this.label38.Size = new System.Drawing.Size(47, 25);
             this.label38.TabIndex = 53;
             this.label38.Text = "/ °/s";
             // 
             // textBox17
             // 
-            this.textBox17.Location = new System.Drawing.Point(645, 45);
-            this.textBox17.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox17.Location = new System.Drawing.Point(788, 54);
+            this.textBox17.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox17.Name = "textBox17";
-            this.textBox17.Size = new System.Drawing.Size(91, 26);
+            this.textBox17.Size = new System.Drawing.Size(110, 29);
             this.textBox17.TabIndex = 52;
             this.textBox17.Text = "832000";
             this.toolTip1.SetToolTip(this.textBox17, "This allows to easely calculate the speed in steps/s using °/s");
             // 
             // textBox16
             // 
-            this.textBox16.Location = new System.Drawing.Point(575, 45);
-            this.textBox16.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox16.Location = new System.Drawing.Point(703, 54);
+            this.textBox16.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox16.Name = "textBox16";
-            this.textBox16.Size = new System.Drawing.Size(52, 26);
+            this.textBox16.Size = new System.Drawing.Size(63, 29);
             this.textBox16.TabIndex = 51;
             this.textBox16.Text = "4";
             this.toolTip1.SetToolTip(this.textBox16, "This allows to easely calculate the speed in steps/s using °/s");
@@ -2783,10 +2855,10 @@ namespace ASCOM.LocalServer
             // 
             // textBox13
             // 
-            this.textBox13.Location = new System.Drawing.Point(429, 45);
-            this.textBox13.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox13.Location = new System.Drawing.Point(524, 54);
+            this.textBox13.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox13.Name = "textBox13";
-            this.textBox13.Size = new System.Drawing.Size(91, 26);
+            this.textBox13.Size = new System.Drawing.Size(110, 29);
             this.textBox13.TabIndex = 46;
             this.textBox13.Text = "832000";
             this.toolTip1.SetToolTip(this.textBox13, "Perform the math operation used to calculate the Nb of steps for RA/dec gearing d" +
@@ -2796,18 +2868,19 @@ namespace ASCOM.LocalServer
             // 
             this.label29.AutoSize = true;
             this.label29.ForeColor = System.Drawing.Color.White;
-            this.label29.Location = new System.Drawing.Point(426, 19);
+            this.label29.Location = new System.Drawing.Point(521, 23);
+            this.label29.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label29.Name = "label29";
-            this.label29.Size = new System.Drawing.Size(51, 20);
+            this.label29.Size = new System.Drawing.Size(63, 25);
             this.label29.TabIndex = 50;
             this.label29.Text = "Steps";
             // 
             // textBox12
             // 
-            this.textBox12.Location = new System.Drawing.Point(334, 45);
-            this.textBox12.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox12.Location = new System.Drawing.Point(408, 54);
+            this.textBox12.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox12.Name = "textBox12";
-            this.textBox12.Size = new System.Drawing.Size(52, 26);
+            this.textBox12.Size = new System.Drawing.Size(63, 29);
             this.textBox12.TabIndex = 45;
             this.textBox12.Text = "256";
             this.toolTip1.SetToolTip(this.textBox12, "Perform the math operation used to calculate the Nb of steps for RA/dec gearing d" +
@@ -2818,18 +2891,19 @@ namespace ASCOM.LocalServer
             // 
             this.label28.AutoSize = true;
             this.label28.ForeColor = System.Drawing.Color.White;
-            this.label28.Location = new System.Drawing.Point(330, 19);
+            this.label28.Location = new System.Drawing.Point(403, 23);
+            this.label28.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label28.Name = "label28";
-            this.label28.Size = new System.Drawing.Size(93, 20);
+            this.label28.Size = new System.Drawing.Size(116, 25);
             this.label28.TabIndex = 48;
             this.label28.Text = "microStps =";
             // 
             // textBox11
             // 
-            this.textBox11.Location = new System.Drawing.Point(253, 45);
-            this.textBox11.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox11.Location = new System.Drawing.Point(309, 54);
+            this.textBox11.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox11.Name = "textBox11";
-            this.textBox11.Size = new System.Drawing.Size(58, 26);
+            this.textBox11.Size = new System.Drawing.Size(70, 29);
             this.textBox11.TabIndex = 44;
             this.textBox11.Text = "200";
             this.toolTip1.SetToolTip(this.textBox11, "Perform the math operation used to calculate the Nb of steps for RA/dec gearing d" +
@@ -2840,18 +2914,19 @@ namespace ASCOM.LocalServer
             // 
             this.label27.AutoSize = true;
             this.label27.ForeColor = System.Drawing.Color.White;
-            this.label27.Location = new System.Drawing.Point(249, 19);
+            this.label27.Location = new System.Drawing.Point(304, 23);
+            this.label27.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label27.Name = "label27";
-            this.label27.Size = new System.Drawing.Size(76, 20);
+            this.label27.Size = new System.Drawing.Size(94, 25);
             this.label27.TabIndex = 46;
             this.label27.Text = "Stepper *";
             // 
             // textBox10
             // 
-            this.textBox10.Location = new System.Drawing.Point(166, 45);
-            this.textBox10.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox10.Location = new System.Drawing.Point(203, 54);
+            this.textBox10.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox10.Name = "textBox10";
-            this.textBox10.Size = new System.Drawing.Size(72, 26);
+            this.textBox10.Size = new System.Drawing.Size(87, 29);
             this.textBox10.TabIndex = 43;
             this.textBox10.Text = "1";
             this.toolTip1.SetToolTip(this.textBox10, "Perform the math operation used to calculate the Nb of steps for RA/dec gearing d" +
@@ -2862,18 +2937,19 @@ namespace ASCOM.LocalServer
             // 
             this.label26.AutoSize = true;
             this.label26.ForeColor = System.Drawing.Color.White;
-            this.label26.Location = new System.Drawing.Point(162, 19);
+            this.label26.Location = new System.Drawing.Point(198, 23);
+            this.label26.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label26.Name = "label26";
-            this.label26.Size = new System.Drawing.Size(64, 20);
+            this.label26.Size = new System.Drawing.Size(79, 25);
             this.label26.TabIndex = 44;
             this.label26.Text = "Gear2 *";
             // 
             // textBox9
             // 
-            this.textBox9.Location = new System.Drawing.Point(89, 45);
-            this.textBox9.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox9.Location = new System.Drawing.Point(109, 54);
+            this.textBox9.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox9.Name = "textBox9";
-            this.textBox9.Size = new System.Drawing.Size(64, 26);
+            this.textBox9.Size = new System.Drawing.Size(77, 29);
             this.textBox9.TabIndex = 42;
             this.textBox9.Text = "1";
             this.toolTip1.SetToolTip(this.textBox9, "Perform the math operation used to calculate the Nb of steps for RA/dec gearing d" +
@@ -2884,18 +2960,19 @@ namespace ASCOM.LocalServer
             // 
             this.label25.AutoSize = true;
             this.label25.ForeColor = System.Drawing.Color.White;
-            this.label25.Location = new System.Drawing.Point(86, 19);
+            this.label25.Location = new System.Drawing.Point(105, 23);
+            this.label25.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label25.Name = "label25";
-            this.label25.Size = new System.Drawing.Size(62, 20);
+            this.label25.Size = new System.Drawing.Size(77, 25);
             this.label25.TabIndex = 42;
             this.label25.Text = "Gear1 /";
             // 
             // textBox8
             // 
-            this.textBox8.Location = new System.Drawing.Point(19, 45);
-            this.textBox8.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox8.Location = new System.Drawing.Point(23, 54);
+            this.textBox8.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox8.Name = "textBox8";
-            this.textBox8.Size = new System.Drawing.Size(59, 26);
+            this.textBox8.Size = new System.Drawing.Size(71, 29);
             this.textBox8.TabIndex = 41;
             this.textBox8.Text = "130";
             this.toolTip1.SetToolTip(this.textBox8, "Perform the math operation used to calculate the Nb of steps for RA/dec gearing d" +
@@ -2906,9 +2983,10 @@ namespace ASCOM.LocalServer
             // 
             this.label23.AutoSize = true;
             this.label23.ForeColor = System.Drawing.Color.White;
-            this.label23.Location = new System.Drawing.Point(15, 19);
+            this.label23.Location = new System.Drawing.Point(18, 23);
+            this.label23.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label23.Name = "label23";
-            this.label23.Size = new System.Drawing.Size(64, 20);
+            this.label23.Size = new System.Drawing.Size(82, 25);
             this.label23.TabIndex = 40;
             this.label23.Text = "Crown *";
             this.toolTip1.SetToolTip(this.label23, "Perform the math operation used to calculate the Nb of steps for RA/dec gearing d" +
@@ -2918,10 +2996,10 @@ namespace ASCOM.LocalServer
             // 
             this.button20.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button20.ForeColor = System.Drawing.Color.White;
-            this.button20.Location = new System.Drawing.Point(372, 484);
-            this.button20.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button20.Location = new System.Drawing.Point(27, 693);
+            this.button20.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button20.Name = "button20";
-            this.button20.Size = new System.Drawing.Size(82, 31);
+            this.button20.Size = new System.Drawing.Size(100, 37);
             this.button20.TabIndex = 64;
             this.button20.Text = "Reboot";
             this.toolTip1.SetToolTip(this.button20, "Move RA axes by 90°. Used for polar align");
@@ -2933,10 +3011,10 @@ namespace ASCOM.LocalServer
             this.checkBox7.AutoSize = true;
             this.checkBox7.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox7.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox7.Location = new System.Drawing.Point(24, 455);
-            this.checkBox7.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox7.Location = new System.Drawing.Point(29, 546);
+            this.checkBox7.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox7.Name = "checkBox7";
-            this.checkBox7.Size = new System.Drawing.Size(343, 24);
+            this.checkBox7.Size = new System.Drawing.Size(412, 29);
             this.checkBox7.TabIndex = 55;
             this.checkBox7.Text = "Restart PHD2 guide after slew and ?s delay";
             this.toolTip1.SetToolTip(this.checkBox7, "If this is checked, will restart PHD2 guiding after a goto operation");
@@ -2948,10 +3026,10 @@ namespace ASCOM.LocalServer
             this.checkBox11.AutoSize = true;
             this.checkBox11.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox11.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox11.Location = new System.Drawing.Point(24, 427);
-            this.checkBox11.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox11.Location = new System.Drawing.Point(29, 512);
+            this.checkBox11.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox11.Name = "checkBox11";
-            this.checkBox11.Size = new System.Drawing.Size(153, 24);
+            this.checkBox11.Size = new System.Drawing.Size(181, 29);
             this.checkBox11.TabIndex = 56;
             this.checkBox11.Text = "Yell on power off";
             this.toolTip1.SetToolTip(this.checkBox11, "With latest HW, will plkay a \"power\" sound if the power cuts (which means that yo" +
@@ -2970,10 +3048,10 @@ namespace ASCOM.LocalServer
             this.checkBox19.AutoSize = true;
             this.checkBox19.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox19.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox19.Location = new System.Drawing.Point(272, 427);
-            this.checkBox19.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox19.Location = new System.Drawing.Point(332, 512);
+            this.checkBox19.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox19.Name = "checkBox19";
-            this.checkBox19.Size = new System.Drawing.Size(201, 24);
+            this.checkBox19.Size = new System.Drawing.Size(239, 29);
             this.checkBox19.TabIndex = 57;
             this.checkBox19.Text = "Reconnect on usb drop";
             this.toolTip1.SetToolTip(this.checkBox19, "If the com connection is lost, will attempt to reconnect when the com returns. Wi" +
@@ -2983,10 +3061,10 @@ namespace ASCOM.LocalServer
             // 
             // phd2GuideDelay
             // 
-            this.phd2GuideDelay.Location = new System.Drawing.Point(373, 456);
-            this.phd2GuideDelay.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.phd2GuideDelay.Location = new System.Drawing.Point(456, 547);
+            this.phd2GuideDelay.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.phd2GuideDelay.Name = "phd2GuideDelay";
-            this.phd2GuideDelay.Size = new System.Drawing.Size(84, 26);
+            this.phd2GuideDelay.Size = new System.Drawing.Size(102, 29);
             this.phd2GuideDelay.TabIndex = 62;
             this.toolTip1.SetToolTip(this.phd2GuideDelay, "Type here a Norad satelite number");
             this.phd2GuideDelay.TextChanged += new System.EventHandler(this.phd2GuideDelay_TextChanged);
@@ -2996,10 +3074,10 @@ namespace ASCOM.LocalServer
             this.checkBox20.AutoSize = true;
             this.checkBox20.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox20.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox20.Location = new System.Drawing.Point(24, 486);
-            this.checkBox20.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox20.Location = new System.Drawing.Point(29, 583);
+            this.checkBox20.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox20.Name = "checkBox20";
-            this.checkBox20.Size = new System.Drawing.Size(140, 24);
+            this.checkBox20.Size = new System.Drawing.Size(167, 29);
             this.checkBox20.TabIndex = 65;
             this.checkBox20.Text = "Park at sunrise";
             this.toolTip1.SetToolTip(this.checkBox20, "If this is checked, will park the mount when the sun gets to -5°");
@@ -3011,10 +3089,10 @@ namespace ASCOM.LocalServer
             // 
             this.button38.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button38.ForeColor = System.Drawing.Color.White;
-            this.button38.Location = new System.Drawing.Point(22, 526);
-            this.button38.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button38.Location = new System.Drawing.Point(27, 652);
+            this.button38.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.button38.Name = "button38";
-            this.button38.Size = new System.Drawing.Size(147, 35);
+            this.button38.Size = new System.Drawing.Size(180, 42);
             this.button38.TabIndex = 66;
             this.button38.Text = "Satelites";
             this.toolTip1.SetToolTip(this.button38, "Connect to mount. Most likely will reset mount motor positions");
@@ -3023,33 +3101,59 @@ namespace ASCOM.LocalServer
             // 
             // textBox21
             // 
-            this.textBox21.Location = new System.Drawing.Point(167, 484);
-            this.textBox21.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox21.Location = new System.Drawing.Point(204, 581);
+            this.textBox21.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox21.Name = "textBox21";
-            this.textBox21.Size = new System.Drawing.Size(84, 26);
+            this.textBox21.Size = new System.Drawing.Size(102, 29);
             this.textBox21.TabIndex = 67;
             this.toolTip1.SetToolTip(this.textBox21, "Type here a Norad satelite number");
             this.textBox21.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBox21_KeyPress);
             this.textBox21.Leave += new System.EventHandler(this.textBox21_Leave);
             // 
-            // labelBellowHorizon
+            // checkBox13
             // 
-            this.labelBellowHorizon.AutoSize = true;
-            this.labelBellowHorizon.ForeColor = System.Drawing.Color.White;
-            this.labelBellowHorizon.Location = new System.Drawing.Point(26, 571);
-            this.labelBellowHorizon.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.labelBellowHorizon.Name = "labelBellowHorizon";
-            this.labelBellowHorizon.Size = new System.Drawing.Size(108, 20);
-            this.labelBellowHorizon.TabIndex = 68;
-            this.labelBellowHorizon.Text = "bellowHorizon";
+            this.checkBox13.AutoSize = true;
+            this.checkBox13.BackColor = System.Drawing.SystemColors.WindowText;
+            this.checkBox13.ForeColor = System.Drawing.SystemColors.Window;
+            this.checkBox13.Location = new System.Drawing.Point(29, 618);
+            this.checkBox13.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.checkBox13.Name = "checkBox13";
+            this.checkBox13.Size = new System.Drawing.Size(213, 29);
+            this.checkBox13.TabIndex = 68;
+            this.checkBox13.Text = "Sync motor physical";
+            this.toolTip1.SetToolTip(this.checkBox13, "When doing a sync, also resync the motor position to ensure proper meridian detec" +
+        "tion");
+            this.checkBox13.UseVisualStyleBackColor = false;
+            this.checkBox13.CheckedChanged += new System.EventHandler(this.checkBox13_CheckedChanged);
+            // 
+            // ScopePos
+            // 
+            this.ScopePos.Location = new System.Drawing.Point(370, 579);
+            this.ScopePos.Name = "ScopePos";
+            this.ScopePos.Size = new System.Drawing.Size(198, 151);
+            this.ScopePos.TabIndex = 69;
+            this.ScopePos.TabStop = false;
+            // 
+            // horizonCheck
+            // 
+            this.horizonCheck.AutoSize = true;
+            this.horizonCheck.Location = new System.Drawing.Point(201, 199);
+            this.horizonCheck.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.horizonCheck.Name = "horizonCheck";
+            this.horizonCheck.Size = new System.Drawing.Size(167, 29);
+            this.horizonCheck.TabIndex = 47;
+            this.horizonCheck.Text = "Horizon Check";
+            this.toolTip1.SetToolTip(this.horizonCheck, "Refuse to go to bellow horizon. Also stop sideral at horizon.");
+            this.horizonCheck.UseVisualStyleBackColor = true;
             // 
             // FrmMain
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 24F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
-            this.ClientSize = new System.Drawing.Size(1274, 767);
-            this.Controls.Add(this.labelBellowHorizon);
+            this.ClientSize = new System.Drawing.Size(1557, 920);
+            this.Controls.Add(this.ScopePos);
+            this.Controls.Add(this.checkBox13);
             this.Controls.Add(this.textBox21);
             this.Controls.Add(this.button38);
             this.Controls.Add(this.checkBox20);
@@ -3074,7 +3178,7 @@ namespace ASCOM.LocalServer
             this.ForeColor = System.Drawing.Color.White;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
             this.MaximizeBox = false;
             this.Name = "FrmMain";
             this.Text = "EQ control ASCOM server";
@@ -3113,6 +3217,7 @@ namespace ASCOM.LocalServer
             this.groupBox14.PerformLayout();
             this.groupBox11.ResumeLayout(false);
             this.groupBox11.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.ScopePos)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -3340,6 +3445,10 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.Button button38;
         private System.Windows.Forms.TextBox textBox21;
         private System.Windows.Forms.Label labelBellowHorizon;
+        private System.Windows.Forms.CheckBox ShowTimes;
+        private System.Windows.Forms.CheckBox checkBox13;
+        private System.Windows.Forms.PictureBox ScopePos;
+        private System.Windows.Forms.CheckBox horizonCheck;
     }
 }
 

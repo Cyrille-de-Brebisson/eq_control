@@ -45,22 +45,24 @@
             // 
             // pictureBox2
             // 
-            this.pictureBox2.Location = new System.Drawing.Point(0, 180);
+            this.pictureBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.pictureBox2.Location = new System.Drawing.Point(0, 216);
+            this.pictureBox2.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(567, 353);
+            this.pictureBox2.Size = new System.Drawing.Size(693, 424);
             this.pictureBox2.TabIndex = 59;
             this.pictureBox2.TabStop = false;
             // 
             // checkBox17
             // 
-            this.checkBox17.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.checkBox17.AutoSize = true;
             this.checkBox17.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox17.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox17.Location = new System.Drawing.Point(288, 44);
-            this.checkBox17.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox17.Location = new System.Drawing.Point(352, 53);
+            this.checkBox17.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox17.Name = "checkBox17";
-            this.checkBox17.Size = new System.Drawing.Size(109, 24);
+            this.checkBox17.Size = new System.Drawing.Size(129, 29);
             this.checkBox17.TabIndex = 61;
             this.checkBox17.Text = "5mn alarm";
             this.checkBox17.UseVisualStyleBackColor = false;
@@ -72,34 +74,33 @@
             this.label51.AutoSize = true;
             this.label51.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Underline, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label51.ForeColor = System.Drawing.Color.White;
-            this.label51.Location = new System.Drawing.Point(211, 14);
-            this.label51.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label51.Location = new System.Drawing.Point(258, 17);
+            this.label51.Margin = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.label51.Name = "label51";
-            this.label51.Size = new System.Drawing.Size(87, 20);
+            this.label51.Size = new System.Drawing.Size(105, 25);
             this.label51.TabIndex = 59;
             this.label51.Text = "NY2O Site";
             this.label51.Click += new System.EventHandler(this.label51_Click);
             // 
             // textBox23
             // 
-            this.textBox23.Location = new System.Drawing.Point(96, 14);
-            this.textBox23.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox23.Location = new System.Drawing.Point(117, 17);
+            this.textBox23.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.textBox23.Name = "textBox23";
-            this.textBox23.Size = new System.Drawing.Size(108, 26);
+            this.textBox23.Size = new System.Drawing.Size(131, 29);
             this.textBox23.TabIndex = 58;
             this.textBox23.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FrmMain_KeyDown);
             this.textBox23.KeyUp += new System.Windows.Forms.KeyEventHandler(this.textBox22_KeyUp);
             // 
             // checkBox14
             // 
-            this.checkBox14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.checkBox14.AutoSize = true;
             this.checkBox14.BackColor = System.Drawing.SystemColors.WindowText;
             this.checkBox14.ForeColor = System.Drawing.SystemColors.Window;
-            this.checkBox14.Location = new System.Drawing.Point(18, 44);
-            this.checkBox14.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.checkBox14.Location = new System.Drawing.Point(22, 53);
+            this.checkBox14.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.checkBox14.Name = "checkBox14";
-            this.checkBox14.Size = new System.Drawing.Size(162, 24);
+            this.checkBox14.Size = new System.Drawing.Size(199, 29);
             this.checkBox14.TabIndex = 58;
             this.checkBox14.Text = "Track when visible";
             this.checkBox14.UseVisualStyleBackColor = false;
@@ -110,10 +111,10 @@
             // 
             this.button38.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button38.ForeColor = System.Drawing.Color.White;
-            this.button38.Location = new System.Drawing.Point(404, 9);
-            this.button38.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button38.Location = new System.Drawing.Point(494, 11);
+            this.button38.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button38.Name = "button38";
-            this.button38.Size = new System.Drawing.Size(141, 31);
+            this.button38.Size = new System.Drawing.Size(172, 37);
             this.button38.TabIndex = 58;
             this.button38.Text = "Recalc passes";
             this.button38.UseVisualStyleBackColor = false;
@@ -124,9 +125,10 @@
             // 
             this.labelVisible.AutoSize = true;
             this.labelVisible.ForeColor = System.Drawing.Color.White;
-            this.labelVisible.Location = new System.Drawing.Point(12, 72);
+            this.labelVisible.Location = new System.Drawing.Point(15, 86);
+            this.labelVisible.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelVisible.Name = "labelVisible";
-            this.labelVisible.Size = new System.Drawing.Size(60, 20);
+            this.labelVisible.Size = new System.Drawing.Size(78, 25);
             this.labelVisible.TabIndex = 60;
             this.labelVisible.Text = "visibility";
             // 
@@ -134,9 +136,10 @@
             // 
             this.labelErr.AutoSize = true;
             this.labelErr.ForeColor = System.Drawing.Color.White;
-            this.labelErr.Location = new System.Drawing.Point(12, 115);
+            this.labelErr.Location = new System.Drawing.Point(15, 138);
+            this.labelErr.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelErr.Name = "labelErr";
-            this.labelErr.Size = new System.Drawing.Size(28, 20);
+            this.labelErr.Size = new System.Drawing.Size(35, 25);
             this.labelErr.TabIndex = 59;
             this.labelErr.Text = "err";
             // 
@@ -144,9 +147,10 @@
             // 
             this.labelPos.AutoSize = true;
             this.labelPos.ForeColor = System.Drawing.Color.White;
-            this.labelPos.Location = new System.Drawing.Point(12, 92);
+            this.labelPos.Location = new System.Drawing.Point(15, 110);
+            this.labelPos.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelPos.Name = "labelPos";
-            this.labelPos.Size = new System.Drawing.Size(35, 20);
+            this.labelPos.Size = new System.Drawing.Size(44, 25);
             this.labelPos.TabIndex = 48;
             this.labelPos.Text = "pos";
             // 
@@ -154,9 +158,10 @@
             // 
             this.labelCorrection.AutoSize = true;
             this.labelCorrection.ForeColor = System.Drawing.Color.White;
-            this.labelCorrection.Location = new System.Drawing.Point(12, 137);
+            this.labelCorrection.Location = new System.Drawing.Point(15, 164);
+            this.labelCorrection.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelCorrection.Name = "labelCorrection";
-            this.labelCorrection.Size = new System.Drawing.Size(90, 20);
+            this.labelCorrection.Size = new System.Drawing.Size(112, 25);
             this.labelCorrection.TabIndex = 62;
             this.labelCorrection.Text = "Corrections";
             // 
@@ -164,9 +169,10 @@
             // 
             this.label1.AutoSize = true;
             this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(14, 17);
+            this.label1.Location = new System.Drawing.Point(17, 20);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(76, 20);
+            this.label1.Size = new System.Drawing.Size(93, 25);
             this.label1.TabIndex = 63;
             this.label1.Text = "Satelite #";
             // 
@@ -174,10 +180,10 @@
             // 
             this.button1.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button1.ForeColor = System.Drawing.Color.White;
-            this.button1.Location = new System.Drawing.Point(308, 9);
-            this.button1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button1.Location = new System.Drawing.Point(376, 11);
+            this.button1.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(78, 31);
+            this.button1.Size = new System.Drawing.Size(95, 37);
             this.button1.TabIndex = 64;
             this.button1.Text = "GetTLE";
             this.button1.UseVisualStyleBackColor = false;
@@ -187,9 +193,10 @@
             // 
             this.label2.AutoSize = true;
             this.label2.ForeColor = System.Drawing.Color.White;
-            this.label2.Location = new System.Drawing.Point(12, 157);
+            this.label2.Location = new System.Drawing.Point(15, 188);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(249, 20);
+            this.label2.Size = new System.Drawing.Size(306, 25);
             this.label2.TabIndex = 65;
             this.label2.Text = "Press up/down/right/left to correct.";
             // 
@@ -197,10 +204,10 @@
             // 
             this.button2.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.button2.ForeColor = System.Drawing.Color.White;
-            this.button2.Location = new System.Drawing.Point(404, 44);
-            this.button2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.button2.Location = new System.Drawing.Point(494, 53);
+            this.button2.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(141, 31);
+            this.button2.Size = new System.Drawing.Size(172, 37);
             this.button2.TabIndex = 66;
             this.button2.Text = "GoTo Start";
             this.button2.UseVisualStyleBackColor = false;
@@ -208,10 +215,10 @@
             // 
             // SateliteTrack
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 24F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
-            this.ClientSize = new System.Drawing.Size(567, 533);
+            this.ClientSize = new System.Drawing.Size(691, 630);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.button1);
@@ -226,11 +233,12 @@
             this.Controls.Add(this.textBox23);
             this.Controls.Add(this.labelPos);
             this.Controls.Add(this.pictureBox2);
-            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.MaximumSize = new System.Drawing.Size(589, 589);
-            this.MinimumSize = new System.Drawing.Size(589, 431);
+            this.Margin = new System.Windows.Forms.Padding(5, 6, 5, 6);
+            this.MaximumSize = new System.Drawing.Size(715, 694);
+            this.MinimumSize = new System.Drawing.Size(715, 504);
             this.Name = "SateliteTrack";
             this.Text = "ISS Visual track";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MyForm_FormClosing);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FrmMain_KeyDown);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.textBox22_KeyUp);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();

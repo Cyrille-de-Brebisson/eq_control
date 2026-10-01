@@ -1,4 +1,5 @@
-﻿using ASCOM.DeviceInterface;
+﻿using ASCOM.Astrometry.AstroUtils;
+using ASCOM.DeviceInterface;
 using ASCOM.EQControl.Focuser.V1;
 using ASCOM.EQControl.Telescope.V1;
 using ASCOM.Utilities;
@@ -6,12 +7,12 @@ using StarDisp;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Media;
 using System.Windows.Forms;
 using static ASCOM.LocalServer.SharedResources;
-using ASCOM.Astrometry.AstroUtils;
 
 namespace ASCOM.LocalServer
 {
@@ -46,12 +47,16 @@ namespace ASCOM.LocalServer
             checkBox7.Checked= SharedResources.guideAfterSlew;
             checkBox19.Checked= SharedResources.reconnectOnDrop;
             checkBox20.Checked= SharedResources.parkAtSunrise;
+            checkBox13.Checked= SharedResources.SyncRAHW;
             updateLocations();  posCB.Text= "";
             updateSavedPos();
             phd2GuideDelay.Text= SharedResources.phd2GuideDelay.ToString();
             labelBellowHorizon.Text= "";
+            groupBox8.Visible= false;
+            groupBox7.Visible= false;
+            groupBox10.Visible= false;
         }
-        ~FrmMain() { SharedResources.log= null; SharedResources.finish= true;  }
+        ~FrmMain() { SharedResources.log= null; SharedResources.appClosing= true;  }
         private int lastFocusPos= 0x7fffffff;
         bool lastPowerBit= false; int lastPowerCount= 1;
         bool no_send_track_change= false;
@@ -112,11 +117,12 @@ namespace ASCOM.LocalServer
                             if (!SharedResources.TrackingDisabled) if (SideralSelect.SelectedIndex!=SharedResources.ascomtrackspd+1) SideralSelect.SelectedIndex= SharedResources.ascomtrackspd+1;
                             no_send_track_change= false;
                         }
+                        //DateTime now= DateTime.UtcNow;
                         button21.Text= SharedResources.FlipDisabled ? "Flip disabled" : "Flip enable";
-                        if (!hasHWPos) label50.Visible= SharedResources.meridianFlip;
+                        if (!hasHWPos) { label50.Visible= SharedResources.meridianFlip; button42.Enabled= true; }
                         else {
                             label50.Visible= true;
-                            if (SharedResources.meridianFlip) label50.Text= "Flipping";
+                            if (SharedResources.meridianFlip) { label50.Text= "Flipping"; button42.Enabled= false; }
                             else
                             {
                                 int rat= SharedResources.raMaxPos;
@@ -124,6 +130,8 @@ namespace ASCOM.LocalServer
                                 int left= maxRa-SharedResources.raPos;
                                 int TimeS= (int)(((double)left)/rat*24*3600);
                                 label50.Text= "Flip in "+SharedResources.raToText(TimeS);
+                                int play= maxRa-rat/2;
+                                button42.Enabled= SharedResources.raPos<play || SharedResources.raPos>maxRa-play; //flip button only enable is flipping would result in a flip!
                             }
                         }
 
@@ -131,7 +139,9 @@ namespace ASCOM.LocalServer
                         if (SharedResources.timeSpanHW != 0) labelHWTime.Text = "HWTime:" + SharedResources.timeSpanHW.ToString();
                         if (SharedResources.timeSpanPC != 0 && SharedResources.timeSpanHW != 0)
                         { 
-                            labelDriftTime.Text = ((SharedResources.timeSpanHW - SharedResources.timeSpanPC) * 100.0 / SharedResources.timeSpanPC).ToString("0.##") + "% drift";
+                            double time= SharedResources.timeSpanHW;
+                            if (SharedResources.haswifi) time= time*1024/1000.0f;
+                            labelDriftTime.Text = ((time - SharedResources.timeSpanPC) * 100.0 / SharedResources.timeSpanPC).ToString("0.##") + "% drift";
                             double stepsPerS= (SharedResources.timeSpanUncountedSteps*1000.0/SharedResources.timeSpanPC);
                             UncountedPerHouse.Text= stepsPerS.ToString("N3");
                             double er= (stepsPerS-SharedResources.raMaxPos/(23*3600+56*60+4.0))/stepsPerS;
@@ -171,7 +181,7 @@ namespace ASCOM.LocalServer
                         {
                             BNO0.Text = "Tmp:"+SharedResources.BNOTemp.ToString()+"° "+(SharedResources.BNOhasOffset1?"O1":"")+" "+(SharedResources.BNOscopeEast?"E":"W");
                             BNO1.Text = SharedResources.BNOw.ToString("F4")+" "+SharedResources.BNOx.ToString("F4")+" "+SharedResources.BNOy.ToString("F4")+" "+SharedResources.BNOz.ToString("F4");
-                            BNO2.Text = SharedResources.BNOra.ToString("F4")+" "+SharedResources.BNOdec.ToString("F4")+" "+SharedResources.BNOaz.ToString("F4")+" "+SharedResources.BNOalt.ToString("F4");
+                            BNO2.Text = SharedResources.BNOlst.ToString("F2")+" "+SharedResources.BNOscopeaz.ToString("F1")+" "+SharedResources.BNOscopealt.ToString("F1")+" "+SharedResources.BNObnoaz.ToString("F1")+" "+SharedResources.BNObnoalt.ToString("F1");
                         }
                         if (!textBox21.Focused)
                             textBox21.Text= SharedResources.getSunRaiseTime().ToString("HH:mm");
@@ -179,7 +189,9 @@ namespace ASCOM.LocalServer
                         var result = GetSettingTimeUtc(TelescopeHardware.RightAscension, TelescopeHardware.Declination, 0, TelescopeHardware.SiteLatitude, TelescopeHardware.SiteLongitude, DateTime.UtcNow);
                         if (result.IsCircumpolar) labelBellowHorizon.Text= "Circumpolar";
                         else if (result.NeverRises) labelBellowHorizon.Text= "Never rises";
-                        else labelBellowHorizon.Text= $"Object sets below horizon at : {result.SettingTimeUtc.ToLocalTime():HH:mm:ss}";
+                        else labelBellowHorizon.Text= $"Object Sets @ {result.SettingTimeUtc.ToLocalTime():HH:mm}";
+
+                        DrawScopePos(SharedResources.Azimuth, SharedResources.Altitude);
 
                     }
                     else
@@ -239,7 +251,7 @@ namespace ASCOM.LocalServer
         }
         private void button2_Click(object sender, EventArgs e)
         {
-            if (SharedResources.Connected) SharedResources.Disconnect();
+            if (SharedResources.Connected) SharedResources.requestDisconnect();
             else SharedResources.Connected = true;
         }
         private void focusTo()
@@ -350,6 +362,7 @@ namespace ASCOM.LocalServer
                     decMsToSpd.Text = SharedResources.decmsToSpeed.ToString();
                     timeComp.Text= SharedResources.timeComp.ToString();
                     AutoMeridianFlip.Checked= (SharedResources.guidingBits&0x80)==0;
+                    horizonCheck.Checked= (SharedResources.invertAxes&0x10)!=0;
 
                     SiteLatitude.Text = SharedResources.raToText(((Double)SharedResources.Latitude)/10/3600);
                     SiteElevation.Text = SharedResources.SiteAltitude.ToString();
@@ -470,7 +483,7 @@ namespace ASCOM.LocalServer
                         if (SharedResources.guideRateDec>=256) SharedResources.guideRateDec= 255;
                         SharedResources.guideRateRA = (int)(raGuideRate*10.0f);
                         if (SharedResources.guideRateRA>=256) SharedResources.guideRateRA= 255;
-                        SharedResources.invertAxes = (checkBox4.Checked ? 2 : 0) | (checkBox5.Checked ? 1 : 0) | (checkBox6.Checked ? 4 : 0);
+                        SharedResources.invertAxes = (checkBox4.Checked ? 2 : 0) | (checkBox5.Checked ? 1 : 0) | (checkBox6.Checked ? 4 : 0) | (horizonCheck.Checked?0x10:0);
                         SharedResources.raBacklash = (int)((raBacklash * (Int64)raMaxPos) / (360 * 3600));
                         SharedResources.raSettle = (int)((raSettle * (Int64)raMaxPos) / (360*3600));
                         SharedResources.focBacklash = focBacklash;
@@ -541,7 +554,8 @@ namespace ASCOM.LocalServer
                         (source==1 && checkBox8.Checked) ||   // frequent ascom
                         (source==2 && checkBox1.Checked) ||   // serial commands
                         (source==3 && checkBox15.Checked) ||  // phd2
-                        (source==4 && checkBox16.Checked))    // iss
+                        (source==4 && checkBox16.Checked) ||    // iss
+                        (source==5 && ShowTimes.Checked))
                      BeginInvoke((MethodInvoker)delegate () { logBox.AppendText(message + "\r\n"); });
             } catch (Exception ) { }
             
@@ -950,7 +964,7 @@ namespace ASCOM.LocalServer
 
         private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            SharedResources.finish= true;
+            SharedResources.appClosing= true;
         }
 
 
@@ -961,7 +975,8 @@ namespace ASCOM.LocalServer
 
         private void labelCom_DoubleClick(object sender, EventArgs e)
         {
-            SharedResources.comPort= "tcp";
+            if (SharedResources.comPort=="tcp") SharedResources.comPort= "BT";
+            else SharedResources.comPort= "tcp";
         }
 
         private void button13_Click(object sender, EventArgs e)
@@ -1163,6 +1178,7 @@ namespace ASCOM.LocalServer
 
         private void checkBox20_CheckedChanged(object sender, EventArgs e)
         {
+            SharedResources.resetSunRaiseTime(); SharedResources.getSunRaiseTime();
             SharedResources.parkAtSunrise = checkBox20.Checked;
             TelescopeHardware.saveProfile();
         }
@@ -1314,6 +1330,95 @@ namespace ASCOM.LocalServer
             double dayFraction = utc.TimeOfDay.TotalSeconds / 86400.0;
             return Math.Floor(365.25 * (y + 4716)) + Math.Floor(30.6001 * (m + 1)) + d + dayFraction + b - 1524.5;
         }
+
+        private void checkBox13_CheckedChanged(object sender, EventArgs e)
+        {
+            SharedResources.SyncRAHW= checkBox13.Checked;
+            TelescopeHardware.saveProfile();
+        }
+
+        /// <summary>
+        /// All-sky plot: outer circle = horizon (alt 0), inner circle = 45° altitude, centre = zenith.
+        /// The scope is an ellipse: a circle when pointing at the zenith (seen end-on), and increasingly
+        /// elongated along the azimuth direction as the tube gets closer to horizontal.
+        /// </summary>
+        void DrawScopePos(double azimuth, double altitude)
+        {
+            int w = ScopePos.ClientSize.Width, h = ScopePos.ClientSize.Height;
+            if (w < 40 || h < 40) return;
+
+            altitude = Math.Max(0f, Math.Min(90f, altitude));
+            azimuth = ((azimuth % 360f) + 360f) % 360f;
+
+            float cx = w / 2f, cy = h / 2f;
+            float R = Math.Min(w, h) / 2f - 16f;           // horizon radius (margin for N/E/S/W labels)
+
+            // azimuth (deg) + radius -> pixel position
+            Func<float, float, PointF> project = (az, r) =>
+            {
+                // true  = sky view (looking up): North at top, East on the LEFT
+                // false = map view (looking down): North at top, East on the RIGHT
+                const bool EastLeft = true;
+                double a = az * Math.PI / 180.0;
+                float sign = EastLeft ? -1f : 1f;
+                return new PointF(cx + sign * r * (float)Math.Sin(a), cy - r * (float)Math.Cos(a));
+            };
+
+            var bmp = new Bitmap(w, h);
+            using (var g = Graphics.FromImage(bmp))
+            using (var gridPen = new Pen(Color.Gray, 1f))
+            using (var crossPen = new Pen(Color.FromArgb(80, 128, 128, 128), 1f) { DashStyle = DashStyle.Dot })
+            using (var scopePen = new Pen(Color.Red, 2f))
+            using (var scopeBrush = new SolidBrush(Color.FromArgb(100, Color.Red)))
+            using (var textBrush = new SolidBrush(Color.LightGray))
+            using (var font = new Font("Segoe UI", 8f))
+            using (var centered = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(Color.Black);
+
+                // Horizon and 45° altitude circles
+                g.DrawEllipse(gridPen, cx - R, cy - R, 2 * R, 2 * R);
+                g.DrawEllipse(gridPen, cx - R / 2, cy - R / 2, R, R);
+
+                // Cardinal cross
+                g.DrawLine(crossPen, cx - R, cy, cx + R, cy);
+                g.DrawLine(crossPen, cx, cy - R, cx, cy + R);
+
+                // Cardinal labels
+                string[] names = { "N", "E", "S", "W" };
+                for (int i = 0; i < 4; i++)
+                {
+                    PointF p = project(i * 90f, R + 9f);
+                    g.DrawString(names[i], font, textBrush, p, centered);
+                }
+                g.DrawString("45°", font, textBrush, cx + 3, cy - R / 2 - 12);
+
+                // Scope position: altitude 90 -> centre, altitude 0 -> horizon circle
+                float rr = R * (90f - (float)altitude) / 90f;
+                PointF pt = project((float)azimuth, rr);
+
+                // The ellipse's long axis points along the radial (azimuth) direction
+                float angle = rr < 0.5f ? 0f : (float)(Math.Atan2(pt.Y - cy, pt.X - cx) * 180.0 / Math.PI);
+                float minor = Math.Max(6f, R * 0.06f);                                        // tube diameter
+                float major = minor + R * 0.30f * (float)Math.Cos(altitude * Math.PI / 180.0); // + projected tube length
+                float t= minor; minor= major; major= t;
+
+                g.TranslateTransform(pt.X, pt.Y);
+                g.RotateTransform(angle);
+                g.FillEllipse(scopeBrush, -major / 2, -minor / 2, major, minor);
+                g.DrawEllipse(scopePen, -major / 2, -minor / 2, major, minor);
+                g.ResetTransform();
+
+                g.DrawString(string.Format("Az {0:0.0}°", azimuth), font, textBrush, 0, 0);
+                g.DrawString(string.Format("Alt {0:0.0}°", altitude), font, textBrush, 0, h-font.Height);
+            }
+
+            Image old = ScopePos.Image;
+            ScopePos.Image = bmp;
+            if (old != null) old.Dispose();
+        }
+
     }
 
 }

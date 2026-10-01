@@ -4,8 +4,6 @@ using uint32_t = System.UInt32;
 using uint64_t = System.UInt64;
 using int32_t = System.Int32;
 using static CStars;
-using System.Diagnostics;
-using System.Security.Cryptography;
 
 namespace StarDisp { 
 class CArduViseur {
@@ -358,14 +356,15 @@ void click(int32_t x, int32_t y)
     if (bd>36) return;
     if (d.type==0)
     {  
-        TStarMore sm= TStarMore.fromStarIndex((int)d.index); if (sm==null) return;
+        TStarMore sm= TStarMore.fromStarIndex((int)d.index); if (sm.index==-1) return;
         displayText= sm.name+bayerGreek[sm.bayerGreek]+bayerConst[sm.bayerConst]+ " "+sm.dist.ToString() + "ly mag:"+sm.iabsMag.ToString();
         clickra=(int)(stars[d.index].ra()*12*3600/Math.PI); clickdec=(int)(stars[d.index].dec()*180*3600/Math.PI);
         return;
     }
-    TSkyCatalog sk= null; string name=""; char prefix=' ';
+    TSkyCatalog sk; string name=""; char prefix=' ';
     if (d.type==1) { sk= messier[d.index]; name= sk.getString(ref CStars.messierStrings); prefix= 'M'; }
     if (d.type==2) { sk= caldwell[d.index]; name= sk.getString(ref CStars.cadwellStrings); prefix= 'C'; }
+    else return;
     clickra=(int)(sk.getra()*12*3600/Math.PI); clickdec=(int)(sk.getdec()*180*3600/Math.PI);
     double fp= sk.getSze(); string t1= fp.ToString();
     if (name=="")

@@ -5,11 +5,11 @@
 
 #define TMC // in arduino (__AVR__) nano mode, you can select the TMC or non TMC driver... in esp, it is ALWAYS tmc...
 #define HASADC // in __AVR__ mode, IF TMC, this is used to monitor the power supply and handle motor configuration. Some older versions had TMC but no ADC...
-               // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply
+               // in ESP mode, the first PCB did not use the ADC. PCB2 uses the ADC for keyboard + power supply. This includes my main eq3 control board!
 //#define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
 //#define WEIRED_KBD // I had some early ARV boards with a slightly differnet keyboard. Uncomment for those
 #define RED_BOARD // define for esp32 RED boards...
-#ifdef RED_BOARD
+#ifdef RED_BOARD // red board has all options...
     #define TMC
     #define HASADC
     #define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
@@ -242,7 +242,7 @@ static void reboot()
     rstfunc();
 }
 
-namespace MSerial {
+class CSerial { public:
 	// interrupt driven serial class. 700 bytes smaller than the standard Serial class...
 	// always 38400 bauds, 64bytes buffers
 	static uint8_t const BUFFER_SIZE= 64;
@@ -252,7 +252,7 @@ namespace MSerial {
 	static uint8_t txHead= 0; static uint8_t volatile txTail= 0;
 
 	// USART Receive Complete interrupt. i.e: data in
-	ISR(USART_RX_vect) 
+	static ISR(USART_RX_vect) 
 	{
 	  char c= UDR0;
 	  uint8_t nextHead= (rxHead+1) & (BUFFER_SIZE-1);
@@ -260,38 +260,38 @@ namespace MSerial {
 	  rxBuffer[rxHead]= c; rxHead= nextHead;
 	}
 	// USART Data Register Empty interrupt. I.e: ready to send next byte
-	ISR(USART_UDRE_vect) 
+	static ISR(USART_UDRE_vect) 
 	{
           uint8_t ttxTail= txTail;
 	  if (txHead==ttxTail) { UCSR0B&= ~(1<<UDRIE0); return; } // Nothing to send, disable UDRE interrupt
 	  UDR0= txBuffer[ttxTail];
 	  txTail= (ttxTail+1) & (BUFFER_SIZE-1);
 	}
-    void begin() 
+    static void begin() 
     {
       cli(); // Disable global interrupts
       UBRR0H= 0; UBRR0L= 51; UCSR0A= 2; UCSR0C= 6; //38400 bauds
       UCSR0B= 0b00011000 | (1 << RXEN0) | (1 << TXEN0) | (1 << RXCIE0); // enable rx, tx and irqs
       sei(); // Enable global interrupts
     }
-	int16_t read() 
+	static int16_t read() 
 	{
 	  if (rxHead==rxTail) return -1; // No data
 	  char c= rxBuffer[rxTail];
 	  rxTail= (rxTail+1) & (BUFFER_SIZE-1);
 	  return c;
 	}
-	void print(char c) // add to send buffer and send as soon as possible
+	static void print(char c) // add to send buffer and send as soon as possible
 	{
 	  uint8_t nextHead= (txHead+1) & (BUFFER_SIZE-1);
 	  while (nextHead==txTail); // Wait if buffer is full
 	  txBuffer[txHead]= c; txHead= nextHead;
 	  UCSR0B|= 1<<UDRIE0; 	  // Enable UDRE interrupt
 	}
-    void print(char const *c) { while (*c!=0) print(*c++); } // Add string in output buffer..
+    static void print(char const *c) { while (*c!=0) print(*c++); } // Add string in output buffer..
 	// on esp32 writes only send on a flush.
-	void inline flush(char c) { print(c); }
-};
+	static void inline flush(char c) { print(c); }
+} Serial;
 
 namespace Time {
     uint32_t t= 0; // counter which incremented every 1/4 of a second
@@ -580,7 +580,7 @@ namespace Time {
         TIMERG0.hw_timer[0].update.tx_update = 1; while (TIMERG0.hw_timer[0].update.tx_update) { }
         return TIMERG0.hw_timer[0].lo.tx_lo;
     }
-    uint32_t IRAM_ATTR mnow()
+    uint32_t IRAM_ATTR mnow() // THIS IS NOT milliseconds, but 1024th of seconds!
     {
         TIMERG0.hw_timer[0].update.tx_update = 1; while (TIMERG0.hw_timer[0].update.tx_update) { }
         return ((uint64_t)TIMERG0.hw_timer[0].hi.tx_hi << 22) | ((TIMERG0.hw_timer[0].lo.tx_lo)>>10);
@@ -588,8 +588,25 @@ namespace Time {
 }
 
 #include "driver/usb_serial_jtag.h"
-namespace MSerial {
-    void begin() { 
+class CSerial { public:
+    virtual int16_t read() = 0;
+    virtual int read(uint8_t *d, int size) = 0;
+    virtual void flush(char const *s) = 0;
+
+    char buf[400]; int bufl= 0;
+    void inline print(char c) { buf[bufl++]= c; } // Add char in output buffer
+    void print(char const *c) // Add string in output buffer..
+	{ 
+		int l= strlen(c); if (l==0) return; 
+		if (l+bufl>sizeof(buf)) { flush(buf); bufl= 0; }
+		memcpy(buf+bufl, c, l); bufl+= l; 
+	}
+    void flush(char c) { print(c); flush(buf); bufl= 0; }
+};
+
+class CSerialSerial : public CSerial { public:
+    static void begin() 
+    {
         // Configure USB SERIAL JTAG
         usb_serial_jtag_driver_config_t usb_serial_jtag_config = {
             .tx_buffer_size = 1024,
@@ -597,27 +614,18 @@ namespace MSerial {
         };
         ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&usb_serial_jtag_config));
     }
-    int16_t read() 
+    int16_t read() override
     { 
         char c;
         int len = usb_serial_jtag_read_bytes(&c, 1, 20 / portTICK_PERIOD_MS);
         if (len!=1) return -1; return c;
     }
-    int read(uint8_t *d, int size) 
+    int read(uint8_t *d, int size) override
     { 
         return usb_serial_jtag_read_bytes((char*)d, size, 1000 / portTICK_PERIOD_MS);
     }
-    char buf[400]; int bufl= 0;
-    void inline print(char c) { buf[bufl++]= c; } // Add char in output buffer
-    void print(char const *c) // Add string in output buffer..
-	{ 
-		int l= strlen(c); if (l==0) return; 
-		if (l+bufl>sizeof(buf)) { usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
-		memcpy(buf+bufl, c, l); bufl+= l; 
-	}
-    void flush(char c) { print(c); usb_serial_jtag_write_bytes(buf, bufl, 20 / portTICK_PERIOD_MS); bufl= 0; }
-    void flush(char const *s) { usb_serial_jtag_write_bytes(s, strlen(s), 20 / portTICK_PERIOD_MS); }
-};
+    void flush(char const *s) override { usb_serial_jtag_write_bytes(s, strlen(s), 20 / portTICK_PERIOD_MS); }
+} Serial;
 
 // These are here to be manageable in PC simulation mode
 #include "driver/uart.h"
@@ -625,7 +633,6 @@ namespace MSerial {
 #define GPSUART UART_NUM_0
 int gpsGetData(char *b, int size) {     
     int l= uart_read_bytes(GPSUART, b, size, 500/portTICK_PERIOD_MS); // twice per second. Since data is normally under 300 bytes and buffer is 512B, we should get the full dataset on each go..
-    //MSerial::flush("->"); b[l]= 0; MSerial::flush(b); 
     return l;
 }
 void gpsDone() 
@@ -673,7 +680,7 @@ class CI2C { public:
         i2c_master_transmit(dev_handle, d, nb, 1000 / portTICK_PERIOD_MS);
         memset(d, 0, nb);
     }
-    bool next() { return false; }
+    bool next() { return false; } // return true if buzy. Never the case here...
 } I2C;
 
 #include "alpaca.h"
@@ -693,6 +700,13 @@ static uint16_t inline pgm_read_word(uint16_t const *p) { return *p; }
 #define memcpy_P memcpy
 #endif
 
+#ifndef ALPACA
+static bool canGoThere(int32_t ra, int32_t dec) {}
+static void stopIfUnder() { }
+#else
+static bool canGoThere(int32_t ra, int32_t dec);
+static void stopIfUnder();
+#endif
 
 #ifdef HASGPS // this is only valid in ESP and PC mode...
 static uint8_t hasGPSData= 0; // need to be set to 0x10 when data present!!!
@@ -977,7 +991,7 @@ class CMotor : public Ctmc2209 { public:
         int32_t pos=0, dst=0; int32_t requestedSpd=0;  // Current pos, destination and desired speed (req speed it absolute value).
         uint32_t maxPos=0;                      // maximum positions in steps (min is 0!)...
         uint32_t spdMax=0, accMax=0;            // max speeds and accelerations in steps/s, steps**2/hundredth of s (carefull, this 2nd one is in units per 10 mili seconds, not seconds!)
-        int16_t backlash= 0;
+        int16_t backlash= 0;                    // if negative, not handled here. but handled in the uncounted stepper motor system
         #ifdef ESP
             uint16_t const stp;                 // pins, on esp the shifted pin can be all the way to 256! so we need 2 bytes...
         #else
@@ -1016,8 +1030,9 @@ class CMotor : public Ctmc2209 { public:
         pause= true; 
         if ((int32_t(destination)<pos)!=lastDirection)
         {
-          if (lastDirection) destination+= backlash, lastDirection= false; // was going down, now needs to go up, so need to do backlash more steps, so we need to add backlash from destination!
-          else { if (int32_t(destination)>=backlash) destination-= backlash; else destination= 0; lastDirection= true; }              // reverse
+          int16_t b= backlash>0? backlash: 0; // backlash <0 indicates needs to be handled in uncounted stepper system
+          if (lastDirection) destination+= b, lastDirection= false; // was going down, now needs to go up, so need to do backlash more steps, so we need to add backlash from destination!
+          else { if (int32_t(destination)>=b) destination-= b; else destination= 0; lastDirection= true; }              // reverse
         }
         if (destination>maxPos) destination= maxPos; dst= destination;
         if (spdStepsPS>spdMax) spdStepsPS= spdMax;
@@ -1075,6 +1090,10 @@ class CMotor : public Ctmc2209 { public:
     int32_t stepsFromRealNoAbs(int32_t real) // give the number of steps to move by real. This is does not account for the origin shift nor does it test the validity of real
     {
         return muldiv(real, maxPos, maxPosReal-minPosReal);
+    }
+    int32_t RealFromstepsNoAbs(int32_t steps) // give the number real units for a given number of steps. This is does not account for the origin shift nor does it test the validity of real
+    {
+        return muldiv(steps, maxPosReal-minPosReal, maxPos);
     }
     int32_t posInReal() { return posToReal(pos); }
     int32_t dstInReal() { return posToReal(dst); }
@@ -1193,13 +1212,18 @@ class CMotorUncounted : public CMotor { public:
         pause= false;
     }
     uint32_t nextRASec= 0; // next time ra edges need to inc by 1s...
+    void checkMinMax()
+    {
+        if (maxPosReal>=uncountedMaxRealVal && minPosReal>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal; // loop around when the smallest of the 2 reaches 24h (will always be max post in reality...)
+        if (maxPosReal<0 || minPosReal<0) minPosReal+= uncountedMaxRealVal, maxPosReal+= uncountedMaxRealVal; // loop around when the smallest of the 2 reaches 24h (will always be max post in reality...)
+    }
     void quantize()
     {
         CMotor::quantize();
         if (Time::mnow()<nextRASec) return;
         nextRASec+= 997; // one ra second every 997 ms ((23*3600L+56*60+4)*1000)/(24*3600L);
         minPosReal++, maxPosReal++; 
-        if (maxPosReal>=uncountedMaxRealVal && minPosReal>=uncountedMaxRealVal) minPosReal-= uncountedMaxRealVal, maxPosReal-= uncountedMaxRealVal; // loop around when the smallest of the 2 reaches 24h (will always be max post in reality...)
+        checkMinMax();
     }
     int32_t nextGuideStep= 0, guideStepSize= 0;
     uint8_t skipNSteps= 0;
@@ -1218,6 +1242,7 @@ class CMotorUncounted : public CMotor { public:
             if (lnPulsesPerPulses!=0) return; // wait until a kill has been issued...
             batchExtraStepsOnMoveComplete= false;
             _guide= (now-NextUncountedSteps)/deltaBetweenUncountedSteps; // Number of misses steps is simply the delta time/time in between steps...
+            if (backlash<0 && lastDirection) _guide+= -backlash, lastDirection= false; // handle RA backlash... which is set as negative here, hence the -
             guideStepSize= deltaBetweenUncountedSteps/32;  // we will issue guide steps at 32 times the sideral rate. So a 45second slew will result in a little bit over 1s of extra movement
             nextGuideStep= now;                   // starting now!
         }
@@ -1250,7 +1275,7 @@ class CMotorUncounted : public CMotor { public:
 
 // The 3 motors!
 static CMotorUncounted MRa(raDirPin, raStepPin, motorSerialRa, 31, raUartAddr);  // full power on hold (anyhow, never stops)
-static CMotor MDec(decDirPin, decStepPin, motorSerialDec, 16, decUartAddr);      // 1/2 power on hold
+static CMotor MDec(decDirPin, decStepPin, motorSerialDec, 31, decUartAddr);      // full power on hold
 static CMotor MFocus(focDirPin, focStepPin, motorSerialFocus, 7, focUartAddr);   // 1/4 power on hold (assuming not off when not in use)
 
 #ifdef TMC
@@ -1311,7 +1336,7 @@ class CDisplay { public:
         memcpy_P(preCommand, lcdInit, sizeof(lcdInit));
         I2C.begin(); I2C.send(preCommand, sizeof(lcdInit)); // init LCD
         while (I2C.next()); // wait for init sent..
-        screenOn(); dopreCommand();
+        screenOn();
     }
     void dopreCommand()
     {
@@ -1492,7 +1517,7 @@ class CDisplay { public:
   static void EEPROM_read(uint8_t *d, int size) { if (!alpaca->load("CdBEqControl", d, size)) memset(d, 0xff, size); } // load data and set to FF if error
 #else // PC case... Simulation...
   static uint32_t readHex(char *&s, int8_t cnt); // read an hex value from a string...
-  static char EEPROM[]= "00906500E3200100C8000000AAA25400BDF00000C800000035110000F02319009C61020010049001420022001F0030752003C8000000F000191D01000000000000000000000000000000000026";
+  static char EEPROM[]= "0090650000200300C8000000AAA2540000200300C80000000000000020B818008032020010049001420022001F00FCFF2003C8000000C300231D00000000000000000000000000000000000020";
   static void EEPROM_update(uint8_t *d, int8_t size)  { }
   static void EEPROM_read(uint8_t *d, int8_t size) { 
       char *s= EEPROM;
@@ -1524,11 +1549,12 @@ class CSavedData { public:
     uint16_t decBacklash, raAmplitude; // raAmplitude is the amplitude of the RA movement in degree! allows to pass the meridian... decBacklash is in steps...
     uint8_t guideRateRA, guideRateDec; // used by driver only... in thenth of arc"/s (75 = 7.5"/s) (used to be in steps/s)
     uint8_t invertAxes; // 1 bit per motor... For some reason dec, ra and then focus... dec is before RA... don't ask...
+                        // bit 4: check on goto bellow horizon
     uint8_t guidingBits; // 0:ra pier invert, 1:ra invert, 2:ra stop, 3:dec pier invert, 4:dec invert, 5:dec stop (these are server side stuff)
                          // 6: AP mode (true if access point mode, esp32 only)
                          // 7: NoAutoFlip
-    uint16_t raBacklash, focBacklash;
-    uint8_t _raSettle; // not used anymore...
+    int16_t raBacklash; uint16_t focBacklash;
+    uint8_t _raSettle; // not used anymore... replaced by negative ra backlash...
     uint8_t extra[11]; // for future...
     uint8_t crc;
     uint8_t calcCrc()
@@ -1546,7 +1572,7 @@ class CSavedData { public:
       memset(this, 0, sizeof(*this));
       ra={130UL*200*microSteps, 200*microSteps*4, 200 }; 
       dec={65UL*200*microSteps*20/12, 200*microSteps*4, 200}; 
-      timeComp= 0; Latitude=45*3600UL, Longitude=4*3600L, Altitude=1040, FocalLength=400, Diameter_mm=66, Area_cm2= 34, FocStepdum= 31; 
+      timeComp= 0; Latitude=45*36000UL, Longitude=4*36000L, Altitude=1040, FocalLength=400, Diameter_mm=66, Area_cm2= 34, FocStepdum= 31; 
       focMaxStp=65532; focMaxSpd=200*4; focAcc= 200;
       decBacklash= 0;
       raAmplitude= 195; // plus 30mn on each side...
@@ -1588,7 +1614,7 @@ class CSavedData { public:
         initUncountedStep2(23*3600UL+56*60+4);
         MFocus.init(uint32_t(savedData.focMaxStp)<<8, uint32_t(savedData.focMaxSpd)<<8,  savedData.focAcc, -int32_t(savedData.focMaxStp)*savedData.FocStepdum/20, int32_t(savedData.focMaxStp)*savedData.FocStepdum/20, 0, (CSavedData::savedData.invertAxes&4)!=0);
         MFocus.backlash= savedData.focBacklash<<8;
-        MRa.backlash= savedData.raBacklash;
+        MRa.backlash= -savedData.raBacklash;
         MDec.backlash= savedData.decBacklash;
         savedGotoForFlip.noAutoFlip= (savedData.guidingBits&0x80)!=0;
     }
@@ -1783,10 +1809,10 @@ static const uint32_t UIDelay= 50000;           // Pool time of keyboard. UI uni
 static const uint16_t timeToScreenOffConst= 10*20;   // 10s timout on the screen. The 20 is the UI delay unit of time...
 static uint16_t timeToScreenOff= timeToScreenOffConst; // countdown to screen off...
 static bool stopMovingOnKeyRelease= true;     // if true, then once no key is pressed, stop moving... records who said move/don't move
-static const int8_t nbSpeeds= 6;
 static uint8_t manualSpeed= 3;                 // current speed in manualSpeeds
-static int16_t const manualSpeeds[]= { 60, 60*15, 60*30, 60*60, 2*60*60, 4*60*60 }; // list of possible speed in manual mode in deg per second. WARNING, RA is in h, not deg units!
-static char const manualSpeedsTxt[]=" 1'15'30' 1\x7f 2\x7f 4\x7f"; // text for the above
+static uint16_t const manualSpeeds[]= { 60, 60*15, 60*30, 60*60, 2*60*60, 4*60*60, 8*60*60, 12*60*60 }; // list of possible speed in manual mode in deg per second. WARNING, RA is in h, not deg units!
+static const int8_t nbSpeeds= sizeof(manualSpeeds)/sizeof(manualSpeeds[0]);
+static char const manualSpeedsTxt[]=" 1'15'30' 1\x7f 2\x7f 4\x7f 8\x7f""12\x7f"; // text for the above
 
 // utility functions. Can not trust % as it is undefined for negatives. plus, 99% of the time, we will have only 1 "loop"... so faster than /
 static int32_t round24(int32_t r)
@@ -1851,10 +1877,11 @@ void flip() // This only works if amplitude > 180° and scope is close to edge! 
     return;
 }
 
-static void goTo(int32_t ra, int32_t dec)
+static void goTo(int32_t ra, int32_t dec, bool visual)
 {
-    if (savedGotoForFlip.flipFlags!=0) return; // no goto while doing a flip...
+    savedGotoForFlip.flipFlags= 0; // no more flipping...
     if (ra<0 || ra>24*3600L || dec<-90*3600L || dec>90*3600L) return; // error detection.. had issue with bad serial commands (missed inbound byte)
+    if (!canGoThere(ra, dec)) return;
     // The telescope can only access stars when the counterweight are bellow the center of gravity.
     // This, in essence, limits the RA coordinates to 12h instead of 24h...
     // To access the other 12h of RA, we need to realize that polar coordinages Ra/Dec point to the same place as coordinaes Ra+12h/180-Dec
@@ -1869,15 +1896,25 @@ static void goTo(int32_t ra, int32_t dec)
     // this is done by saving the target, moving the motors "by hand", and when at north continuing the process
     MDecOn();
     stopMovingOnKeyRelease= false;
-    if (!sameSideOfMeridian(ra))
+    bool flip= !sameSideOfMeridian(ra);
+    if (!flip && !visual)
+    { // Here we know that we are on the same side, so step will be < maxPos...
+        int32_t step= ra; if (step<MRa.maxPosReal) step+= 24*3600L; step= MRa.realToPos(step);
+        int left= MRa.maxPos-step;
+        int play= MRa.maxPos-CSavedData::savedData.ra.maxPos/2; // how much extra room do we have? it's 1/2 turn - the max motor movement...
+        flip= left<play; // we flip if we have less left to do than the play
+        //printf("Goto Flip:%c ra:%02f (%02f-%02f) angle:%d\r\n", flip?'Y':'N', t/3600.0f, MRa.maxPosReal/3600.0f, MRa.minPosReal/3600.0f, a);
+    }
+    if (flip)
     { // go to true north and enable flip... Can not be here if flip not enabled!
-        // MSerial.print("gf"); printHex2(ra,6); printHex2(dec,6); printHex2(MRa.maxPosReal,6); printHex(MRa.minPosReal,6); MSerial.flush(); // debug stuff...
         savedGotoForFlip.ra= ra; savedGotoForFlip.dec= dec; savedGotoForFlip.flipFlags= 1;
-        MRa.goToSteps(MRa.maxPos/2); MDec.goToSteps(MDec.maxPos);
+        MRa.goToSteps(MRa.maxPos/2+MRa.maxPos/64); MDec.goToSteps(MDec.maxPos);
+        //printf("goto %ld,%ld with flip\r\n", ra/3600, dec/3600);
         return;
     }
     // now, ra should be in the range... But, because MRa min/max does not wrap around, we need to udpate ra if/as needed. And remember than maxPos is smaller than minPos!
     if (ra<MRa.maxPosReal) ra+= 24*3600L;
+    //printf("goto %ld,%ld no flip\r\n", ra/3600, dec/3600);
     MRa.goToReal(ra), MDec.goToReal(dec); // no need to meridian flip, jut go to!
 }
 
@@ -1960,7 +1997,7 @@ static void testGoSync(uint16_t newKeyDown, int32_t ra, int32_t dec)
 {
     if ((newKeyDown&keyGo)!=0)  // validation button
     { 
-        goTo(ra, dec);
+        goTo(ra, dec, true);
         UI= UIMain;
     }
     if ((newKeyDown&keySync)!=0) 
@@ -2018,8 +2055,8 @@ static void doUI() // Display takes around 5ms...
     {
         display.text2("Flip", 32, 0);
         dispRaDec(MRaposInReal(), MDec.posInReal());
-        if ((newKeyDown&keyEsc)!=0) { savedGotoForFlip.flipFlags= 0; } // esc key. stop where we are...
-        return;
+        if ((newKeyDown&keyEsc)==0) return;
+        savedGotoForFlip.flipFlags= 0; // esc key. stop where we are...
     }
 
     if ((newKeyDown&keyMenu)!=0) { MDecOn(); if (UI>=UIWifi) UI= UIMain; else UI++; } // menu change
@@ -2051,7 +2088,12 @@ static void doUI() // Display takes around 5ms...
             MDec.pos--;  // avoids, on next loop, a reflip the other way around!
             MDec.goDownRealNoAbs(manualSpeeds[manualSpeed]);
         }
-        if ((newKeyDown&keySpd)!=0) manualSpeed= (manualSpeed+1)%nbSpeeds;
+        if ((newKeyDown&keySpd)!=0)
+        {
+            do {
+                manualSpeed= (manualSpeed+1)%nbSpeeds;
+            } while (MRa.stepsFromReal(manualSpeeds[manualSpeed]/15)>MRa.spdMax);
+        }
       
         if ((keys&keyEsc)!=0 && (newKeyDown&keySync)!=0) flipDec(); // press and hold Esc, then press sync to change the dec direction...
         if ((keys&keyEsc)!=0 && (newKeyDown&keyRight)!=0)  // press and hold Esc, then press right to stop the sideral move
@@ -2243,10 +2285,10 @@ static void doUI() // Display takes around 5ms...
 }
 
 // From here, we find mostly what is needed to talk to the ASCOM driver through the serial port...
-static void printHex2(uint32_t v, int8_t l) // send a l digit hex number to serial
+static void printHex2(CSerial &serial, uint32_t v, int8_t l) // send a l digit hex number to serial
 {
     char const hexstr[]= "0123456789ABCDEF";
-    while (--l>=0) MSerial::print(hexstr[((v>>(4*l)))&15]);
+    while (--l>=0) serial.print(hexstr[((v>>(4*l)))&15]);
 }
 
 static uint32_t readHex(char *&s, int8_t cnt) // read an hex value from a string...
@@ -2265,8 +2307,10 @@ static uint32_t readHex(char *&s, int8_t cnt) // read an hex value from a string
 
 static uint8_t volatile quantizeTime= 0; // quantizeTime will get to 0 every 10ms or 100 ticks at 0.1ms
 
-static char input[40];                         // stores serial input
-static uint8_t in= 0;                          // current char in serial input
+struct TSerialContext {
+  char input[40];                         // stores serial input
+  uint8_t in= 0;                          // current char in serial input
+} serialContext;
 static bool decGuiding= false; // will be set to true when a dec guiding command is sent. back to false when dec movement is stopped..
 #ifdef HASADC
     static bool power= false;  // is power on or off?
@@ -2297,12 +2341,14 @@ static void inline quantizePowerFlip()
     {
       // now flip the coordinates on the 2 axes and then continue goto to saved positions...
       flipDec(); flipRa();
-      savedGotoForFlip.flipFlags= false;
-      goTo(savedGotoForFlip.ra, savedGotoForFlip.dec);
+      savedGotoForFlip.flipFlags= 0;
+      uint32_t ra= savedGotoForFlip.ra; if (ra<MRa.maxPosReal) ra+= 24*3600L;
+      //printf("goto_after flip %ld,%ld\r\n", ra, savedGotoForFlip.dec);
+      MRa.goToReal(ra), MDec.goToReal(savedGotoForFlip.dec); // no need to meridian flip, jut go to!
     }
 }
 
-void processSerial(char *C, int8_t nb)
+void processSerial(char *C, int8_t nb, TSerialContext &serialContext, CSerial &serial)
 {
   ///////////////////////////////////////////
   // serial input processing
@@ -2316,30 +2362,30 @@ void processSerial(char *C, int8_t nb)
         if (c<=' ') continue;                                    // ignore blanks
         if (c=='!')   // get info command
         {
-            printHex2(MDec.posInReal(), 6); printHex2(MRaposInReal(), 6); printHex2(MFocus.pos>>8, 6);
+            printHex2(serial, MDec.posInReal(), 6); printHex2(serial, MRaposInReal(), 6); printHex2(serial, MFocus.pos>>8, 6);
             // bit 0: moving, bit 1: focus moving, bit 2: side of pier, bit 3: meridian swapping, bit 4: flip disabled,
             //   bit 5: tracking disabled, bit 6: power, bit 7: guiding
-            printHex2(((MDec.isMoving()||MRa.isMoving()||(savedGotoForFlip.flipFlags!=0))?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
+            printHex2(serial, ((MDec.isMoving()||MRa.isMoving()||(savedGotoForFlip.flipFlags!=0))?1:0) | (MFocus.isMoving()?2:0) | (scopeWest() ? 4:0) | ((savedGotoForFlip.flipFlags!=0)?8:0) | 
                     (isRaFlipEnabled()?0:16) | (MRa.deltaBetweenUncountedSteps==0?32:0) | (power?64:0) | ((decGuiding||(MRa._guide!=0))?128:0), 2);
-            printHex2(Time::mnow(), 6);                         // this allows to verify time drift
-            printHex2(Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
-            printHex2(MRa.countAllUncountedSteps, 6);           // this is also a time drift check
-            printHex2(MRa.pos, 8); printHex2(MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
-            printHex2((powercnt&0x0f) | (MRa.sideralMove<<5) | hasGPSData, 2);  // hasGPSData is bit 4...
-            sendBNO(); // as needed
-            MSerial::flush('#');
+            printHex2(serial, Time::mnow(), 6);                         // this allows to verify time drift
+            printHex2(serial, Abs(MRa.minPosReal+MRa.maxPosReal)/2, 6); // This allows to check if something will cause a flip or not...
+            printHex2(serial, MRa.countAllUncountedSteps, 6);           // this is also a time drift check
+            printHex2(serial, MRa.pos, 8); printHex2(serial, MDec.pos, 8);      // motor mechanical position ra for flip calculation. dec not used at this point
+            printHex2(serial, (powercnt&0x0f) | (MRa.sideralMove<<5) | hasGPSData, 2);  // hasGPSData is bit 4...
+            sendBNO(serial); // as needed
+            serial.flush('#');
             continue;
         }
         if (c=='&') 
         { // serial write hex represenation of CSavedData (get settings)
             CSavedData::savedData.crc= CSavedData::savedData.calcCrc(); uint8_t *d= (uint8_t*)&CSavedData::savedData;
-            for (uint8_t i=0; i<sizeof(CSavedData::savedData); i++) printHex2(*d++, 2);
+            for (uint8_t i=0; i<sizeof(CSavedData::savedData); i++) printHex2(serial, *d++, 2);
             #ifdef ESP
                 uint8_t *p= (uint8_t*)alpaca->wifi;
-                for (uint8_t i=0; i<2*sizeof(alpaca->wifi); i++) printHex2(p[i], 2);
-                printHex2(ipaddr, 8);
+                for (uint8_t i=0; i<2*sizeof(alpaca->wifi); i++) printHex2(serial, p[i], 2);
+                printHex2(serial, ipaddr, 8);
             #endif
-            MSerial::flush('#');
+            serial.flush('#');
             continue;
         }
         if (c=='@')
@@ -2349,7 +2395,7 @@ void processSerial(char *C, int8_t nb)
                 for (uint8_t i=0; i<sizeof(CSavedData); i++)
                 {
                     char t[2]; for (int8_t p=0; p<2; p++)  // read 2 chars (1 byte)
-                    while (true) { if (now<Time::mnow()) goto er; int c= MSerial::read(); if (c<0) continue; t[p]= c; break; }
+                    while (true) { if (now<Time::mnow()) goto er; int c= serial.read(); if (c<0) continue; t[p]= c; break; }
                     char *T= t; ((uint8_t*)&CSavedData::savedData)[i]= readHex(T,2);
                 }
                 if (CSavedData::savedData.testCrc()) CSavedData::savedData.save(); else { er: CSavedData::savedData.load(); } // verify crc!
@@ -2358,7 +2404,7 @@ void processSerial(char *C, int8_t nb)
                 // copy data that we already have in buffer...
                 if (nb<=sizeof(buf)) { pos= nb; memcpy(buf, C, nb); nb= 0; } else { pos= sizeof(buf); memcpy(buf, C, sizeof(buf)); nb-= sizeof(buf); C+= sizeof(buf); }
                 // get missing data...
-                while (pos<sizeof(buf)) if ((nb= MSerial::read(buf+pos, sizeof(buf)-pos))!=0) pos+=nb; else goto er;
+                while (pos<sizeof(buf)) if ((nb= serial.read(buf+pos, sizeof(buf)-pos))!=0) pos+=nb; else goto er;
                 {
                     char *t= (char*)buf; for (uint8_t i=0; i<sizeof(buf)/2; i++) buf[i]= readHex(t,2); // To binary...
                     if (((CSavedData*)buf)->testCrc()) // check crc and save data if valid...
@@ -2373,16 +2419,16 @@ void processSerial(char *C, int8_t nb)
             reboot(); // reboot the system!
         }
 
-        if (in==0 && c!=':') continue;                         // nothing until ':' (line start)...
-        input[in++]= char(c); if (in==sizeof(input)) { in= 0; continue; } // save new character and overflow detection...
+        if (serialContext.in==0 && c!=':') continue;                         // nothing until ':' (line start)...
+        serialContext.input[serialContext.in++]= char(c); if (serialContext.in==sizeof(serialContext.input)) { serialContext.in= 0; continue; } // save new character and overflow detection...
         if (c!='#' && c!='\n') continue;                       // not end of line... get next character
-        in=0;                                                  // reset line
-        char *s= input+3; // in most cases, numbers start at input+3. init once only
+        serialContext.in=0;                                                  // reset line
+        char *s= serialContext.input+3; // in most cases, numbers start at input+3. init once only
         // now look for commands in line...
-    #define t1(c) input[1]==c
-    #define t2(c1,c2) input[1]==c1 && input[2]==c2
+    #define t1(c) serialContext.input[1]==c
+    #define t2(c1,c2) serialContext.input[1]==c1 && serialContext.input[2]==c2
         if (t2('$', 'P')) { flipDec(); continue; }
-        if (t2('$', 'f')) { enableFlip(input[3]!='0'); continue; } // flip on/off
+        if (t2('$', 'f')) { enableFlip(serialContext.input[3]!='0'); continue; } // flip on/off
         if (t1('Q')) { savedGotoForFlip.flipFlags= 0; MFocus.stop(); MDec.stop(); MRa.stop(); continue; } // :Q# stop driven movements (including focusser)
 
         if (t1('T')) // track. provides dst in ra/dec as int24, time to be there in ms as int16. then a crc as int8
@@ -2397,9 +2443,16 @@ void processSerial(char *C, int8_t nb)
         if (t2('M', 'R')) reboot(); // reboot the system!
         // All the commands from there on will take 1 or 2 inputs. In 8 char hex form most significant nible first in our input... We read them...
         int32_t n1= readHex(s,8); int32_t n2= readHex(s,8); 
-        if (t2('M', 'G')) { goTo(n1, n2); continue; } // MOVE:  :MS# (slew) // after sending Sr and Sd, will ask to move!. print(0)= slew is possible 
+        if (t2('M', 'G')) { goTo(n1, n2, false); continue; } 
         if (t2('M', 'g')) { MRa.goToSteps(n1); MDec.goToSteps(n2); stopMovingOnKeyRelease= false; continue; } // go to steps
-        if (t2('M', 'S')) { sync(n1, n2); continue; } // :CM# assumes Sr and Sd have been processed sync current position with input
+        if (t2('M', 'S')) { sync(n1, n2); continue; } 
+        if (t2('M', 's')) // This will reset the ra motor physical positions so that the center is vertical. It is nothing more than a low level LST sync...
+                          { // n1= step in MRA where we want to be... So we need to change minReal and maxReal so that after changing pos posInReal does not change...
+                            int32_t d= MRa.RealFromstepsNoAbs(n1-MRa.pos); // how many units do we move by?
+                            MRa.minPosReal-= d; MRa.maxPosReal-= d; MRa.checkMinMax(); // move
+                            MRa.pos= n1; // set new position...
+                            continue;
+                          }
         if (t2('M', 'd')) { MDecOn(); MDec.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mdspd(8)# (move dec in direction at speed)
         if (t2('M', 'r')) { MRa.goUpRealNoAbs(n1); stopMovingOnKeyRelease= false; continue; } // :Mrspd(8)# (move ra in direction at speed)
         if (t2('M', 'f')) { flip(); continue; } // // force a meridian flip (assumes that the user has verified that it was possible!)
@@ -2418,12 +2471,14 @@ void processSerial(char *C, int8_t nb)
 static void inline loop()
 {
     do { doUI(); } while (quantizeTime!=0);
+    // quantizeTime gets decremented at 10khz, so 100 means every 10ms...
     quantizeTime= 100; // no issues is ISR as it wont change quantizeTime when 0 and it's 0 at the moment...
     quantizePowerFlip();
+    stopIfUnder();
     while (true)
     {
-        int16_t c= MSerial::read(); if (c==-1) return;            // no data...
-        processSerial((char*)&c, 1);
+        int16_t c= Serial.read(); if (c==-1) return;            // no data...
+        processSerial((char*)&c, 1, serialContext, Serial);
     }
 }
 static void setup()
@@ -2433,7 +2488,7 @@ static void setup()
 	#endif
     Time::begin();
     portSetup(); // Should have the default values for the pins...
-    MSerial::begin();
+    Serial.begin();
     display.begin();
     CSavedData::savedData.load(); // motors are initialized here..
 }
@@ -2461,4 +2516,24 @@ int main()
     while (true) loop();
 }
 #endif
+#endif
+
+#ifdef ALPACA
+static bool canGoThere(int32_t ra, int32_t dec)
+{
+    if ((CSavedData::savedData.invertAxes&0x10)==0) return true;
+    // Calculate target ra/dec motor positions in hours and degrees with 0,90 vertical pointing north
+    int32_t mid= (MRa.minPosReal+MRa.maxPosReal)/2;
+    float raf= -(mid-int32_t(ra))/3600.0f;
+    if (scopeWest()) raf+= 12.0f;
+    // Now, get az/alt based on these positions which correspond to 6am LST
+    float alt, az; raDecToAltAz(raf, dec/3600.0f, 6.0f, CSavedData::savedData.Latitude/36000.0f, &alt, &az);
+    return alt>=0.0f;
+}
+static void stopIfUnder()
+{
+    if ((CSavedData::savedData.invertAxes&0x10)!=0 && MRa.sideralMove!=0 && !canGoThere(MRaposInReal(), MDec.posInReal())) 
+        CSavedData::savedData.initUncountedStep2(0);
+}
+
 #endif

@@ -17,7 +17,7 @@
 #include <string>
 #include <iterator>
 #include "MiniFB.h"
-#include <atlbase.h>
+//#include <atlbase.h>
 #include <math.h>
 #include <stdio.h>
 #pragma comment(lib, "ws2_32.lib")
@@ -30,7 +30,7 @@
 #define STEP2(stp)
 #define cli()
 #define sei()
-#define reboot()
+#define reboot() { }
 
 // empty version of ACD namespace in in windows (assumes power is always "on"). ACD not used for keyboard (as in ESP v2 boards)
 namespace CADC {
@@ -40,12 +40,15 @@ namespace CADC {
 
 // This is a windows version of the serial namespace used on device.
 // On windows serial comunications will go in parallel through the console (with read/write) and a socket on port 8080 which can be used by the Ascom driver...
-namespace MSerial {
+void dispOnSocket();
+
+class CSerial { public:
     SOCKET clientSocket= INVALID_SOCKET;
     char t[1000]; int pos= 0;
     CRITICAL_SECTION cs;
     static DWORD WINAPI sockListen(LPVOID lpThreadParameter)
     {
+        CSerial *This= (CSerial*)lpThreadParameter;
         WSADATA wsaData;
         SOCKET serverSocket;
         struct sockaddr_in serverAddr, clientAddr;
@@ -60,40 +63,41 @@ namespace MSerial {
         listen(serverSocket, SOMAXCONN);
         while (1) 
         {
-            clientSocket = accept(serverSocket, (SOCKADDR*)&clientAddr, &addrSize);
-            if (clientSocket == INVALID_SOCKET) continue;
+            This->clientSocket = accept(serverSocket, (SOCKADDR*)&clientAddr, &addrSize);
+            if (This->clientSocket == INVALID_SOCKET) continue;
             printf("Client connected.\n");
             char buffer[1024];
             while (true) 
             {
-                int bytesReceived = recv(clientSocket, buffer, sizeof(t)-pos, 0);
+                int bytesReceived = recv(This->clientSocket, buffer, sizeof(t)-This->pos, 0);
                 if (bytesReceived <= 0) break; 
                 buffer[bytesReceived]= 0;
-                 printf("\r\nTCP Received: %s\n", buffer);
-                EnterCriticalSection(&(cs));
-                memcpy(t+pos, buffer, bytesReceived), pos+= bytesReceived;
-                LeaveCriticalSection(&(cs));
+                printf("\r\nTCP Received: %s\n", buffer);
+                EnterCriticalSection(&(This->cs));
+                memcpy(This->t+This->pos, buffer, bytesReceived), This->pos+= bytesReceived;
+                LeaveCriticalSection(&(This->cs));
             }
-            closesocket(clientSocket); clientSocket= INVALID_SOCKET;
+            closesocket(This->clientSocket); This->clientSocket= INVALID_SOCKET;
         }
     }
     void sockSend(char const *s, int len) { if (clientSocket!=INVALID_SOCKET) send(clientSocket, s, len, 0); }
-    void startSock() { CreateThread(NULL, 0, sockListen, nullptr, 0, NULL); }
+    void startSock() { CreateThread(NULL, 0, sockListen, this, 0, NULL); }
 
     static DWORD WINAPI readConsole(LPVOID lpThreadParameter)
     {
+        CSerial *This= (CSerial*)lpThreadParameter;
         while (true) { 
             char c= getc(stdin); 
-            EnterCriticalSection(&(cs));
-            t[pos]= c; pos+= 1;
-            LeaveCriticalSection(&(cs));
+            EnterCriticalSection(&(This->cs));
+            This->t[This->pos]= c; This->pos+= 1;
+            LeaveCriticalSection(&(This->cs));
         }
     }
     void begin() 
     { 
         InitializeCriticalSection(&cs); 
         startSock();
-        CreateThread(nullptr, 0, readConsole, nullptr, 0, nullptr);
+        CreateThread(nullptr, 0, readConsole, this, 0, nullptr);
     }
 
     int16_t read()
@@ -109,7 +113,7 @@ namespace MSerial {
     void print(char s) { sockSend(&s,1); if (s=='\n') printf("\r\n"); else printf("%c", s); }
     void flush(char s) { print(s); }
     void flush(char const *s) { print(s); }
-};
+} Serial;
 
 namespace Time { // Windows version of 'time'
     uint64_t freq, start;
@@ -157,7 +161,7 @@ static void inline portSetup() {} // set 3 kbd pins to pullup, one kbd pin to ou
 #define PORTDCLEAR(p) (PORTD&=~(p))
 static void inline portBWritePin(int8_t pin, int8_t v) { if (v) PORTB|= 1<<pin; else PORTB&=~(1<<pin);}
 static void inline portCWritePin(int8_t pin, int8_t v) { if (v) PORTC|= 1<<pin; else PORTC&=~(1<<pin); }
-void sendBNO() {}
+void sendBNO(CSerial &Serial) {}
 void execBNO(uint32_t n1, uint32_t n2) {}
 #define debug(...) ATLTRACE2(__VA_ARGS__)
 void udelay(uint16_t) {}
@@ -212,6 +216,27 @@ uint32_t ipaddr= 0;
 #include "../eqControl_Ino/eqControl_Ino.ino"
 #include "../main/localAlpaca.h"
 
+class CMyObservingConditions : public CObservingConditions { public: CMyObservingConditions(int id): CObservingConditions(id, "CdB OC Driver", "1", "CdB Alpaca OC", "OC for eqMount") { }
+  TAlpacaErr get_averageperiod(float *averageperiod) override { *averageperiod= 1.0f/24.0f/60.0f; return ALPACA_OK; } // 1 minute
+  TAlpacaErr put_averageperiod(float averageperiod) override { return averageperiod==0.0f ? ALPACA_OK : ALPACA_ERR_INVALID_VALUE; }
+  TAlpacaErr get_dewpoint(float *v) override { *v= 5.0f; return ALPACA_OK; }
+  TAlpacaErr get_humidity(float *v) override { *v= 50.0f; return ALPACA_OK; }
+  TAlpacaErr get_pressure(float *v) override { *v= 1000.0f; return ALPACA_OK; }
+  TAlpacaErr get_starfwhm(float *v) override { *v= 1.5f; return ALPACA_OK; }
+  TAlpacaErr get_temperature(float *v) override { *v= 22.0f; return ALPACA_OK; }
+  TAlpacaErr put_refresh() override { return ALPACA_ERR_NOT_IMPLEMENTED; }; // force a refresh of the data..
+  TAlpacaErr get_timesincelastupdate(float *timesincelastupdate) override { *timesincelastupdate = 3.0f; return ALPACA_OK; } // 3 seconds? 
+  TAlpacaErr get_sensordescription(char const *sensorname, char const *&buf) override 
+  {
+      if (strcmp(sensorname, "dewpoint") == 0)    { buf = "Dew point in degrees Celsius"; return ALPACA_OK; }
+      if (strcmp(sensorname, "humidity") == 0)    { buf = "Humidity in percent"; return ALPACA_OK; }
+      if (strcmp(sensorname, "pressure") == 0)    { buf = "Pressure in hPa"; return ALPACA_OK; }
+      if (strcmp(sensorname, "starfwhm") == 0)    { buf = "Star FWHM in arcseconds"; return ALPACA_OK; }
+      if (strcmp(sensorname, "temperature") == 0) { buf = "Temperature in degrees Celsius"; return ALPACA_OK; }
+      buf = "sensor not implemented"; return ALPACA_OK;
+  }
+};
+
 
 void startAlpaca()
 {
@@ -222,6 +247,7 @@ void startAlpaca()
 
     alpaca->addDevice(new CMyTelescope(0));
     alpaca->addDevice(new CMyFocuser(0));
+    alpaca->addDevice(new CMyObservingConditions(0));
     alpaca->start(80);
 }
 
@@ -1756,27 +1782,27 @@ void planetTest()
         grandR::year= 10, grandR::month= 4, grandR::day= 19;
         int32_t ra, dec;
         grandR::planetPos(3, ra, dec);
-        ATLTRACE2("Venus %d:%d %d:%d\r\n", ra/3600, (ra/60)%60, dec/3600, (dec/60)%60);
+        //ATLTRACE2("Venus %d:%d %d:%d\r\n", ra/3600, (ra/60)%60, dec/3600, (dec/60)%60);
     }
     if (false) {
         GrandN::year= 10, GrandN::month= 4, GrandN::day= 19;
         int32_t ra, dec;
         GrandN::planetPos(3, ra, dec);
-        ATLTRACE2("Venus %d:%d %d:%d\r\n", ra/3600, (ra/60)%60, dec/3600, (dec/60)%60);
+        //ATLTRACE2("Venus %d:%d %d:%d\r\n", ra/3600, (ra/60)%60, dec/3600, (dec/60)%60);
     }
 
     if (false) // test trig
     {
         {
             int x, y;
-            x= 2, y= 1; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
-            x= 1, y= 2; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
-            x=-1, y= 2; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
-            x=-2, y= 1; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
-            x=-2, y=-1; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
-            x=-1, y=-2; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
-            x= 1, y=-2; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
-            x= 2, y=-1; ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x= 2, y= 1; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x= 1, y= 2; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x=-1, y= 2; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x=-2, y= 1; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x=-2, y=-1; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x=-1, y=-2; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x= 1, y=-2; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
+            x= 2, y=-1; //ATLTRACE2("y:%d x:%d atanf:%.2f, atan2i:%s\r\n", y, x, atan3(y,x), GrandN::atan2(y<<24, x<<24).str());
         }
         for (int x=-5; x<10; x+= 2)
             for (int y=-5; y<10; y+= 2)
@@ -1785,12 +1811,11 @@ void planetTest()
                 GrandN::Angle a2= GrandN::atan2(y<<24, x<<24);
                 float t2= a2.fval();
                 float d= t1-t2;
-                if (fabs(d)>1)
-                    ATLTRACE2("atanf(%d, %d):%.2f, atan2i(%d,%d):%s\r\n", y, x, t1, y, x, a2.str());
+                // if (fabs(d)>1) ATLTRACE2("atanf(%d, %d):%.2f, atan2i(%d,%d):%s\r\n", y, x, t1, y, x, a2.str());
             }
         for (int i=0; i<7; i++)
         {
-            ATLTRACE2("i:%d cosf(i):%f cosh(i):%s\r\n", i, cosf(float(i)), GrandN::Angle::fromRad(i<<24).cos().str());
+            //ATLTRACE2("i:%d cosf(i):%f cosh(i):%s\r\n", i, cosf(float(i)), GrandN::Angle::fromRad(i<<24).cos().str());
         }
     }
 
@@ -2526,3 +2551,32 @@ class TcreateMListMatarhon { public:
         }
     }
 };
+
+void dispOnSocket()
+{
+    float alt, az;
+    float ra= -(int32_t(MRa.pos)-int32_t(MRa.maxPos/2))*24.0f/CSavedData::savedData.ra.maxPos;
+    if (scopeWest()) ra+= 12.0f;
+    raDecToAltAz(ra, MDec.posInReal()/3600.0f, 6, 45.0f, &alt, &az);
+    printf("  %f:%f -> %f %f\r\n", ra, MDec.posInReal()/3600.0f, alt, az);
+}
+
+class CA { public:
+    // Convertit RA/Dec/LST/Lat (en h24/degrees) en Alt/Az (en radians)
+
+    CA()
+    { //return;
+        int const ras[]= {0,45,90,100,260,270,315};
+        int const decs[]= {0, 15,45,75,105,135,225,255,285,315,345};
+        for (int i=0; i<sizeof(ras)/4; i++)
+        {
+            for (int j=0; j<sizeof(decs)/4; j++)
+            {
+                float alt, az;
+                // void raDecToAltAz(float ra, float dec, float lst, float lat, float *alt, float *az);
+                raDecToAltAz(ras[i]/15.0f, decs[j], 0, 45, &alt, &az);
+                printf("  %d:%d -> %f %f\r\n", ras[i]/15, decs[j], alt, az);
+            }
+        }
+    }
+} aa;

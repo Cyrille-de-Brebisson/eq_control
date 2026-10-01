@@ -39,6 +39,7 @@ namespace ASCOM.EQControl.Telescope.V1
                     SharedResources.focusInmm= driverProfile.GetValue(DriverProgId, "focusInmm", "", "0")!="0";
                     SharedResources.reconnectOnDrop= driverProfile.GetValue(DriverProgId, "reconnectOnDrop", "", "0")!="0";
                     SharedResources.parkAtSunrise= driverProfile.GetValue(DriverProgId, "parkAtSunrise", "", "0")!="0";
+                    SharedResources.SyncRAHW= driverProfile.GetValue(DriverProgId, "SyncRAHW", "", "0")!="0";
                     double v;
                     if (double.TryParse(driverProfile.GetValue(DriverProgId, "guideRaAgressivity", "", "1.0"), NumberStyles.Float, CultureInfo.InvariantCulture, out v))
                         SharedResources.guideRaAgressivity = v;
@@ -71,6 +72,7 @@ namespace ASCOM.EQControl.Telescope.V1
                 driverProfile.WriteValue(DriverProgId, "reconnectOnDrop", SharedResources.reconnectOnDrop? "1" : "0");
                 driverProfile.WriteValue(DriverProgId, "parkAtSunrise", SharedResources.parkAtSunrise? "1" : "0");
                 driverProfile.WriteValue(DriverProgId, "phd2GuideDelay", SharedResources.phd2GuideDelay.ToString());
+                driverProfile.WriteValue(DriverProgId, "SyncRAHW", SharedResources.SyncRAHW? "1" : "0");
                 
             }
         }

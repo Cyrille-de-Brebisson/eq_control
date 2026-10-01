@@ -31,6 +31,8 @@
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -127,6 +129,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BTSerial.cs" />
     <Compile Include="ClassFactory.cs" />
     <Compile Include="FocuserDriver\FocuserDriver.cs" />
     <Compile Include="FocuserDriver\FocuserHardware..cs" />
@@ -209,6 +212,11 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.Contracts">
+      <Version>10.0.19041.2</Version>
+    </PackageReference>
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
@@ -221,7 +229,7 @@
     <PreBuildEvent>
     </PreBuildEvent>
     <PostBuildEvent>copy /Y "$(TargetPath)" "$(ProjectDir)"\..\Ascom_Driver_EQ_Controler
-copy /Y "$(TargetPath)" "C:\Program Files (x86)\Common Files\ASCOM"
+rem copy /Y "$(TargetPath)" "C:\Program Files (x86)\Common Files\ASCOM"
 </PostBuildEvent>
   </PropertyGroup>
 </Project>

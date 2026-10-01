@@ -44,6 +44,14 @@ public partial class SateliteTrack : Form
     }
 
     // Display the satelite position in the sky, scope ra, dec and corrections
+    static PointF SkyToScreen(double az, double alt, int w, int h)
+    {
+        double azRad = az * (Math.PI / 180.0);
+        double altRad = alt * (Math.PI / 180.0);
+        double x = Math.Cos(-azRad) * Math.Cos(altRad) * w / 2 + w / 2;
+        double y = Math.Sin(-azRad) * Math.Cos(altRad) * h / 2 + h / 2;
+        return new PointF((float)x, (float)y);
+    }
     void updateIssImage()
     {
         int w= pictureBox2.Width, h= pictureBox2.Height;
@@ -51,33 +59,79 @@ public partial class SateliteTrack : Form
         Graphics g = Graphics.FromImage(b);
         g.FillRectangle(new SolidBrush(Color.Black), 0, 0, w, h);
         g.DrawEllipse(new Pen(Color.Yellow), 0, 0, w, h);
-        if (TrackingInfos.Count>=2)
+
+        double latRad = TelescopeHardware.SiteLatitude * (Math.PI / 180.0);
+        double dRad = TelescopeHardware.SiteLongitude * (Math.PI / 180.0);
+
+        PointF pe1=PointF.Empty, pw1=PointF.Empty;
+        for (double dec = -89.0; dec <= 89.0; dec += 1)
         {
-            double fx = Math.Cos(-(TrackingInfos[0].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[0].alt*Math.PI/180)*w/2+w/2;
-            double fy = Math.Sin(-(TrackingInfos[0].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[0].alt*Math.PI/180) *h/2+h/2;
-            PointF p = new PointF((float)fx, (float)fy);
-            for (int i = 0; i < TrackingInfos.Count-1; i++)
+            double decRad = dec * (Math.PI / 180.0);
+            // Altitude is identical for both +D and -D because cos(+D) == cos(-D)
+            double sinAlt = Math.Sin(latRad) * Math.Sin(decRad) + Math.Cos(latRad) * Math.Cos(decRad) * Math.Cos(dRad);
+            // Only plot points visible above horizon
+            if (sinAlt < 0.0) continue; 
+            double altDeg = Math.Asin(sinAlt)*(180.0/Math.PI);
+            // 1. West Limit (H = +D)
+            double yWest = -Math.Sin(dRad);
+            double xWest = Math.Tan(decRad) * Math.Cos(latRad) - Math.Sin(latRad) * Math.Cos(dRad);
+            double azWest = Math.Atan2(yWest, xWest)*(180.0/Math.PI);
+            // 2. East Limit (H = -D)
+            double yEast = Math.Sin(dRad);
+            double xEast = Math.Tan(decRad) * Math.Cos(latRad) - Math.Sin(latRad) * Math.Cos(dRad);
+            double azEast = Math.Atan2(yEast, xEast)*(180.0/Math.PI);
+            PointF pe2= SkyToScreen(azEast+90, altDeg, w, h);
+            PointF pw2= SkyToScreen(azWest+90, altDeg, w, h);
+            if (pe1!=PointF.Empty)
             {
-                fx = Math.Cos(-(TrackingInfos[i+1].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[i+1].alt*Math.PI/180) * w / 2 + w / 2;
-                fy = Math.Sin(-(TrackingInfos[i+1].az+90)*Math.PI/180) * Math.Cos(TrackingInfos[i+1].alt*Math.PI/180) * h / 2 + h / 2;
-                PointF p2 = new PointF((float)fx, (float)fy);
-                g.DrawLine(new Pen(Color.Yellow, 2), p, p2);
+                g.DrawLine(new Pen(Color.FromArgb(255, 0, 255, 0)), pe1, pe2);
+                g.DrawLine(new Pen(Color.FromArgb(255, 0, 255, 0)), pw1, pw2);
+            }
+            pe1= pe2; pw1 = pw2;
+        }
+
+        if (nbposes>=2)
+        {
+            PointF p = SkyToScreen(poses[0].az+90, poses[0].alt, w, h);
+            for (int i = 0; i < nbposes-1; i++)
+            {
+                PointF p2 = SkyToScreen(poses[i+1].az+90, poses[i+1].alt, w, h);
+                g.DrawLine(new Pen(Color.OrangeRed, 2), p, p2);
                 p = p2;
             }
         }
 
-        for (int i = 0; i < TrackingInfos.Count-1; i++)
+        if (TrackingInfos!=null)
         {
-            float x= (float)i*w/TrackingInfos.Count;
+            if (TrackingInfos.Count>=2)
+            {
+                PointF p = SkyToScreen(TrackingInfos[0].az+90, TrackingInfos[0].alt, w, h);
+                for (int i = 0; i < TrackingInfos.Count-1; i++)
+                {
+                    PointF p2 = SkyToScreen(TrackingInfos[i+1].az+90, TrackingInfos[i+1].alt, w, h);
+                    g.DrawLine(new Pen(Color.Yellow, 2), p, p2);
+                    p = p2;
+                }
+            }
+            for (int i = 0; i < TrackingInfos.Count-1; i++)
+            {
+                float x= (float)i*w/TrackingInfos.Count;
 
-            // spds
-            double sra= TrackingInfos[i+1].ra-TrackingInfos[i].ra, sdec= TrackingInfos[i+1].dec-TrackingInfos[i].dec;
-            float yra= ((float)sra+4)*h/8; g.FillRectangle(new SolidBrush(Color.Blue), x, yra, 1, 1);
-            float ydec= ((float)sdec+4)*h/8; g.FillRectangle(new SolidBrush(Color.Green), x, ydec, 1, 1);
+                // spds
+                double sra= TrackingInfos[i+1].ra-TrackingInfos[i].ra, sdec= TrackingInfos[i+1].dec-TrackingInfos[i].dec;
+                float yra= ((float)sra+4)*h/8; g.FillRectangle(new SolidBrush(Color.Blue), x, yra, 1, 1);
+                float ydec= ((float)sdec+4)*h/8; g.FillRectangle(new SolidBrush(Color.Green), x, ydec, 1, 1);
 
-            // Corrections
-            float cra= ((float)TrackingInfos[i].cra*15+4)*h/8; g.FillRectangle(new SolidBrush(Color.Red), x, cra, 1, 1);
-            float cdec= ((float)TrackingInfos[i].cdec+4)*h/8; g.FillRectangle(new SolidBrush(Color.Red), x, cdec, 1, 1);
+                // Corrections
+                float cra= ((float)TrackingInfos[i].cra*15+4)*h/8; g.FillRectangle(new SolidBrush(Color.Red), x, cra, 1, 1);
+                float cdec= ((float)TrackingInfos[i].cdec+4)*h/8; g.FillRectangle(new SolidBrush(Color.Red), x, cdec, 1, 1);
+            }
+        }
+
+
+        { 
+            PointF p = SkyToScreen(SharedResources.Azimuth+90, SharedResources.Altitude, w, h);
+            g.DrawEllipse(new Pen(Color.Brown), p.X-3, p.Y-3, 6, 6);
         }
 
         pictureBox2.Image= b;
@@ -93,11 +147,12 @@ public partial class SateliteTrack : Form
         double issTrackDeltaRa = 0.0, issTrackDeltaDec= 0.0;
         int addDeltaSecToUtc= 0; // used to give a fake time to test the system.
         int sleep= 1000;
-        while (true)
+        while (!SharedResources.appClosing)
         { 
             try { BeginInvoke((MethodInvoker)delegate () 
                 { 
                     sleep= 1000;
+                    if (SharedResources._ScopeMoving) updateIssImage();
                     if (!SharedResources.Connected || !SharedResources.hasHWData || nbPasses<=0) checkBox14.Checked= false; // verify if we can do anything...
                     if (!hasTLE()) // can not track if no TLE...
                     {
@@ -188,7 +243,6 @@ public partial class SateliteTrack : Form
                         { 
                             lastTrackingInfo= utc;
                             TrackingInfos.Add(new TTrackingInfo(nra, ndec, issTrackDeltaRa, issTrackDeltaDec, r.az, r.alt));
-                            updateIssImage();
                         }
                         // do 10 times per second
                         sleep= 100; return;
@@ -254,6 +308,7 @@ public partial class SateliteTrack : Form
             radecposes[i].az= lra; radecposes[i].alt= ldec; 
         }
         issNextPassMaxRaSpd= mra*15; issNextPassMaxDecSpd= mdec;
+        updateIssImage();
     }
     private void button38_Click(object sender, EventArgs e) // ask for pass recalculation
     {
@@ -395,4 +450,13 @@ public partial class SateliteTrack : Form
 
     bool hasTLE() {  return issl1!=null && issl1.Length!=0; }
 
+    private void MyForm_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        // Prevent the user from closing the form if they clicked the 'X' button or used Alt+F4
+        if (e.CloseReason == CloseReason.UserClosing)
+        {
+            e.Cancel = true; // Cancel the disposal/close process
+            this.Hide();    // Hide the window instead
+        }
+    }
 }

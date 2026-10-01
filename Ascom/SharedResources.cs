@@ -1,32 +1,27 @@
+using ASCOM.Astrometry.AstroUtils;
+using ASCOM.Astrometry.Transform;
 using ASCOM.Utilities;
 using System;
-using System.Linq;
-using ASCOM.Astrometry.Transform;
-using ASCOM.Astrometry.AstroUtils;
 using System.Diagnostics;
-using System.Threading;
-using System.Runtime.InteropServices;
-using System.IO;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices.ComTypes;
-using ASCOM.EQControl.Telescope.V1;
-using System.Drawing.Drawing2D;
+using System.Threading;
 
 namespace ASCOM.LocalServer
 {
     [HardwareClass]
     public static class SharedResources
     {
-        private static readonly object lockObject = new object(); // Object used for locking to prevent multiple drivers accessing common code at the same time
-
         public interface ILog { void log(string message, int source); };
         public static ILog log= null;
         public static void doLog(string msg, int source) 
         { 
             if (log==null) return; log.log(msg, source);
         }
+
+        public static bool appClosing= false;
+
         // Shared serial port. This will allow multiple drivers to use one single serial port.
         private static Serial SharedSerial = new Serial(); // Shared serial port
         public static string _comPort= "COM1";
@@ -34,30 +29,18 @@ namespace ASCOM.LocalServer
         internal static AstroUtils astroUtilities = new AstroUtils(); // ASCOM AstroUtilities object for use as required
         public static void Dispose()
         {
-            Disconnect();
-            try { if (SharedSerial != null) SharedSerial.Dispose(); } catch { }
-        }
-        public static int FocusserPosition
-        {
-            get { return _FocusserPosition; }
-            //set { _FocusserPosition = value; doLog("Foc sync to "+value.ToString()); }
-        }
-        public static double Declinaison
-        {
-            get { return _Declinaison; }
-        }
-        public static double RightAssension
-        {
-            get { return _RightAssension; }
+            workerThreadRequest= -1;
         }
 
+        [DllImport("kernel32.dll")]
+        static extern uint SetThreadExecutionState(uint esFlags);
+        const uint ES_CONTINUOUS        = 0x80000000;
+        const uint ES_SYSTEM_REQUIRED   = 0x00000001;
+        const uint ES_DISPLAY_REQUIRED  = 0x00000002;
+
         public static Transform azimutal = new Transform();
-        public static double Altitude { get { azimutal.JulianDateUTC= utilities.DateUTCToJulian(DateTime.UtcNow); return azimutal.ElevationTopocentric;  } }
-        public static double Azimuth { get { azimutal.JulianDateUTC = utilities.DateUTCToJulian(DateTime.UtcNow); return azimutal.AzimuthTopocentric; } }
-        public static bool FocusMoving { get { return _FocusMoving; } }
-        public static bool ScopeMoving { get { if (_ScopeGuiding) return false; return _ScopeMoving; } }
-        public static int SideOfPier { get { return _sideOfPier; } }
-        public static bool FlipDisabled { get { return _flipDisabled; } set { SendSerialCommand(":$f"+(value?"0":"1")+"#", 0); } }
+        public static double Altitude { get { try { azimutal.JulianDateUTC= utilities.DateUTCToJulian(DateTime.UtcNow); return azimutal.ElevationTopocentric; } catch { return 90.0f; } } }
+        public static double Azimuth { get { try { azimutal.JulianDateUTC = utilities.DateUTCToJulian(DateTime.UtcNow); return azimutal.AzimuthTopocentric; } catch { return 180.0f; } } }
 
         static bool ascomtrack= true;
         public static int ascomtrackspd= 0; // 0: sideral, 1: moon, 2: sun, 3: king, 4: unknown
@@ -74,44 +57,37 @@ namespace ASCOM.LocalServer
         public static DateTime trackingStopTime; // time when tracking was stopped... used for satelite tracking...
         public static bool TrackingDisabled { get { return _trackingDisabled; } set { ascomtrack= !value; _trackingDisabled= value; if (value) trackingStopTime= DateTime.UtcNow; sendTrackSpeed(); } }
         public static void Track(bool running, int rate) { _trackingDisabled=!running; ascomtrack= running; TrackingRate= rate; }
-        public static bool meridianFlip { get { return _meridianFlip; } }
-        public static long timeSpanPC { get { return _spanPC; } }
-        public static long timeSpanHW { get { return _spanHW; } }
-        public static long timeSpanUncountedSteps { get { return _uncountedSteps; } }
 
-
-        [DllImport("kernel32.dll")]
-        static extern uint SetThreadExecutionState(uint esFlags);
-
-        // Flags
-        const uint ES_CONTINUOUS        = 0x80000000;
-        const uint ES_SYSTEM_REQUIRED   = 0x00000001;
-        const uint ES_DISPLAY_REQUIRED  = 0x00000002;
-
-        private static System.Timers.Timer timerPos;
-        private static bool connectionLive = false;
         public struct Ttimes { public long pctime, HWtime, uncountedSteps; };
-        private static Ttimes[] times;
-        public static Ttimes[] savedTimes; public static int usedSavedTimes= 0;
-        public static void clearSavedTimes() { usedSavedTimes= 0; }
-        public static bool saveTimes= false;
+        private static Ttimes[] times= new Ttimes[120];
         private static int timesPos= 0;
         private static long startpcTime;
         public static double guideRaAgressivity= 1.0, guideDecAgressivity = 1.0;
         public static void SetScopeMoving() { _ScopeMoving= true; } // used when you tell the scope to move to set the var to move until we get more info from the scope itself...
         public static void SetScopeGuiding() { _ScopeGuiding= true; } // used when you tell the scope to move to set the var to move until we get more info from the scope itself...
         public static bool _ScopeMoving = false, _ScopeGuiding= false;
+        public static bool ScopeMoving { get { if (_ScopeGuiding) return false; return _ScopeMoving; } }
         private static long _spanPC = 0;
+        public static long timeSpanPC { get { return _spanPC; } }
         private static long _spanHW = 0;
+        public static long timeSpanHW { get { return _spanHW; } }
         private static long _uncountedSteps= 0;
+        public static long timeSpanUncountedSteps { get { return _uncountedSteps; } }
         private static bool _FocusMoving = false;
+        public static bool FocusMoving { get { return _FocusMoving; } }
         private static int _sideOfPier = 0;
+        public static int SideOfPier { get { return _sideOfPier; } }
         private static bool _meridianFlip = false;
+        public static bool meridianFlip { get { return _meridianFlip; } }
         private static bool _flipDisabled= false;
+        public static bool FlipDisabled { get { return _flipDisabled; } set { SendSerialCommand(":$f"+(value?"0":"1")+"#", 0); } }
         private static bool _trackingDisabled= false;
         private static double _Declinaison = 0;
+        public static double Declinaison { get { return _Declinaison; } }
         private static double _RightAssension = 0;
+        public static double RightAssension { get { return _RightAssension; } }
         public static int _FocusserPosition = 0;
+        public static int FocusserPosition { get { return _FocusserPosition; } }
         public static bool hasHWData = false, hasHWPos= false;
         public static bool dataDisplayed = false;
         public static int raMaxPos=0, raMaxSpeed=0, ramsToSpeed=0, decMaxPos=0, decMaxSpeed=0, decmsToSpeed=0, timeComp=0;
@@ -120,69 +96,60 @@ namespace ASCOM.LocalServer
         public static int decBacklash = 0, raAmplitude = 0, guideRateRA=0, guideRateDec=0;
         public static int raBacklash = 0, raSettle = 0, focBacklash = 0;
         public static int raPos= 0, decPos= 0;
-        private static long lastPCTime = 0, lastuncountedSteps = 0;
-        public static int raGuideIssued = 0;
         public static int invertAxes = 0, guidingBits=0;
         public static bool hasPowerCount= false;
         public static bool powerBit= false;
         public static int powerCount= 0;
         public static bool hasGpsInfo= false;
-        public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false, parkAtSunrise= true;
+        public static bool guideAfterSlew = false, yellOnPower= false, focusInmm= false, reconnectOnDrop= false, parkAtSunrise= true, SyncRAHW= false;
+        public static int midOfraRealPos = 6 * 3600; // stores the mid point of the RA axis in real coordinates. Used to check if somehting will need a meridial flip...
+        public static string hwconfstring= "";
+        public static string latestResponse1= "", latestResponse2= "";
+        public static int responceCount= 0;
+        public static bool haswifi= false;
+        public static string wifi= "", wifip= "";
+        public static uint ipaddr= 0;
+        public static double BNOw=0.0, BNOx=0.0, BNOy=0.0, BNOz=0.0;
+        public static int BNOTemp= 1000;
+        public static bool BNOhas= false, BNOhasOffset1= false, BNOhasOffset2= false, BNOscopeEast= false, BNOCalHere= false;
+        public static double BNOscopeaz= 0.0, BNOscopealt= 0.0, BNObnoaz= 0.0, BNObnoalt= 0.0, BNOlst= 0.0f;
 
         public static void updateAzimutal()
         { 
-                try { 
+            try { 
                 azimutal.SiteLatitude = Latitude / 36000.0f;
                 azimutal.SiteLongitude = Longitude / 36000.0f;
                 azimutal.SiteElevation = SiteAltitude;
             } catch (Exception) { }
         }
 
-        public static int midOfraRealPos = 6 * 3600; // stores the mid point of the RA axis in real coordinates. Used to check if somehting will need a meridial flip...
-        static public bool serialCrahed= false;
-        public static void Disconnect() // force disconnect. setting connected to false will NOT disconnect as multiple clients might be asking for a disconnection
+        public static void requestDisconnect() { workerThreadRequest= -1; }
+        private static void Disconnect() // force disconnect. setting connected to false will NOT disconnect as multiple clients might be asking for a disconnection
         {
-            lock (lockObject)
-            {
-                if (timerPos != null) { timerPos.Dispose(); timerPos = null; }
-                Lock= 0;
+            try { 
                 serialCrahed= false;
+                responceCount= 0;
+                timesPos = 0;
                 connectionLive = false; hasHWPos= false; hasHWData = false; hasGpsInfo= false; dataDisplayed= false; hasPowerCount= false;
                 raMaxPos = 0; raMaxSpeed = 0; ramsToSpeed = 0; decMaxPos = 0; decMaxSpeed = 0; decmsToSpeed = 0;
                 hasBeenParked= false;
                 BNOhas= false;
                 if (SharedSerial!=null) SharedSerial.Connected = false;
-                tcpdisconnect();
+                tcpdisconnect(); 
+                bTSerial.disconnect();
                 doLog("Disconnect", -1);
-                SetThreadExecutionState(ES_CONTINUOUS);
-            }
+            } catch (Exception) { }
         }
         public static string comPort 
         {
             get { return _comPort;  }
             set
             {
-                if (value == _comPort) return;
+                if (value == _comPort || connectionLive) return; // no changes? or are we connected?
                 _comPort = value;
-                if (SharedSerial == null) return;
-                bool conn = connectionLive;
-                Disconnect();
-                if (conn) Connected = true;
                 doLog("Set com to "+value, -1);
             }
         }
-        static private int Lock= 0;
-        static public string hwconfstring= "";
-        static public string latestResponse1= "", latestResponse2= "";
-        static public int responceCount= 0;
-        static public bool haswifi= false;
-        static public string wifi= "", wifip= "";
-        static public uint ipaddr= 0;
-
-        static public double BNOw=0.0, BNOx=0.0, BNOy=0.0, BNOz=0.0;
-        static public int BNOTemp= 1000;
-        static public bool BNOhas= false, BNOhasOffset1= false, BNOhasOffset2= false, BNOscopeEast= false, BNOCalHere= false;
-        static public double BNOra= 0.0, BNOdec= 0.0, BNOaz= 0.0, BNOalt= 0.0;
         static public void readHWString()
         {
             int i = 0; string v= hwconfstring;
@@ -218,171 +185,155 @@ namespace ASCOM.LocalServer
             hasHWData = true;
             resetSunRaiseTime();
         }
-        public static DateTime lastHeartBeat;
 
+        static Thread workerThread= new Thread(loop) { Name = "PersistentWorkerThread", IsBackground = true };
+        static int workerThreadRequest= 0; // set to 1 to connect, -1 to disconnect
+        static public bool serialCrahed= false;
+        public static DateTime lastHeartBeat;
+        private static bool connectionLive = false;
         public static bool Connected
         {
             set
             {
-                lock (lockObject)
-                {
-                    doLog("Connect", -1);
-                    if (!value) return; // We actually do NOT disconnect when asked by a client... just when asked by the main app!
-                    serialCrahed= false;
+                if (!workerThread.IsAlive) workerThread.Start(); // might be needed...
+                if (!phd2Thread.IsAlive) phd2Thread.Start(); // might be needed...
 
-                    if (SharedSerial.Connected || tcpstream!=null) return; // already connected...
-                    if (comPort!="tcp")
-                    { 
-                        SharedSerial.PortName = comPort;
-                        SharedSerial.Speed = ASCOM.Utilities.SerialSpeed.ps38400;
-                        try {  SharedSerial.Connected = true; }
-                        catch (Exception) { doLog("could not connect", -1); return; }
-                        SharedSerial.ReceiveTimeout = 1;
-                    } else tcpconnect();
-                    hasBeenParked= false;
-                    responceCount= 0;
-                    times= new Ttimes[120]; timesPos = 0;
-                    startpcTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                    timerPos = new System.Timers.Timer(500);
-                    SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
-                    timerPos.Elapsed += (source, e) =>
-                    {  // update status every 1/2 second
-                        if (Interlocked.Exchange(ref Lock, 1)==0)
-                        { 
-                            try
-                            {
-                                string v = SendSerialCommand("!");
-                                if (v.Length<38) { Lock= 0; return; }
-                                latestResponse1= v; latestResponse2= ""; responceCount++;
-                                int i= 0; double t;
-                                DateTime oldlastHeartBeat= lastHeartBeat;
-                                lastHeartBeat= DateTime.Now;
-                                int dec= readHex(v, ref i, 6); if (dec>=0x800000) dec|= unchecked((int)0xff000000);
-                                latestResponse2= "dec:"+dec.ToString();
-                                t=  dec/ 3600.0;
-                                if (t!=_Declinaison) { _Declinaison = t; try { azimutal.SetTopocentric(_RightAssension, _Declinaison); } catch (Exception) { } }
-                                t = readHex(v, ref i, i+6);
-                                latestResponse2+= " ra:"+t.ToString();
-                                t= t/ 3600.0;
-                                if (t!=_RightAssension) { _RightAssension= t; try { azimutal.SetTopocentric(_RightAssension, _Declinaison); } catch (Exception) { } }
-                                _FocusserPosition = readHex(v, ref i, i+6);
-                                latestResponse2+= " foc:"+_FocusserPosition.ToString();
-                                int bits= readHex(v, ref i, i+2);
-                                latestResponse2+= " bits:"+bits.ToString("X");
-                                bool old_ScopeMoving = _ScopeMoving;
-                                _FocusMoving = (bits & 2) != 0;
-                                _ScopeGuiding= (bits & 128)!=0;
-                                if (_ScopeGuiding) _ScopeMoving= false; else _ScopeMoving = (bits & 1) != 0;
-                                if (old_ScopeMoving && !_ScopeMoving && guideAfterSlew)
-                                    phd2reguide();
-                                _sideOfPier = ((bits & 4) != 0)?1:0; // 0 is east
-                                _meridianFlip= (bits & 8) != 0;
-                                _flipDisabled= (bits & 16) != 0;
-                                _trackingDisabled= (bits & 32) != 0;
-                                powerBit= (bits & 64) != 0;
-                                long timems = readHex(v, ref i, i + 6);
-                                latestResponse2+= " timems:"+timems.ToString();
-                                midOfraRealPos = readHex(v, ref i, i + 6);
-                                latestResponse2+= " midOfra:"+midOfraRealPos.ToString();
-                                long uncountedSteps= readHex(v, ref i, i+6);
-                                latestResponse2+= " uncountedSteps:"+uncountedSteps.ToString();
-                                //Console.WriteLine("Uncounted Steps "+uncountedSteps.ToString());
-                                times[timesPos].pctime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond - startpcTime;
-                                times[timesPos].HWtime = timems;
-                                times[timesPos].uncountedSteps = uncountedSteps;
-                                //doLog(times[timesPos].pctime.ToString() + "," + (times[timesPos].pctime - lastPCTime).ToString() + "," + 
-                                //      (times[timesPos].uncountedSteps-lastuncountedSteps).ToString() + "," + uncountedSteps.ToString() + (raGuideIssued == 0 ? "" : ("," + raGuideIssued.ToString())), -2);
-                                raGuideIssued = 0;
-                                lastPCTime= times[timesPos].pctime;
-                                lastuncountedSteps= times[timesPos].uncountedSteps;
-
-                                if (v.Length>=54)
-                                {
-                                    hasHWPos= true;
-                                    raPos = readHex(v, ref i, i + 8);
-                                    decPos = readHex(v, ref i, i + 8);
-                                    latestResponse2+= " raPos:"+raPos.ToString();
-                                    latestResponse2+= " decPos:"+decPos.ToString();
-                                }
-                                if (v.Length>=56)
-                                {
-                                    hasPowerCount= true;
-                                    int tmp = readHex(v, ref i, i + 2);
-                                    powerCount= tmp&0x0f;
-                                    if (hasGpsInfo != ((tmp&0x10)!=0))
-                                    {
-                                        hasGpsInfo= (tmp&0x10)!=0;
-                                        if (hasGpsInfo) hasHWData= false; // force a reask of HW data to get new GPS data...
-                                    }
-                                    tmp>>= 5;
-                                    if (tmp==0) ascomtrack= false;
-                                    else { ascomtrack= true; ascomtrackspd= tmp-1; }
-                                    latestResponse2+= " powerCount:"+powerCount.ToString();
-                                }
-                                //Console.WriteLine("len "+v.Length.ToString());
-                                if (v.Length>=128)
-                                {
-                                    BNOw= readFloat(v, ref i, i+8);BNOx= readFloat(v, ref i, i+8);BNOy= readFloat(v, ref i, i+8);BNOz= readFloat(v, ref i, i+8);
-                                    BNOTemp= readHex2(v, ref i, i+2);
-                                    int tmp= readHex2(v, ref i, i+6);
-                                    BNOhasOffset1= (tmp&2)!= 0; BNOhasOffset2= (tmp&4)!= 0; BNOscopeEast= (tmp&8)!= 0; BNOCalHere= (tmp&256)!=0;
-                                    BNOra= readFloat(v, ref i, i+8);BNOdec= readFloat(v, ref i, i+8);BNOaz= readFloat(v, ref i, i+8);BNOalt= readFloat(v, ref i, i+8);
-                                    if (!BNOhas) // just founda BNO. send it the current time to get stuff calculating OK...
-                                    {
-                                        DateTime epoch2024 = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                                        TimeSpan difference = DateTime.UtcNow - epoch2024;
-                                        SendSerialCommand(":B000000002"+((int)difference.TotalSeconds).ToString("X8")+"#", 0); // send set UTC time command... one more 0 because first one is ignored!!!
-                                    }
-                                    BNOhas= true;
-                                }
-
-
-                                if (saveTimes)
-                                {
-                                    if (savedTimes==null || savedTimes.Length>=usedSavedTimes)
-                                        Array.Resize(ref savedTimes, usedSavedTimes+128*1024);
-                                    savedTimes[usedSavedTimes++]= times[timesPos];
-                                }
-                                if (timesPos != 119) timesPos++;
-                                else
-                                {
-                                    timesPos = 0;
-                                    _spanPC= times[119].pctime - times[0].pctime;
-                                    _spanHW= times[119].HWtime - times[0].HWtime;
-                                    _uncountedSteps= times[119].uncountedSteps - times[0].uncountedSteps;
-                                }
-                                connectionLive = true;
-                                if (!hasHWData)
-                                {
-                                    v = SendSerialCommand("&");
-                                    if (v.Length != 154 && v.Length != 154+32*4+8) { Lock= 0; return; }// invalid...
-                                    hwconfstring= v;
-                                    readHWString();
-                                    
-                                    if (_Declinaison>89.9f && _RightAssension>5.59f && _RightAssension<6.01f) setToTrueNorth();
-                                }
-                                if (parkAtSunrise && lastHeartBeat>getSunRaiseTime() && oldlastHeartBeat.Year>2026 && oldlastHeartBeat<getSunRaiseTime()) // send park if sunrise happens!
-                                { 
-                                    resetSunRaiseTime();
-                                    Park();
-                                }
-                            }
-                            catch (Exception)
-                            {
-                                SharedSerial.Connected= false;
-                                tcpdisconnect();
-                                timerPos.Dispose();
-                                timerPos= null;
-                                connectionLive= false;
-                                Lock= 0;
-                            }
-                            Lock= 0;
-                        }
-                    };
-                    timerPos.Enabled = true;
-                }
+                doLog("Connect", -1);
+                if (!value) return; // We actually do NOT disconnect when asked by a client... just when asked by the main app!
+                workerThreadRequest= value ? 1 : -1; // ok, -1 never used here...
             }
             get { return connectionLive; }
+        }
+
+        static BTSerial bTSerial= new BTSerial("EQControl");
+        static void loop()
+        {
+            SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
+            while (!appClosing)
+            {
+                Thread.Sleep(500);
+                if (!connectionLive && workerThreadRequest==1) // Connection request? handle it!
+                { 
+                    Disconnect(); // This will not actually disconnect as they are already not connected. But it will reinit variables...
+                    workerThreadRequest= 0;
+                    if (SharedSerial.Connected || tcpstream!=null) continue; // already connected...
+                    if (comPort=="BT") bTSerial.connect(); //tcpconnect();
+                    else if (comPort=="tcp") tcpconnect();
+                    else { 
+                        SharedSerial.PortName = comPort;
+                        SharedSerial.Speed = ASCOM.Utilities.SerialSpeed.ps38400;
+                        try { SharedSerial.Connected = true; } catch (Exception) { doLog("could not connect", -1); continue; }
+                        SharedSerial.ReceiveTimeout = 1;
+                    }
+                    startpcTime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                }
+
+                if (workerThreadRequest==-1) { Disconnect(); workerThreadRequest = 0; continue; } // disconnect request? handle it!
+                if (!SharedSerial.Connected && tcpstream==null && !bTSerial.isConnected()) continue; // not connected? do nothing...
+
+                string v = SendSerialCommand("!"); if (v.Length<38) continue;
+
+                connectionLive = true;
+                latestResponse1= v; latestResponse2= ""; responceCount++;
+                int i= 0;
+                DateTime oldlastHeartBeat= lastHeartBeat;
+                lastHeartBeat= DateTime.Now;
+                int dec= readHex(v, ref i, 6); if (dec>=0x800000) dec|= unchecked((int)0xff000000);
+                int ra = readHex(v, ref i, i+6);
+                double decf= dec/ 3600.0, raf= ra/ 3600.0;
+                if (decf!=_Declinaison || raf!=_RightAssension) { _Declinaison = decf; _RightAssension= raf; try { azimutal.SetTopocentric(_RightAssension, _Declinaison); } catch (Exception) { } }
+                _FocusserPosition = readHex(v, ref i, i+6);
+                int bits= readHex(v, ref i, i+2);
+                bool old_ScopeMoving = _ScopeMoving;
+                _FocusMoving = (bits & 2) != 0;
+                _ScopeGuiding= (bits & 128)!=0;
+                if (_ScopeGuiding) _ScopeMoving= false; else _ScopeMoving = (bits & 1) != 0;
+                if (old_ScopeMoving && !_ScopeMoving && guideAfterSlew) phd2reguide();
+                _sideOfPier = ((bits & 4) != 0)?1:0; // 0 is east
+                _meridianFlip= (bits & 8) != 0;
+                _flipDisabled= (bits & 16) != 0;
+                _trackingDisabled= (bits & 32) != 0;
+                powerBit= (bits & 64) != 0;
+                long timems = readHex(v, ref i, i + 6);
+                midOfraRealPos = readHex(v, ref i, i + 6);
+                long uncountedSteps= readHex(v, ref i, i+6);
+
+                latestResponse2= "dec:"+dec.ToString() + " ra:"+ra.ToString()+
+                                 " foc:"+_FocusserPosition.ToString() + " bits:"+bits.ToString("X") +
+                                 " timems:"+timems.ToString() + " midOfra:"+midOfraRealPos.ToString() + " uncountedSteps:"+uncountedSteps.ToString();
+
+                //Console.WriteLine("Uncounted Steps "+uncountedSteps.ToString());
+                times[timesPos]= new Ttimes { pctime = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond - startpcTime, HWtime = timems, uncountedSteps= uncountedSteps};
+                // used to check timing of the device clock...
+                if (timesPos!=119) timesPos++;
+                else
+                {
+                    doLog("Times (PC HW steps)\t"+times[timesPos].pctime.ToString()+"\t"+times[timesPos].HWtime.ToString()+"\t"+times[timesPos].uncountedSteps.ToString(), 5);
+                    timesPos = 0;
+                    _spanPC= times[119].pctime - times[0].pctime;
+                    _spanHW= times[119].HWtime - times[0].HWtime;
+                    _uncountedSteps= times[119].uncountedSteps - times[0].uncountedSteps;
+                }
+
+                if (v.Length>=54) // HW step positions
+                {
+                    hasHWPos= true;
+                    raPos = readHex(v, ref i, i + 8);
+                    decPos = readHex(v, ref i, i + 8);
+                    latestResponse2+= " raPos:"+raPos.ToString();
+                    latestResponse2+= " decPos:"+decPos.ToString();
+                }
+                if (v.Length>=56) // power GPS and tracking status
+                {
+                    hasPowerCount= true;
+                    int tmp = readHex(v, ref i, i + 2);
+                    powerCount= tmp&0x0f;
+                    if (hasGpsInfo != ((tmp&0x10)!=0))
+                    {
+                        hasGpsInfo= (tmp&0x10)!=0;
+                        if (hasGpsInfo) hasHWData= false; // force a reask of HW data to get new GPS data...
+                    }
+                    tmp>>= 5;
+                    if (tmp==0) ascomtrack= false;
+                    else { ascomtrack= true; ascomtrackspd= tmp-1; }
+                    latestResponse2+= " powerCount:"+powerCount.ToString();
+                }
+                //Console.WriteLine("len "+v.Length.ToString());
+                if (v.Length>=128) // BNO data...
+                {
+                    BNOw= readFloat(v, ref i, i+8);BNOx= readFloat(v, ref i, i+8);BNOy= readFloat(v, ref i, i+8);BNOz= readFloat(v, ref i, i+8);
+                    BNOTemp= readHex2(v, ref i, i+2);
+                    int tmp= readHex2(v, ref i, i+6);
+                    BNOhasOffset1= (tmp&2)!= 0; BNOhasOffset2= (tmp&4)!= 0; BNOscopeEast= (tmp&8)!= 0; BNOCalHere= (tmp&256)!=0;
+                    BNOscopeaz= readFloat(v, ref i, i+8)*180.0f/Math.PI; BNOscopealt= readFloat(v, ref i, i+8)*180.0f/Math.PI;
+                    BNObnoaz= readFloat(v, ref i, i+8)*180.0f/Math.PI; BNObnoalt= readFloat(v, ref i, i+8)*180.0f/Math.PI;
+                    BNOlst= readFloat(v, ref i, i+8);
+                    if (!BNOhas) // just founda BNO. send it the current time to get stuff calculating OK...
+                    {
+                        DateTime epoch2024 = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                        TimeSpan difference = DateTime.UtcNow - epoch2024;
+                        SendSerialCommand(":B000000002"+((int)difference.TotalSeconds).ToString("X8")+"#", 0); // send set UTC time command... one more 0 because first one is ignored!!!
+                    }
+                    BNOhas= true;
+                }
+
+                if (!hasHWData)
+                {
+                    v = SendSerialCommand("&");
+                    if (v.Length == 154 || v.Length == 154+32*4+8)
+                    { 
+                        hwconfstring= v;
+                        readHWString();
+                        if (_Declinaison>89.9f && _RightAssension>5.59f && _RightAssension<6.01f) setToTrueNorth();
+                    }
+                }
+
+                if (parkAtSunrise && lastHeartBeat>getSunRaiseTime() && oldlastHeartBeat.Year>2026 && oldlastHeartBeat<getSunRaiseTime()) // send park if sunrise happens!
+                { 
+                    resetSunRaiseTime();
+                    Park();
+                }
+            }
         }
         static void addstr(ref int crc, ref string s, int v, int nb)
         {
@@ -501,57 +452,39 @@ namespace ASCOM.LocalServer
         {
             return (int)(fromHms2(s, out ok)+0.5);
         }
-        public static int getHexFromDevice(string command, out bool ok, bool acceptHms= false)
-        {
-            ok = false;
-            string hex = SendSerialCommand(command);
-            if (hex.Length <= 0) return -1;
-            if (acceptHms) return fromHms(hex, out ok);
-            int i = 0;
-            ok = true; return readHex(hex, ref i);
-        }
+        static private readonly object lockObject = new object();
         public static string SendSerialCommand(string command, int waitReturn=1) // 0: is no wait return, 1 is wait for '#'
         {
-            if (command!="!") doLog("-> "+command, 2);
-            if (comPort!="tcp")
-            { 
-                if (!SharedSerial.Connected) return String.Empty;
-                lock (lockObject)
+            lock (lockObject)
+            {
+                if (command!="!") doLog("-> "+command, 2);
+
+                try
                 {
-                    try
-                    {
-                        // SharedSerial.ReceiveTimeoutMs= 10;
-                        // try { doLog(SharedSerial.ReceiveTerminated("#")); } catch { }
-                        // SharedSerial.ReceiveTimeoutMs= 1000;
-                        SharedSerial.ClearBuffers();
-                        // if (command.Length>1) doLog(command);
-                        SharedSerial.Transmit(command);
-                    }
-                    catch (Exception) { try { Disconnect(); } catch (Exception) { }
-                        serialCrahed=true; return String.Empty; } // end of work here...
-                    if (waitReturn==0) return String.Empty;
-                    try
-                    {
+                    if (comPort.StartsWith("com")) // com port case....
+                    { 
+                        if (!SharedSerial.Connected) { Disconnect(); return String.Empty; }
+                        try
+                        {
+                            SharedSerial.ClearBuffers();
+                            SharedSerial.Transmit(command);
+                        }
+                        catch (Exception) { Disconnect(); serialCrahed=true; return String.Empty; } // end of work here...
+                        if (waitReturn==0) return String.Empty;
                         return SharedSerial.ReceiveTerminated("#").Replace("#", String.Empty);
                     }
-                    catch (Exception) { return String.Empty; } // timeout... not a deadly error
-                }
-            }
-            else
-            {
-                if (tcpstream==null) return String.Empty;
-                lock (lockObject)
-                {
-                    byte[] buffer = new byte[1024]; 
-                    try
-                    {
-                        while (tcpstream.DataAvailable) tcpstream.Read(buffer, 0, buffer.Length); // flush
-                        byte[] dataToSend = Encoding.UTF8.GetBytes(command); tcpstream.Write(dataToSend, 0, dataToSend.Length); // send data
-                    }
-                    catch (Exception) { Disconnect(); return String.Empty; } // end of work here...
-                    if (waitReturn==0) return String.Empty;
-                    try
-                    {
+
+                    if (comPort.StartsWith("tcp"))
+                    { 
+                        if (tcpstream==null) { Disconnect(); return String.Empty; } // no connections
+                        byte[] buffer = new byte[1024]; 
+                        try
+                        {
+                            while (tcpstream.DataAvailable) tcpstream.Read(buffer, 0, buffer.Length); // flush
+                            byte[] dataToSend = Encoding.UTF8.GetBytes(command); tcpstream.Write(dataToSend, 0, dataToSend.Length); // send data
+                        }
+                        catch (Exception) { Disconnect(); return String.Empty; } // end of work here...
+                        if (waitReturn==0) return String.Empty;
                         string ret= "";
                         for (int i=0; i<20; i++)
                         {
@@ -562,8 +495,31 @@ namespace ASCOM.LocalServer
                         }
                         return String.Empty;
                     }
-                    catch (Exception) { return String.Empty; } // timeout... not a deadly error
-                }
+
+                    if (comPort.StartsWith("BT"))
+                    {
+                        if (!bTSerial.isConnected()) { Disconnect(); return String.Empty; }
+                        byte[] buffer = new byte[1024]; 
+                        try
+                        {
+                            while (bTSerial.read(20).Length!=0) Thread.Sleep(10); // flush
+                            bTSerial.write(command);
+                        }
+                        catch (Exception) { Disconnect(); return String.Empty; } // end of work here...
+                        if (waitReturn==0) return String.Empty;
+                        string ret= "";
+                        for (int i=0; i<20; i++)
+                        {
+                            Thread.Sleep(50); 
+                            ret+= bTSerial.read(20);
+                            int p= ret.IndexOf("#"); 
+                            if (p>=0) return ret.Substring(0, p);
+                        }
+                        return String.Empty;
+                    }
+
+                    return String.Empty;
+                } catch (Exception) { return String.Empty; } // timeout... not a deadly error
             }
         }
         public static string raToText(double v) { return raToText((int)(v * 3600)); }
@@ -579,12 +535,33 @@ namespace ASCOM.LocalServer
                   RightAscension.ToString()+":"+((int)(RightAscension*3600)).ToString() + " ("+ ((int)(RightAscension * 3600)).ToString("X8")+")   " +
                   Declination.ToString()+":"+((int)(Declination * 3600)).ToString() + " (" + ((int)(Declination * 3600)).ToString("X8") + ")", 0);
             SharedResources.SendSerialCommand(":M"+(sync?"S":"G") + ((int)(RightAscension*3600)).ToString("X8")+ ((int)(Declination*3600)).ToString("X8")+  "#", 0);
+            // if sync and motor physical position not within 2° of where it is supposed to be, resync motor
+            if (sync && hasHWPos && SyncRAHW)
+            {
+                double MRAAngle= GetLocalSiderealTime()-RightAscension; // 
+                if (_sideOfPier==0) MRAAngle-= 6.0f; else MRAAngle+= 6.0f; // setup ra depending on side of pier!
+                while (MRAAngle<0.0f) MRAAngle+= 24.0f; while (MRAAngle>24.0f) MRAAngle-= 24.0f;
+                MRAAngle*=360.0f/24.0f; // in °. but where is top
+                double pos= (double)raPos*360/raMaxPos-raAmplitude/2; // 0° at top
+                if (Math.Abs(MRAAngle-pos)>2)
+                {
+                    // More than 2° off, resync motor
+                    double newA= (MRAAngle+raAmplitude/2)*raMaxPos/360;
+                    doLog("resync physical ra motor position to "+MRAAngle.ToString("F1") + "° = " + ((int)newA).ToString()+" (was " + pos.ToString("F1") + "° = "+((int)raPos).ToString()+")", 0);
+                    SharedResources.SendSerialCommand(":Ms" + ((int)newA).ToString("X8")+ "#", 0);
+                }
+            }
+            // if goto, handle phd2 if there...
+            if (!sync) 
+            {
+                byte[] data = Encoding.UTF8.GetBytes("{\"method\": \"stop_capture\", \"id\":3 }\r\n");
+                if (phd2SendData(data)) doLog("phd2 stop guide", 3);
+            }
         }
 
-        public static double GetLocalSiderealTime()
+        public static double GetSiderealTime(DateTime t, double longitudeDegrees)
         {
-            DateTime utc= DateTime.UtcNow;
-            double longitudeDegrees= Longitude/36000.0f; // Verify???
+            DateTime utc= t;
             // Convert to Julian Date
             int Y = utc.Year;
             int M = utc.Month;
@@ -594,33 +571,69 @@ namespace ASCOM.LocalServer
             int B = 2 - A + (A / 4);
             double jd = Math.Floor(365.25 * (Y + 4716)) + Math.Floor(30.6001 * (M + 1)) + D + B - 1524.5;
             double d = jd - 2451545.0; // Days since J2000.0
-
             // Calculate GMST in hours
             double gmst = 18.697374558 + 24.06570982441908 * d;
             gmst = gmst % 24;
             if (gmst < 0) gmst += 24;
-
             // Convert longitude to hours and add to GMST
             double lst = gmst + (longitudeDegrees / 15.0);
             lst = lst % 24;
             if (lst < 0) lst += 24;
-
             return lst;
+        }
+        public static double GetLocalSiderealTime()
+        {
+            return GetSiderealTime(DateTime.UtcNow, Longitude/36000.0f);
+        }
+                public static string isstle1="", isstle2="", locations= "", scopes="";
+
+        public static void setToTrueNorth()
+        {  // set RA if at default position...
+            double sd= GetLocalSiderealTime();
+            if (_sideOfPier==0) sd-= 6.0f; else sd+= 6.0f; // setup ra depending on side of pier!
+            while (sd<0.0f) sd+= 24.0f; while (sd>24.0f) sd-= 24.0f;
+            SlewToCoordinatesAsync(sd, 90.0f, true);
+            //if (BNOhas)
+            //{
+            //    double lstJan24= GetSiderealTime(new DateTime(2024, 1, 1), 0);
+            //    int secDif= (int)((sd-lstJan24)*24*2300);
+            //    SharedResources.SendSerialCommand(":B000000002"+secDif.ToString("X08")+"#", 0);
+            //}
         }
 
 
-        static Thread phd2threadout = null;
+        ///////////////////////////////////
+        // PHD2 stuff...
+        ///////////////////////////////////
+        static Thread phd2Thread = new Thread(phd2loop) { Name = "PersistentWorkerThread", IsBackground = true };
         static public int phd2GuideDelay= 20;
         static DateTime phd2guide= DateTime.MinValue;
+        static private readonly SemaphoreSlim phd2writeLock = new SemaphoreSlim(1, 1);
+        static private NetworkStream stream = null;
 
-        static void phd2Thread()
+        static public bool phd2SendData(byte[] data)
+        {
+            if (stream==null) return false;
+            phd2writeLock.Wait();
+            try
+            {
+                stream.Write(data, 0, data.Length); stream.Flush();
+                phd2guide = DateTime.MinValue;
+                return true;
+            }
+            finally
+            {
+                phd2writeLock.Release();
+            }
+        }
+        static void phd2loop()
         {
             byte[] sendData = Encoding.UTF8.GetBytes("Hello Server\n");
 
-            while (!finish)
+            while (!appClosing)
             {
                 TcpClient client = null;
-                NetworkStream stream = null;
+                if (!guideAfterSlew) { Thread.Sleep(1000); continue; }
 
                 try
                 {
@@ -630,7 +643,7 @@ namespace ASCOM.LocalServer
                     stream = client.GetStream();
                     string received= "";
 
-                    while (!finish)
+                    while (!appClosing)
                     {
                         if (phd2guide!=DateTime.MinValue && phd2guide<DateTime.Now)
                         { 
@@ -642,10 +655,8 @@ namespace ASCOM.LocalServer
                             // data = Encoding.UTF8.GetBytes("{\"method\": \"find_star\", \"id\": 2}\n");
                             // stream.Write(data, 0, data.Length); Thread.Sleep(7000);
                             doLog("phd2 reguide guide", 3);
-                            byte[] data = Encoding.UTF8.GetBytes("{\"method\": \"guide\", \"params\": {\"settle\": {\"pixels\": 3, \"time\": 8, \"timeout\": 40}}, \"id\": 3}\n");
-                            stream.Write(data, 0, data.Length); phd2guide = DateTime.MinValue;
-                            stream.Flush();
-                            Thread.Sleep(200);
+                            byte[] data = Encoding.UTF8.GetBytes("{\"method\": \"guide\", \"params\": {\"settle\": {\"pixels\": 3, \"time\": 8, \"timeout\": 40}}, \"id\": 3}\r\n");
+                            phd2SendData(data); 
                         }
  
                         // Read all available data without blocking forever
@@ -672,6 +683,7 @@ namespace ASCOM.LocalServer
                                 received = received.Substring(endPos + skip);
                             }
                         }
+                        Thread.Sleep(200);
                     }
                 }
                 catch (SocketException ex) { doLog("phd2 Socket error: " + ex.Message, 3); }
@@ -680,19 +692,14 @@ namespace ASCOM.LocalServer
                 Thread.Sleep(1000);
             }
         }
-
         public static void phd2reguide()
         {
-            if (phd2threadout == null) { phd2threadout = new Thread(new ThreadStart(phd2Thread)); phd2threadout.Start(); }
             phd2guide =  DateTime.Now.AddSeconds(phd2GuideDelay);
         }
-        public static bool finish= false;
 
-        // public static void StopGuiding()
-        // {
-        //     // SendCommandAsync("{\"method\": \"stop_capture\", \"id\": 2}");
-        // }
-
+        ///////////////////
+        /// TCP connection stuff
+        ///////////////////
         static NetworkStream tcpstream= null;
         static TcpClient tcpclient= null;
         static void tcpdisconnect()
@@ -708,130 +715,91 @@ namespace ASCOM.LocalServer
             } catch { }
         }
 
-        public static string isstle1="", isstle2="", locations= "", scopes="";
 
-        public static void setToTrueNorth()
-        {  // set RA if at default position...
-            double sd= GetLocalSiderealTime();
-            if (_sideOfPier==0) sd-= 6.0f; else sd+= 6.0f; // setup ra depending on side of pier!
-            while (sd<0.0f) sd+= 24.0f; while (sd>24.0f) sd-= 24.0f;
-            SlewToCoordinatesAsync(sd, 90.0f, true);
+
+
+
+
+        ///////////////////
+        /// get sunraise time...
+        ///////////////////
+        public static double SolarAltitudeUtc(DateTime utcTime, double latitude, double longitude)
+        {
+            // Force UTC kind to avoid accidental local conversion errors
+            if (utcTime.Kind != DateTimeKind.Utc) utcTime = DateTime.SpecifyKind(utcTime, DateTimeKind.Utc);
+            // 1. Convert UTC DateTime to Julian Day & Julian Century
+            double julianDay = GetJulianDay(utcTime);
+            double jc = (julianDay - 2451545.0) / 36525.0;
+
+            // 2. Solar coordinates (Geometric Mean Longitude, Anomaly, Eccentricity)
+            double geomMeanLongSun = (280.46646 + jc * (36000.76983 + jc * 0.0003032)) % 360.0;
+            double geomMeanAnomSun = 357.52911 + jc * (35999.05029 - 0.0001537 * jc);
+            double eccentEarthOrbit = 0.016708634 - jc * (0.000042037 + 0.0000001267 * jc);
+
+            // Sun Equation of the Center
+            double radAnom = ToRadians(geomMeanAnomSun);
+            double sunEqOfCtr = Math.Sin(radAnom) * (1.914602 - jc * (0.004817 + 0.000014 * jc))
+                              + Math.Sin(2 * radAnom) * (0.019993 - 0.000101 * jc)
+                              + Math.Sin(3 * radAnom) * 0.000289;
+
+            double sunTrueLong = geomMeanLongSun + sunEqOfCtr;
+            double sunAppLong = sunTrueLong - 0.00569 - 0.00478 * Math.Sin(ToRadians(125.04 - 1934.13 * jc));
+
+            // Mean and Obliquity of Ecliptic
+            double meanObliqEcliptic = 23.0 + (26.0 + (21.448 - jc * (46.815 + jc * (0.00059 - jc * 0.001813))) / 60.0) / 60.0;
+            double obliqCorr = meanObliqEcliptic + 0.00256 * Math.Cos(ToRadians(125.04 - 1934.13 * jc));
+
+            // Declination of the Sun
+            double sunDeclin = ToDegrees(Math.Asin(Math.Sin(ToRadians(obliqCorr)) * Math.Sin(ToRadians(sunAppLong))));
+
+            // Equation of Time (in minutes)
+            double vary = Math.Tan(ToRadians(obliqCorr / 2.0)) * Math.Tan(ToRadians(obliqCorr / 2.0));
+            double radMeanLong = ToRadians(geomMeanLongSun);
+            double eqOfTime = 4.0 * ToDegrees(vary * Math.Sin(2.0 * radMeanLong) 
+                              - 2.0 * eccentEarthOrbit * Math.Sin(radAnom) 
+                              + 4.0 * eccentEarthOrbit * vary * Math.Sin(radAnom) * Math.Cos(2.0 * radMeanLong) 
+                              - 0.5 * vary * vary * Math.Sin(4.0 * radMeanLong) 
+                              - 1.25 * eccentEarthOrbit * eccentEarthOrbit * Math.Sin(2.0 * radAnom));
+
+            // 3. True Solar Time & Hour Angle
+            double timeOffset = eqOfTime + (4.0 * longitude);
+            double trueSolarTime = (utcTime.TimeOfDay.TotalMinutes + timeOffset + 1440.0) % 1440.0;
+        
+            double hourAngle = (trueSolarTime / 4.0 < 0) ? (trueSolarTime / 4.0 + 180.0) : (trueSolarTime / 4.0 - 180.0);
+
+            // 4. Zenith and Altitude
+            double radLat = ToRadians(latitude);
+            double radDeclin = ToRadians(sunDeclin);
+            double radHourAngle = ToRadians(hourAngle);
+
+            double solarZenith = ToDegrees(Math.Acos(Math.Sin(radLat) * Math.Sin(radDeclin) 
+                               + Math.Cos(radLat) * Math.Cos(radDeclin) * Math.Cos(radHourAngle)));
+
+            double altitude = 90.0 - solarZenith;
+
+            // 5. Azimuth
+            double azNumerator = -(Math.Sin(radHourAngle));
+            double azDenominator = (Math.Cos(radHourAngle) * Math.Sin(radLat)) - Math.Tan(radDeclin) * Math.Cos(radLat);
+            double azimuth = ToDegrees(Math.Atan2(azNumerator, azDenominator));
+            if (azimuth < 0.0) azimuth += 360.0;
+
+            return altitude;
         }
 
-        // Returns solar altitude in degrees for given UTC time, lat (deg north) and lon (deg east)
-        //public static double SolarAltitudeUtc(DateTime utc, double latDeg, double lonDeg)
-        //{
-        //    // fractional hour
-        //    double hour = utc.Hour + utc.Minute / 60.0 + utc.Second / 3600.0 + utc.Millisecond / 3600000.0;
-        //    int dayOfYear = utc.DayOfYear;
-        //
-        //    double gamma = 2.0 * Math.PI / 365.0 * (dayOfYear - 1 + (hour - 12.0) / 24.0);
-        //
-        //    // solar declination (radians)
-        //    double decl = 0.006918 - 0.399912 * Math.Cos(gamma) + 0.070257 * Math.Sin(gamma)
-        //                  - 0.006758 * Math.Cos(2 * gamma) + 0.000907 * Math.Sin(2 * gamma)
-        //                  - 0.002697 * Math.Cos(3 * gamma) + 0.00148 * Math.Sin(3 * gamma);
-        //
-        //    // equation of time (minutes)
-        //    double eqTime = 229.18 * (0.000075 + 0.001868 * Math.Cos(gamma) - 0.032077 * Math.Sin(gamma)
-        //                              - 0.014615 * Math.Cos(2 * gamma) - 0.040849 * Math.Sin(2 * gamma));
-        //
-        //    // true solar time in minutes
-        //    double minutes = hour * 60.0;
-        //    double timeOffset = eqTime + 4.0 * lonDeg; // working in UTC (tz offset = 0)
-        //    double tst = (minutes + timeOffset) % 1440.0;
-        //    if (tst < 0) tst += 1440.0;
-        //
-        //    // hour angle (degrees)
-        //    double haDeg = tst / 4.0 - 180.0;
-        //    double ha = haDeg * Math.PI / 180.0;
-        //    double lat = latDeg * Math.PI / 180.0;
-        //
-        //    double cosZenith = Math.Sin(lat) * Math.Sin(decl) + Math.Cos(lat) * Math.Cos(decl) * Math.Cos(ha);
-        //    cosZenith = Math.Max(-1.0, Math.Min(1.0, cosZenith));
-        //    double zenith = Math.Acos(cosZenith);
-        //    double altitude = 90.0 - (zenith * 180.0 / Math.PI);
-        //
-        //    return altitude;
-        //}
+        private static double GetJulianDay(DateTime utc)
+        {
+            int year = utc.Year;
+            int month = utc.Month;
+            int day = utc.Day;
+            if (month <= 2) { year -= 1; month += 12; }
+            int a = year / 100;
+            int b = 2 - a + (a / 4);
+            double dayFraction = (utc.TimeOfDay.TotalSeconds) / 86400.0;
+            return Math.Floor(365.25 * (year + 4716)) + Math.Floor(30.6001 * (month + 1)) + day + dayFraction + b - 1524.5;
+        }
 
-    public static double SolarAltitudeUtc(DateTime utcTime, double latitude, double longitude)
-    {
-        // Force UTC kind to avoid accidental local conversion errors
-        if (utcTime.Kind != DateTimeKind.Utc) utcTime = DateTime.SpecifyKind(utcTime, DateTimeKind.Utc);
-        // 1. Convert UTC DateTime to Julian Day & Julian Century
-        double julianDay = GetJulianDay(utcTime);
-        double jc = (julianDay - 2451545.0) / 36525.0;
-
-        // 2. Solar coordinates (Geometric Mean Longitude, Anomaly, Eccentricity)
-        double geomMeanLongSun = (280.46646 + jc * (36000.76983 + jc * 0.0003032)) % 360.0;
-        double geomMeanAnomSun = 357.52911 + jc * (35999.05029 - 0.0001537 * jc);
-        double eccentEarthOrbit = 0.016708634 - jc * (0.000042037 + 0.0000001267 * jc);
-
-        // Sun Equation of the Center
-        double radAnom = ToRadians(geomMeanAnomSun);
-        double sunEqOfCtr = Math.Sin(radAnom) * (1.914602 - jc * (0.004817 + 0.000014 * jc))
-                          + Math.Sin(2 * radAnom) * (0.019993 - 0.000101 * jc)
-                          + Math.Sin(3 * radAnom) * 0.000289;
-
-        double sunTrueLong = geomMeanLongSun + sunEqOfCtr;
-        double sunAppLong = sunTrueLong - 0.00569 - 0.00478 * Math.Sin(ToRadians(125.04 - 1934.13 * jc));
-
-        // Mean and Obliquity of Ecliptic
-        double meanObliqEcliptic = 23.0 + (26.0 + (21.448 - jc * (46.815 + jc * (0.00059 - jc * 0.001813))) / 60.0) / 60.0;
-        double obliqCorr = meanObliqEcliptic + 0.00256 * Math.Cos(ToRadians(125.04 - 1934.13 * jc));
-
-        // Declination of the Sun
-        double sunDeclin = ToDegrees(Math.Asin(Math.Sin(ToRadians(obliqCorr)) * Math.Sin(ToRadians(sunAppLong))));
-
-        // Equation of Time (in minutes)
-        double vary = Math.Tan(ToRadians(obliqCorr / 2.0)) * Math.Tan(ToRadians(obliqCorr / 2.0));
-        double radMeanLong = ToRadians(geomMeanLongSun);
-        double eqOfTime = 4.0 * ToDegrees(vary * Math.Sin(2.0 * radMeanLong) 
-                          - 2.0 * eccentEarthOrbit * Math.Sin(radAnom) 
-                          + 4.0 * eccentEarthOrbit * vary * Math.Sin(radAnom) * Math.Cos(2.0 * radMeanLong) 
-                          - 0.5 * vary * vary * Math.Sin(4.0 * radMeanLong) 
-                          - 1.25 * eccentEarthOrbit * eccentEarthOrbit * Math.Sin(2.0 * radAnom));
-
-        // 3. True Solar Time & Hour Angle
-        double timeOffset = eqOfTime + (4.0 * longitude);
-        double trueSolarTime = (utcTime.TimeOfDay.TotalMinutes + timeOffset + 1440.0) % 1440.0;
-        
-        double hourAngle = (trueSolarTime / 4.0 < 0) ? (trueSolarTime / 4.0 + 180.0) : (trueSolarTime / 4.0 - 180.0);
-
-        // 4. Zenith and Altitude
-        double radLat = ToRadians(latitude);
-        double radDeclin = ToRadians(sunDeclin);
-        double radHourAngle = ToRadians(hourAngle);
-
-        double solarZenith = ToDegrees(Math.Acos(Math.Sin(radLat) * Math.Sin(radDeclin) 
-                           + Math.Cos(radLat) * Math.Cos(radDeclin) * Math.Cos(radHourAngle)));
-
-        double altitude = 90.0 - solarZenith;
-
-        // 5. Azimuth
-        double azNumerator = -(Math.Sin(radHourAngle));
-        double azDenominator = (Math.Cos(radHourAngle) * Math.Sin(radLat)) - Math.Tan(radDeclin) * Math.Cos(radLat);
-        double azimuth = ToDegrees(Math.Atan2(azNumerator, azDenominator));
-        if (azimuth < 0.0) azimuth += 360.0;
-
-        return altitude;
-    }
-
-    private static double GetJulianDay(DateTime utc)
-    {
-        int year = utc.Year;
-        int month = utc.Month;
-        int day = utc.Day;
-        if (month <= 2) { year -= 1; month += 12; }
-        int a = year / 100;
-        int b = 2 - a + (a / 4);
-        double dayFraction = (utc.TimeOfDay.TotalSeconds) / 86400.0;
-        return Math.Floor(365.25 * (year + 4716)) + Math.Floor(30.6001 * (month + 1)) + day + dayFraction + b - 1524.5;
-    }
-
-    private static double ToRadians(double degrees) => degrees * (Math.PI / 180.0);
-    private static double ToDegrees(double radians) => radians * (180.0 / Math.PI);
+        private static double ToRadians(double degrees) => degrees * (Math.PI / 180.0);
+        private static double ToDegrees(double radians) => radians * (180.0 / Math.PI);
 
         // Find the UTC time on the given UTC date when solar altitude crosses targetAltDegrees upwards.
         // Returns null if no crossing on that UTC calendar day.
@@ -849,12 +817,21 @@ namespace ASCOM.LocalServer
             }
         }
         public static DateTime sunRaiseTime= DateTime.MinValue;
-        static void resetSunRaiseTime() { sunRaiseTime= DateTime.MinValue; }
+        public static void resetSunRaiseTime() { sunRaiseTime= DateTime.MinValue; }
         public static DateTime getSunRaiseTime()
         {
             if (sunRaiseTime!=DateTime.MinValue) return sunRaiseTime;
             return sunRaiseTime= FindRiseCrossingUtc(Latitude/36000.0f, Longitude/36000.0f).ToLocalTime();
         }
+
+
+
+
+
+
+        ///////////////////
+        /// Parking stuff
+        ///////////////////
         internal static void parkPos(out int ra, out int dec)
         {
             ra = (int)(((Int64)(raMaxPos)) * raAmplitude / 360 / 2);
