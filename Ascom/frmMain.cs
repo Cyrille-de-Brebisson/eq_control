@@ -3,6 +3,7 @@ using ASCOM.DeviceInterface;
 using ASCOM.EQControl.Focuser.V1;
 using ASCOM.EQControl.Telescope.V1;
 using ASCOM.Utilities;
+using ASCOM.Utilities.Interfaces;
 using StarDisp;
 using System;
 using System.Collections.Generic;
@@ -338,6 +339,7 @@ namespace ASCOM.LocalServer
             comboBoxComPort.Items.Clear(); // Clear any existing entries
             using (Serial serial = new Serial()) // User the Se5rial component to get an extended list of COM ports
                 comboBoxComPort.Items.AddRange(serial.AvailableCOMPorts);
+            comboBoxComPort.Items.AddRange(SharedResources.bTSerial.GetEQDevices());
             // select the current port if possible
             if (comboBoxComPort.Items.Contains(SharedResources.comPort))
                 comboBoxComPort.SelectedItem = SharedResources.comPort;

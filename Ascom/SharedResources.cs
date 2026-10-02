@@ -205,7 +205,7 @@ namespace ASCOM.LocalServer
             get { return connectionLive; }
         }
 
-        static BTSerial bTSerial= new BTSerial("EQControl");
+        static public BTSerial bTSerial= new BTSerial();
         static void loop()
         {
             SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
@@ -217,7 +217,7 @@ namespace ASCOM.LocalServer
                     Disconnect(); // This will not actually disconnect as they are already not connected. But it will reinit variables...
                     workerThreadRequest= 0;
                     if (SharedSerial.Connected || tcpstream!=null) continue; // already connected...
-                    if (comPort=="BT") bTSerial.connect(); //tcpconnect();
+                    if (comPort.StartsWith("EQ")) bTSerial.connect(comPort); //tcpconnect();
                     else if (comPort=="tcp") tcpconnect();
                     else { 
                         SharedSerial.PortName = comPort;
@@ -496,7 +496,7 @@ namespace ASCOM.LocalServer
                         return String.Empty;
                     }
 
-                    if (comPort.StartsWith("BT"))
+                    if (comPort.StartsWith("EQ"))
                     {
                         if (!bTSerial.isConnected()) { Disconnect(); return String.Empty; }
                         byte[] buffer = new byte[1024]; 
