@@ -3065,6 +3065,15 @@ CONFIG_WL_SECTOR_SIZE_4096=y
 # default:
 CONFIG_WL_SECTOR_SIZE=4096
 # end of Wear Levelling
+
+#
+# BLE UART library
+#
+# default:
+CONFIG_BLE_UART_DEVICE_NAME_PREFIX="BleUart"
+# default:
+CONFIG_BLE_UART_RX_SCRATCH_SIZE=1024
+# end of BLE UART library
 # end of Component config
 
 # CONFIG_IDF_EXPERIMENTAL_FEATURES is not set

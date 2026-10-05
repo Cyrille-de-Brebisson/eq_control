@@ -15,6 +15,12 @@
     #define HASGPS // in ESP mode, you can have a GPS module used to get the LST...
     #define HASBNO
 #endif
+#ifdef HARMONIC_MAIN
+    #define TMC
+    #undef HASADC
+    #undef HASGPS
+    #undef HASBNO
+#endif
 
 /********************************************
 * 
@@ -347,25 +353,39 @@ static void execBNO(uint32_t i) {}
 #define ESP
 
 #ifndef  HASADC
-// ESP23 C3 pin Layout
-// pins 5,6,7: kbd rows top, mid, bottom
-// pins 8,9: SLC, SDA
-// pins 10,20,21; kbd col left, mid, right
-// pin 4: stepper serial
-// pins 3, 2, 0: stepper step (ra, dec, foc)
-// pin 1: stepper dir (dec)
-static const int8_t raDirPin    = -1; 
-static const int8_t decDirPin   = -1; // it's wired, but we won't use it as tmc react strangely if you use it with rs232
-static const int8_t focDirPin   = -1; 
-static const int8_t raStepPin   = 0, raUartAddr= 3; 
-static const int8_t decStepPin  = 2, decUartAddr= 1;
-static const int8_t focStepPin  = 3, focUartAddr= 2; 
-static const int8_t motorSerialRa = 4;
-static const int8_t motorSerialDec = 4;
-static const int8_t motorSerialFocus = 4;
-static const int8_t krt= 5, krm= 6, krb= 7, kcr= 10, kcl= 20, kcm= 21;
-static const gpio_num_t LCD_SLC= GPIO_NUM_8;
-static const gpio_num_t LCD_SDA= GPIO_NUM_9;
+    #ifndef HARMONIC_MAIN
+        // ESP23 C3 pin Layout
+        // pins 5,6,7: kbd rows top, mid, bottom
+        // pins 8,9: SLC, SDA
+        // pins 10,20,21; kbd col left, mid, right
+        // pin 4: stepper serial
+        // pins 3, 2, 0: stepper step (ra, dec, foc)
+        // pin 1: stepper dir (dec)
+        static const int8_t raDirPin    = -1; 
+        static const int8_t decDirPin   = -1; // it's wired, but we won't use it as tmc react strangely if you use it with rs232
+        static const int8_t focDirPin   = -1; 
+        static const int8_t raStepPin   = 0, raUartAddr= 3; 
+        static const int8_t decStepPin  = 2, decUartAddr= 1;
+        static const int8_t focStepPin  = 3, focUartAddr= 2; 
+        static const int8_t motorSerialRa = 4;
+        static const int8_t motorSerialDec = 4;
+        static const int8_t motorSerialFocus = 4;
+        static const int8_t krt= 5, krm= 6, krb= 7, kcr= 10, kcl= 20, kcm= 21;
+        static const gpio_num_t LCD_SLC= GPIO_NUM_8;
+        static const gpio_num_t LCD_SDA= GPIO_NUM_9;
+    #else // Harmonic board system
+        static const int8_t raDirPin    = -1; 
+        static const int8_t decDirPin   = -1;  // we won't use it as tmc react strangely if you use it with rs232
+        static const int8_t focDirPin   = -1; 
+        static const int8_t raStepPin   = 0; 
+        static const int8_t decStepPin  = 1;
+        static const int8_t focStepPin  = 3; 
+        static const int8_t motorSerialRa = 4, raUartAddr= 0;
+        static const int8_t motorSerialDec = 4, decUartAddr= 1;
+        static const int8_t motorSerialFocus = 4, focUartAddr= 2;
+        static const gpio_num_t LCD_SLC= GPIO_NUM_2; // unused in reality
+        static const gpio_num_t LCD_SDA= GPIO_NUM_2;
+    #endif
 #else // in V2 or 3 of the board we use the ADC to handle the keyboard and monitor power supply
     #ifndef RED_BOARD
         static const int8_t raDirPin    = -1; 
@@ -455,7 +475,7 @@ static void GPIOSetup()
 {
 
     CGPIO::output((1<<raStepPin)|(1<<decStepPin)|(1<<focStepPin)
-    #ifndef HASADC
+    #if !defined(HASADC) && !defined(HARMONIC_MAIN)
         |(1<<kcl)|(1<<kcm)|(1<<kcr)
         |(1<<6) // must be set low....
     #endif
@@ -463,7 +483,7 @@ static void GPIOSetup()
     CGPIO::set(raStepPin, 0);
     CGPIO::set(decStepPin, 0);
     CGPIO::set(focStepPin, 0);
-    #ifndef HASADC
+    #if !defined(HASADC) && !defined(HARMONIC_MAIN)
     CGPIO::set(kcl, 1);
     CGPIO::set(kcm, 1);
     CGPIO::set(kcr, 1);
@@ -475,7 +495,14 @@ static void GPIOSetup()
 #ifdef HASADC
 #include "esp_adc/adc_continuous.h"
 namespace CADC {
-    static int const nbChannels= 4;
+    #ifndef HARMONIC_MAIN
+        static uint8_t const adcPins[]={2, 3, 4, 1};
+	static int const powerPin= 3; // power pin index!
+    #else
+        static uint8_t const adcPins[]={1};
+	static int const powerPin= 0;
+    #endif
+    static int const nbChannels= sizeof(adcPins)/sizeof(adcPins[0]);
     static int const nbSamples= 16;
     static int const sampleSize= nbChannels*nbSamples*4;
     int8_t adcChannelToPinId[7]= {-1, -1, -1, -1, -1, -1, -1};
@@ -504,7 +531,6 @@ namespace CADC {
 
     void begin() 
     {
-        uint8_t const adcPins[nbChannels]={2, 3, 4, 1};
         adc_continuous_handle_cfg_t adc_config = { .max_store_buf_size = sampleSize*4, .conv_frame_size = sampleSize, .flags= 0 };
         ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
         adc_channel_t channel[nbChannels];
@@ -521,8 +547,8 @@ namespace CADC {
         ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
         adc_continuous_evt_cbs_t cbs = { .on_conv_done = s_conv_done_cb, }; ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
         ESP_ERROR_CHECK(adc_continuous_start(handle));
-        while (res[3]!=0) vTaskDelay(1); // forces a read to init power!
-        power= res[3]/33; // I get a reading of 1780 for 5.4V. Since the value is in deci volts a division by /33 (1780/54) gives the value
+        while (res[powerPin]!=0) vTaskDelay(1); // forces a read to init power!
+        power= res[powerPin]/33; // I get a reading of 1780 for 5.4V. Since the value is in deci volts a division by /33 (1780/54) gives the value
     }
 };
 int cnt=0;
@@ -548,16 +574,20 @@ static uint16_t kbdValue()
     lastkbdValue1= lastkbdValue2; lastkbdValue2= keys; return lastValid;
 }
 #else
-// kbd in gpio mode, not ADC
-static int inline kbdc()  { return CGPIO::read(krt) | (CGPIO::read(krm)<<1) | (CGPIO::read(krb)<<2); }
-static uint16_t kbdValue()
-{
-    uint16_t keys;
-    CGPIO::set(kcl, 0); keys= kbdc(); CGPIO::set(kcl, 1);
-    CGPIO::set(kcm, 0); keys|= kbdc()<<3; CGPIO::set(kcm, 1);
-    CGPIO::set(kcr, 0); keys|= kbdc()<<6; CGPIO::set(kcr, 1);
-    return keys^0x1ff;
-}
+    #ifndef HARMONIC_MAIN
+        // kbd in gpio mode, not ADC
+        static int inline kbdc()  { return CGPIO::read(krt) | (CGPIO::read(krm)<<1) | (CGPIO::read(krb)<<2); }
+        static uint16_t kbdValue()
+        {
+            uint16_t keys;
+            CGPIO::set(kcl, 0); keys= kbdc(); CGPIO::set(kcl, 1);
+            CGPIO::set(kcm, 0); keys|= kbdc()<<3; CGPIO::set(kcm, 1);
+            CGPIO::set(kcr, 0); keys|= kbdc()<<6; CGPIO::set(kcr, 1);
+            return keys^0x1ff;
+        }
+    #else
+        static uint16_t kbdValue() { return 0; }
+    #endif
 #endif
 
 static int const maxPulsesPerSecond= 10000;
@@ -591,17 +621,18 @@ namespace Time {
 class CSerial { public:
     virtual int16_t read() = 0;
     virtual int read(uint8_t *d, int size) = 0;
-    virtual void flush(char const *s) = 0;
+    virtual void flush(char const *s, int size) = 0;
+    void flush(char const *s) { flush(s, strlen(s)); }
 
     char buf[400]; int bufl= 0;
     void inline print(char c) { buf[bufl++]= c; } // Add char in output buffer
     void print(char const *c) // Add string in output buffer..
 	{ 
 		int l= strlen(c); if (l==0) return; 
-		if (l+bufl>sizeof(buf)) { flush(buf); bufl= 0; }
+		if (l+bufl>sizeof(buf)) { flush(buf, bufl); bufl= 0; }
 		memcpy(buf+bufl, c, l); bufl+= l; 
 	}
-    void flush(char c) { print(c); flush(buf); bufl= 0; }
+    void flush(char c) { print(c); flush(buf, bufl); bufl= 0; }
 };
 
 class CSerialSerial : public CSerial { public:
@@ -624,7 +655,7 @@ class CSerialSerial : public CSerial { public:
     { 
         return usb_serial_jtag_read_bytes((char*)d, size, 1000 / portTICK_PERIOD_MS);
     }
-    void flush(char const *s) override { usb_serial_jtag_write_bytes(s, strlen(s), 20 / portTICK_PERIOD_MS); }
+    void flush(char const *s, int size) override { usb_serial_jtag_write_bytes(s, size, 20 / portTICK_PERIOD_MS); }
 } Serial;
 
 // These are here to be manageable in PC simulation mode
@@ -2404,7 +2435,12 @@ void processSerial(char *C, int8_t nb, TSerialContext &serialContext, CSerial &s
                 // copy data that we already have in buffer...
                 if (nb<=sizeof(buf)) { pos= nb; memcpy(buf, C, nb); nb= 0; } else { pos= sizeof(buf); memcpy(buf, C, sizeof(buf)); nb-= sizeof(buf); C+= sizeof(buf); }
                 // get missing data...
-                while (pos<sizeof(buf)) if ((nb= serial.read(buf+pos, sizeof(buf)-pos))!=0) pos+=nb; else goto er;
+                while (pos<sizeof(buf)) 
+                {
+                    int nb2= serial.read(buf+pos, sizeof(buf)-pos);
+                    if (nb2!=0) pos+=nb2; else goto er;
+                }
+                
                 {
                     char *t= (char*)buf; for (uint8_t i=0; i<sizeof(buf)/2; i++) buf[i]= readHex(t,2); // To binary...
                     if (((CSavedData*)buf)->testCrc()) // check crc and save data if valid...
@@ -2448,6 +2484,7 @@ void processSerial(char *C, int8_t nb, TSerialContext &serialContext, CSerial &s
         if (t2('M', 'S')) { sync(n1, n2); continue; } 
         if (t2('M', 's')) // This will reset the ra motor physical positions so that the center is vertical. It is nothing more than a low level LST sync...
                           { // n1= step in MRA where we want to be... So we need to change minReal and maxReal so that after changing pos posInReal does not change...
+                            if (n1<0 || n1>MRa.maxPos) continue; // sanity check
                             int32_t d= MRa.RealFromstepsNoAbs(n1-MRa.pos); // how many units do we move by?
                             MRa.minPosReal-= d; MRa.maxPosReal-= d; MRa.checkMinMax(); // move
                             MRa.pos= n1; // set new position...

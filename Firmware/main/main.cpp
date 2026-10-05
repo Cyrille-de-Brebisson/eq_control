@@ -2,6 +2,8 @@
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
 
 #define TMC // always defined in ESP mode...
+//#define HARMONIC_MAIN // Used for harmonic dual board system... will cut off UI
+
 #include "sdkconfig.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -21,6 +23,40 @@ void execBNO(uint32_t i, uint32_t j);
 
 #include "../eqControl_Ino/eqControl_Ino.ino"
 #include "BLE.h"
+
+#ifdef HARMONIC_MAIN // Used for harmonic dual board system... will cut off UI
+class CHarmonicSerial : public CSerial { public:
+    static void begin() 
+    {
+        const uart_config_t uart_config = { .baud_rate= 9600, .data_bits= UART_DATA_8_BITS, .parity= UART_PARITY_DISABLE, .stop_bits= UART_STOP_BITS_1, .flow_ctrl= UART_HW_FLOWCTRL_DISABLE };
+        uart_driver_install(UART_NUM_0, 1024*2, 1024*2, 0, NULL, 0);
+        uart_param_config(UART_NUM_0, &uart_config);
+        uart_set_pin(UART_NUM_0, 5, 6, -1, -1); // use pins 5 and 6 for send/recv
+    }
+    int16_t read() override
+    { 
+        char c;
+        int len= uart_read_bytes(UART_NUM_0, &c, 1, 20 / portTICK_PERIOD_MS);
+        if (len!=1) return -1; return c;
+    }
+    int read(uint8_t *d, int size) override
+    { 
+        return  uart_read_bytes(UART_NUM_0, (char*)d, size, 1000 / portTICK_PERIOD_MS);
+    }
+    void flush(char const *s, int size) override { uart_write_bytes(UART_NUM_0, s, size); }
+} harmonicSerial;
+TSerialContext harmonicSerialContext;
+static void harmonicSerialTask(void*)
+{
+    harmonicSerial.begin();
+    while (true)
+    {
+        uint8_t d[64]; int l= harmonicSerial.read(d, sizeof(d)); // blocking...
+        if (l>0) processSerial((char*)d, l, harmonicSerialContext, harmonicSerial);
+    }
+}
+#endif
+
 
 static void UITask(void*)
 {
@@ -141,12 +177,13 @@ extern "C" void app_main()
     CSavedData::savedData.load(); // motors are initialized here.. This includes a "begin" which will include serial comuncations... which is a problem with TMC that needs power for that to work...
 
     if (alpaca->wifi[0]==0) { strcpy(alpaca->wifi, "EqControl"); alpaca->wifip[0]= 0; CSavedData::savedData.guidingBits&= ~0x40; } // Make sure we have connection..
-    startWifi(alpaca->wifi, alpaca->wifip, "eqControl", (CSavedData::savedData.guidingBits&0x40)==0);
+    //startWifi(alpaca->wifi, alpaca->wifip, "eqControl", (CSavedData::savedData.guidingBits&0x40)==0);
     alpaca->addDevice(MyTelescope= new CMyTelescope(0));
     alpaca->addDevice(new CMyFocuser(0));
-    alpaca->start(80);
+    //alpaca->start(80);
 
     xTaskCreate(SerialTask, "Serial", 2048, NULL, 2, NULL);
+    BLESerial.begin();
 
     // setup alarm for motors!
     gptimer_handle_t gptimer;
@@ -159,10 +196,13 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(gptimer_enable(gptimer));
     ESP_ERROR_CHECK(gptimer_start(gptimer));
 
-    xTaskCreate(UITask, "UI", 4096, NULL, 2, NULL);
+    #ifndef HARMONIC_MAIN
+        xTaskCreate(UITask, "UI", 4096, NULL, 2, NULL);
+    #else
+        xTaskCreate(harmonicSerialTask, "HSerial", 2048, NULL, 2, NULL);
+    #endif
     //xTaskCreate(BNOTaskTest, "BNO", 4096, NULL, 2, NULL);
     //xTaskCreate(BNOTask, "BNO", 4096, NULL, 2, NULL);
-    BLESerial.begin();
 
     // update motor speed and handle flip 100 times per second...
     bool wasGpsSynced= false;
