@@ -32,7 +32,6 @@ namespace ASCOM.LocalServer
             this.Visible = true;
             label1.Text = label1.Text + " " + FocuserHardware.DriverVersion;
             button2.Text = f.Connected ? "Disconnect" : "Connect";
-            rescanPort();
             timerPos = new System.Timers.Timer(500);
             timerPos.Elapsed += (source, e) => { updateConnectedLabel(); };
             timerPos.Enabled = true;
@@ -62,6 +61,7 @@ namespace ASCOM.LocalServer
         bool lastPowerBit= false; int lastPowerCount= 1;
         bool no_send_track_change= false;
         AstroUtils astroUtils = new AstroUtils();
+        int comscann= 0; // will scann coms every 2s...
 
         private void updateConnectedLabel() // every 500ms, update UI based on driver's data
         {
@@ -69,7 +69,7 @@ namespace ASCOM.LocalServer
             {
                 BeginInvoke((MethodInvoker)delegate ()
                 {
-                    if (comboBox1.SelectedIndex == -1) comboBox1.SelectedIndex = 3;
+                    if (comboBox1.SelectedIndex == -1) comboBox1.SelectedIndex = 4;
                     labelCom.Text = SharedResources.comPort;
                     if (SharedResources.Connected)
                     {
@@ -166,7 +166,10 @@ namespace ASCOM.LocalServer
                             int maxRa= (int)((Int64)SharedResources.raMaxPos*SharedResources.raAmplitude/360); if (maxRa==0) maxRa= 1;
                             label41.Text = "ra "+SharedResources.raPos.ToString() + " / " + maxRa.ToString() + " " + ((SharedResources.raPos*100)/maxRa).ToString() + "%";
                             int decMaxPos= SharedResources.decMaxPos; if (decMaxPos==0) decMaxPos= 1;
-                            label42.Text = "dec "+SharedResources.decPos.ToString() + " / " + (SharedResources.decMaxPos / 2).ToString() + " " + (SharedResources.decPos * 200 / decMaxPos).ToString() + "%";
+                            if (!SharedResources.isNewScope)
+                                label42.Text = "dec "+SharedResources.decPos.ToString() + " / " + (SharedResources.decMaxPos / 2).ToString() + " " + (SharedResources.decPos * 200 / decMaxPos).ToString() + "%";
+                            else
+                                label42.Text = "dec "+SharedResources.decPos.ToString() + " / " + (SharedResources.decMaxPos).ToString() + " " + (SharedResources.decPos * 100 / decMaxPos).ToString() + "%";
                             int focMaxPos= SharedResources.focMaxStp; if (focMaxPos==0) focMaxPos= 1;
                             label52.Text = "foc "+SharedResources._FocusserPosition.ToString() + " / " + focMaxPos.ToString() + " " + (SharedResources._FocusserPosition * 100 / focMaxPos).ToString() + "%";
 
@@ -197,6 +200,7 @@ namespace ASCOM.LocalServer
                     }
                     else
                     {
+                        if ((comscann++&3)==0) rescanPort();
                         labelBellowHorizon.Text= "";
                         groupMount.Text= "Mount";
                         button2.Text = "Connect";
@@ -332,7 +336,6 @@ namespace ASCOM.LocalServer
             groupBox10.Visible= false;
         }
 
-        private void rescan_Click(object sender, EventArgs e) { rescanPort(); }
         void rescanPort()
         {
             // set the list of COM ports to those that are currently available
@@ -366,6 +369,13 @@ namespace ASCOM.LocalServer
                     AutoMeridianFlip.Checked= (SharedResources.guidingBits&0x80)==0;
                     horizonCheck.Checked= (SharedResources.invertAxes&0x10)!=0;
 
+                    double raspd= (360.0*SharedResources.raMaxSpeed/SharedResources.raMaxPos);
+                    var rngList = new List<string> { "1'/s", "5'/s", "10'/s", "30'/s", "1°/s" };
+                    double sp= 2; while (sp<=raspd) { rngList.Add(sp.ToString()+"°/s"); sp*=2; }
+                    comboBox1.Items.Clear(); comboBox1.Items.AddRange(rngList.ToArray());
+                    if (comboBox1.SelectedIndex == -1) comboBox1.SelectedIndex = 4;
+
+
                     SiteLatitude.Text = SharedResources.raToText(((Double)SharedResources.Latitude)/10/3600);
                     SiteElevation.Text = SharedResources.SiteAltitude.ToString();
                     SiteLongitude.Text = SharedResources.raToText(((Double)SharedResources.Longitude)/10/3600);
@@ -378,8 +388,8 @@ namespace ASCOM.LocalServer
                     FocMaxPos.Text = SharedResources.focMaxStp.ToString();
                     FocMaxSpd.Text = SharedResources.focMaxSpd.ToString();
                     label36.Text = (SharedResources.focMaxStp * SharedResources.FocStepdum / 10000).ToString() + "mm";
-                    textBox18.Text = (360 * 3600 * (Int64)SharedResources.decBacklash / SharedResources.decMaxPos).ToString();
-                    textBox14.Text = (360 * 3600 * (Int64)SharedResources.raBacklash / SharedResources.raMaxPos).ToString();
+                    if (SharedResources.decMaxPos!=0) textBox18.Text = (360 * 3600 * (Int64)SharedResources.decBacklash / SharedResources.decMaxPos).ToString();
+                    if (SharedResources.raMaxPos!=0) textBox14.Text = (360 * 3600 * (Int64)SharedResources.raBacklash / SharedResources.raMaxPos).ToString();
                     textBox19.Text = SharedResources.focBacklash.ToString();
                     //textBox21.Text = (360 * 3600 * (Int64)SharedResources.raSettle / SharedResources.raMaxPos).ToString();
                     RAMaxMovement.Text= SharedResources.raAmplitude.ToString();
@@ -679,6 +689,9 @@ namespace ASCOM.LocalServer
             if (comboBox1.SelectedIndex==3) return 0.5; // 30'
             if (comboBox1.SelectedIndex==4) return 1f; // 1°
             if (comboBox1.SelectedIndex==5) return 2f; // 2°
+            if (comboBox1.SelectedIndex==6) return 4f; // 2°
+            if (comboBox1.SelectedIndex==7) return 8f; // 2°
+            if (comboBox1.SelectedIndex==8) return 12f; // 2°
             return 0.5;
         }
         private void button22_MouseDown(object sender, MouseEventArgs e)
@@ -977,8 +990,7 @@ namespace ASCOM.LocalServer
 
         private void labelCom_DoubleClick(object sender, EventArgs e)
         {
-            if (SharedResources.comPort=="tcp") SharedResources.comPort= "BT";
-            else SharedResources.comPort= "tcp";
+            SharedResources.comPort= "tcp";
         }
 
         private void button13_Click(object sender, EventArgs e)
@@ -993,12 +1005,12 @@ namespace ASCOM.LocalServer
 
         private void button40_Click(object sender, EventArgs e)
         {
-            SharedResources.SendSerialCommand(":Mg" + (SharedResources.raPos+SharedResources.raMaxPos/4).ToString("X8") + SharedResources.decPos.ToString("X8") + "#", 0);
+            SharedResources.SendSerialCommand(":Mg" + (SharedResources.raPos+SharedResources.raMaxPos/5).ToString("X8") + SharedResources.decPos.ToString("X8") + "#", 0);
         }
 
         private void button41_Click(object sender, EventArgs e)
         {
-            SharedResources.SendSerialCommand(":Mg" + (SharedResources.raPos-SharedResources.raMaxPos/4).ToString("X8") + SharedResources.decPos.ToString("X8") + "#", 0);
+            SharedResources.SendSerialCommand(":Mg" + (SharedResources.raPos-SharedResources.raMaxPos/5).ToString("X8") + SharedResources.decPos.ToString("X8") + "#", 0);
         }
 
 
@@ -1360,7 +1372,7 @@ namespace ASCOM.LocalServer
             {
                 // true  = sky view (looking up): North at top, East on the LEFT
                 // false = map view (looking down): North at top, East on the RIGHT
-                const bool EastLeft = true;
+                const bool EastLeft = false;
                 double a = az * Math.PI / 180.0;
                 float sign = EastLeft ? -1f : 1f;
                 return new PointF(cx + sign * r * (float)Math.Sin(a), cy - r * (float)Math.Cos(a));
@@ -1421,6 +1433,25 @@ namespace ASCOM.LocalServer
             if (old != null) old.Dispose();
         }
 
+        private void textBox15_Leave(object sender, EventArgs e)
+        {
+            double raGuideRate;
+            if (double.TryParse(textBox15.Text, out raGuideRate)) 
+            {
+                SharedResources.guideRateRA = (int)(raGuideRate*10.0f);
+                if (SharedResources.guideRateRA>=256) SharedResources.guideRateRA= 255;
+            }
+        }
+
+        private void textBox6_Leave(object sender, EventArgs e)
+        {
+            double decGuideRate;
+            if (double.TryParse(textBox6.Text, out decGuideRate))
+            { 
+                SharedResources.guideRateDec = (int)(decGuideRate*10.0f);
+                if (SharedResources.guideRateDec>=256) SharedResources.guideRateDec= 255;
+            }
+        }
     }
 
 }

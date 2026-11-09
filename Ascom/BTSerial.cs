@@ -36,7 +36,7 @@ public class BTSerial : IDisposable
     volatile bool connected;
 
     // Background scanner for EQ devices
-    readonly Dictionary<ulong, (string name, DateTime lastSeen)> eqDevices = new Dictionary<ulong, (string, DateTime)>();
+    readonly Dictionary<string, (ulong adr, DateTime lastSeen)> eqDevices = new Dictionary<string, (ulong, DateTime)>();
     readonly object eqDevicesLock = new object();
     BluetoothLEAdvertisementWatcher eqWatcher;
     CancellationTokenSource eqScannerCts;
@@ -45,7 +45,7 @@ public class BTSerial : IDisposable
     /// <summary>Max time to look for the device while scanning.</summary>
     public int ScanTimeoutMs { get; set; } = 10000;
 
-    /// <summary>Timeout in seconds for EQ devices to be removed if they stop advertising. Default: 60 seconds.</summary>
+    /// <summary>Timeout in seconds for EQ devices to be removed if they stop advertising.
     public int EQDeviceTimeoutSeconds { get; set; } = 10;
 
     /// <param name="nameOrAddress">Advertised device name, or MAC address like "AA:BB:CC:DD:EE:FF".</param>
@@ -59,15 +59,14 @@ public class BTSerial : IDisposable
 
     public void connect(string nameOrAddress)
     {
-            if (connected) return;
+        if (connected) return;
         try
         {
             nameOrAddress= nameOrAddress.Trim();
             ulong? addressFromDict = null;
             lock (eqDevicesLock)
             {
-                var entry = eqDevices.FirstOrDefault(kvp => kvp.Value.name == nameOrAddress);
-                if (entry.Value.name != null) addressFromDict = entry.Key;
+                if (eqDevices.TryGetValue(nameOrAddress, out var entry)) addressFromDict = entry.adr;
             }
             ulong address = addressFromDict ?? Scan(nameOrAddress);
 
@@ -104,8 +103,7 @@ public class BTSerial : IDisposable
             var st = Await(txChar.WriteClientCharacteristicConfigurationDescriptorAsync(mode));
             var back = Await(txChar.ReadClientCharacteristicConfigurationDescriptorAsync());
 
-            if (st != GattCommunicationStatus.Success)
-                throw new IOException("Unable to enable notifications (" + st + ")");
+            if (st != GattCommunicationStatus.Success) throw new IOException("Unable to enable notifications (" + st + ")");
 
             device.ConnectionStatusChanged += OnConnectionStatusChanged;
             connected = true;
@@ -190,10 +188,9 @@ public class BTSerial : IDisposable
     {
         lock (eqDevicesLock)
         {
-            return eqDevices.Values.Select(v => v.name).Distinct().OrderBy(s => s).ToArray();
+            return eqDevices.Keys.OrderBy(s => s).ToArray();
         }
     }
-
     // ---------------------------------------------------------------- internals
 
     void StartEQScanner()
@@ -211,11 +208,14 @@ public class BTSerial : IDisposable
             eqWatcher.Received += (w, a) =>
             {
                 string name = a.Advertisement.LocalName;
+                if (!string.IsNullOrEmpty(name))
+                    Console.WriteLine("BT scann "+name);
+
                 if (!string.IsNullOrEmpty(name) && name.StartsWith("EQ"))
                 {
                     lock (eqDevicesLock)
                     {
-                        eqDevices[a.BluetoothAddress] = (name, DateTime.UtcNow);
+                        eqDevices[name] = (a.BluetoothAddress, DateTime.UtcNow);
                     }
                 }
             };

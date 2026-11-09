@@ -86,7 +86,6 @@ namespace ASCOM.LocalServer
             this.comboBoxComPort = new System.Windows.Forms.ComboBox();
             this.setup = new System.Windows.Forms.Button();
             this.labelCom = new System.Windows.Forms.Label();
-            this.rescan = new System.Windows.Forms.Button();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.FocalLength = new System.Windows.Forms.TextBox();
             this.SiteElevation = new System.Windows.Forms.TextBox();
@@ -118,6 +117,7 @@ namespace ASCOM.LocalServer
             this.label36 = new System.Windows.Forms.Label();
             this.FocMaxAcc = new System.Windows.Forms.TextBox();
             this.groupBox6 = new System.Windows.Forms.GroupBox();
+            this.horizonCheck = new System.Windows.Forms.CheckBox();
             this.AutoMeridianFlip = new System.Windows.Forms.CheckBox();
             this.button43 = new System.Windows.Forms.Button();
             this.RAMaxMovement = new System.Windows.Forms.TextBox();
@@ -255,7 +255,7 @@ namespace ASCOM.LocalServer
             this.textBox21 = new System.Windows.Forms.TextBox();
             this.checkBox13 = new System.Windows.Forms.CheckBox();
             this.ScopePos = new System.Windows.Forms.PictureBox();
-            this.horizonCheck = new System.Windows.Forms.CheckBox();
+            this.Coms = new System.Windows.Forms.Label();
             this.groupMount.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
@@ -1023,21 +1023,6 @@ namespace ASCOM.LocalServer
             this.labelCom.Text = "label3";
             this.labelCom.DoubleClick += new System.EventHandler(this.labelCom_DoubleClick);
             // 
-            // rescan
-            // 
-            this.rescan.BackColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.rescan.ForeColor = System.Drawing.Color.White;
-            this.rescan.Location = new System.Drawing.Point(444, 86);
-            this.rescan.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            this.rescan.Name = "rescan";
-            this.rescan.Size = new System.Drawing.Size(127, 41);
-            this.rescan.TabIndex = 12;
-            this.rescan.Text = "Scan coms";
-            this.toolTip1.SetToolTip(this.rescan, "If you have connected your mount AFTER starting this program, the serial com will" +
-        " most likely not be in the list. Click here to recreate the list");
-            this.rescan.UseVisualStyleBackColor = false;
-            this.rescan.Click += new System.EventHandler(this.rescan_Click);
-            // 
             // groupBox4
             // 
             this.groupBox4.BackColor = System.Drawing.Color.Black;
@@ -1409,6 +1394,18 @@ namespace ASCOM.LocalServer
             this.groupBox6.TabIndex = 38;
             this.groupBox6.TabStop = false;
             this.groupBox6.Text = "RA/Dec setup";
+            // 
+            // horizonCheck
+            // 
+            this.horizonCheck.AutoSize = true;
+            this.horizonCheck.Location = new System.Drawing.Point(201, 199);
+            this.horizonCheck.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.horizonCheck.Name = "horizonCheck";
+            this.horizonCheck.Size = new System.Drawing.Size(167, 29);
+            this.horizonCheck.TabIndex = 47;
+            this.horizonCheck.Text = "Horizon Check";
+            this.toolTip1.SetToolTip(this.horizonCheck, "Refuse to go to bellow horizon. Also stop sideral at horizon.");
+            this.horizonCheck.UseVisualStyleBackColor = true;
             // 
             // AutoMeridianFlip
             // 
@@ -1810,6 +1807,7 @@ namespace ASCOM.LocalServer
             this.textBox15.Name = "textBox15";
             this.textBox15.Size = new System.Drawing.Size(80, 29);
             this.textBox15.TabIndex = 40;
+            this.textBox15.Leave += new System.EventHandler(this.textBox15_Leave);
             // 
             // label46
             // 
@@ -1896,6 +1894,7 @@ namespace ASCOM.LocalServer
             this.textBox6.Name = "textBox6";
             this.textBox6.Size = new System.Drawing.Size(80, 29);
             this.textBox6.TabIndex = 32;
+            this.textBox6.Leave += new System.EventHandler(this.textBox6_Leave);
             // 
             // label19
             // 
@@ -3134,17 +3133,16 @@ namespace ASCOM.LocalServer
             this.ScopePos.TabIndex = 69;
             this.ScopePos.TabStop = false;
             // 
-            // horizonCheck
+            // Coms
             // 
-            this.horizonCheck.AutoSize = true;
-            this.horizonCheck.Location = new System.Drawing.Point(201, 199);
-            this.horizonCheck.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            this.horizonCheck.Name = "horizonCheck";
-            this.horizonCheck.Size = new System.Drawing.Size(167, 29);
-            this.horizonCheck.TabIndex = 47;
-            this.horizonCheck.Text = "Horizon Check";
-            this.toolTip1.SetToolTip(this.horizonCheck, "Refuse to go to bellow horizon. Also stop sideral at horizon.");
-            this.horizonCheck.UseVisualStyleBackColor = true;
+            this.Coms.AutoSize = true;
+            this.Coms.ForeColor = System.Drawing.Color.White;
+            this.Coms.Location = new System.Drawing.Point(445, 94);
+            this.Coms.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.Coms.Name = "Coms";
+            this.Coms.Size = new System.Drawing.Size(64, 25);
+            this.Coms.TabIndex = 70;
+            this.Coms.Text = "label3";
             // 
             // FrmMain
             // 
@@ -3152,6 +3150,7 @@ namespace ASCOM.LocalServer
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
             this.ClientSize = new System.Drawing.Size(1557, 920);
+            this.Controls.Add(this.Coms);
             this.Controls.Add(this.ScopePos);
             this.Controls.Add(this.checkBox13);
             this.Controls.Add(this.textBox21);
@@ -3164,7 +3163,6 @@ namespace ASCOM.LocalServer
             this.Controls.Add(this.checkBox7);
             this.Controls.Add(this.button17);
             this.Controls.Add(this.button15);
-            this.Controls.Add(this.rescan);
             this.Controls.Add(this.labelCom);
             this.Controls.Add(this.setup);
             this.Controls.Add(this.comboBoxComPort);
@@ -3244,7 +3242,6 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.ComboBox comboBoxComPort;
         private System.Windows.Forms.Button setup;
         private System.Windows.Forms.Label labelCom;
-        private System.Windows.Forms.Button rescan;
         private System.Windows.Forms.GroupBox groupBox4;
         private System.Windows.Forms.TextBox FocalLength;
         private System.Windows.Forms.TextBox SiteElevation;
@@ -3449,6 +3446,7 @@ namespace ASCOM.LocalServer
         private System.Windows.Forms.CheckBox checkBox13;
         private System.Windows.Forms.PictureBox ScopePos;
         private System.Windows.Forms.CheckBox horizonCheck;
+        private System.Windows.Forms.Label Coms;
     }
 }
 

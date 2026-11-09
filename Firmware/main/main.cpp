@@ -15,7 +15,6 @@
 #include <math.h>
 #include <string.h>
 
-
 class CSerial;
 void sendBNO(CSerial &serial);
 void execBNO(uint32_t i, uint32_t j);

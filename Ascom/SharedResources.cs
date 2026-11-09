@@ -73,6 +73,7 @@ namespace ASCOM.LocalServer
         public static long timeSpanHW { get { return _spanHW; } }
         private static long _uncountedSteps= 0;
         public static long timeSpanUncountedSteps { get { return _uncountedSteps; } }
+        public static bool isNewScope= false; // tells if it is the new scope system by looking at the uncounted steps. if -1, then it is true...
         private static bool _FocusMoving = false;
         public static bool FocusMoving { get { return _FocusMoving; } }
         private static int _sideOfPier = 0;
@@ -124,7 +125,7 @@ namespace ASCOM.LocalServer
         }
 
         public static void requestDisconnect() { workerThreadRequest= -1; }
-        private static void Disconnect() // force disconnect. setting connected to false will NOT disconnect as multiple clients might be asking for a disconnection
+        private static void Disconnect(bool noDisp= false) // force disconnect. setting connected to false will NOT disconnect as multiple clients might be asking for a disconnection
         {
             try { 
                 serialCrahed= false;
@@ -137,7 +138,7 @@ namespace ASCOM.LocalServer
                 if (SharedSerial!=null) SharedSerial.Connected = false;
                 tcpdisconnect(); 
                 bTSerial.disconnect();
-                doLog("Disconnect", -1);
+                if (!noDisp) doLog("Disconnect", -1);
             } catch (Exception) { }
         }
         public static string comPort 
@@ -214,10 +215,10 @@ namespace ASCOM.LocalServer
                 Thread.Sleep(500);
                 if (!connectionLive && workerThreadRequest==1) // Connection request? handle it!
                 { 
-                    Disconnect(); // This will not actually disconnect as they are already not connected. But it will reinit variables...
+                    Disconnect(true); // This will not actually disconnect as they are already not connected. But it will reinit variables...
                     workerThreadRequest= 0;
                     if (SharedSerial.Connected || tcpstream!=null) continue; // already connected...
-                    if (comPort.StartsWith("EQ")) bTSerial.connect(comPort); //tcpconnect();
+                    if (comPort.StartsWith("EQ")) try { bTSerial.connect(comPort);  } catch (Exception) { doLog("could not connect", -1); continue; }//tcpconnect();
                     else if (comPort=="tcp") tcpconnect();
                     else { 
                         SharedSerial.PortName = comPort;
@@ -257,6 +258,7 @@ namespace ASCOM.LocalServer
                 long timems = readHex(v, ref i, i + 6);
                 midOfraRealPos = readHex(v, ref i, i + 6);
                 long uncountedSteps= readHex(v, ref i, i+6);
+                isNewScope= uncountedSteps==0xffffff;
 
                 latestResponse2= "dec:"+dec.ToString() + " ra:"+ra.ToString()+
                                  " foc:"+_FocusserPosition.ToString() + " bits:"+bits.ToString("X") +
@@ -282,6 +284,8 @@ namespace ASCOM.LocalServer
                     decPos = readHex(v, ref i, i + 8);
                     latestResponse2+= " raPos:"+raPos.ToString();
                     latestResponse2+= " decPos:"+decPos.ToString();
+    
+                    doLog(ra.ToString()+"\t"+dec.ToString()+"\t"+raPos.ToString()+"\t"+decPos.ToString()+(_meridianFlip?"\tflip":"\t"), 1);
                 }
                 if (v.Length>=56) // power GPS and tracking status
                 {
@@ -461,7 +465,7 @@ namespace ASCOM.LocalServer
 
                 try
                 {
-                    if (comPort.StartsWith("com")) // com port case....
+                    if (comPort.StartsWith("COM")) // com port case....
                     { 
                         if (!SharedSerial.Connected) { Disconnect(); return String.Empty; }
                         try
@@ -541,14 +545,21 @@ namespace ASCOM.LocalServer
                 double MRAAngle= GetLocalSiderealTime()-RightAscension; // 
                 if (_sideOfPier==0) MRAAngle-= 6.0f; else MRAAngle+= 6.0f; // setup ra depending on side of pier!
                 while (MRAAngle<0.0f) MRAAngle+= 24.0f; while (MRAAngle>24.0f) MRAAngle-= 24.0f;
-                MRAAngle*=360.0f/24.0f; // in °. but where is top
-                double pos= (double)raPos*360/raMaxPos-raAmplitude/2; // 0° at top
-                if (Math.Abs(MRAAngle-pos)>2)
-                {
-                    // More than 2° off, resync motor
-                    double newA= (MRAAngle+raAmplitude/2)*raMaxPos/360;
-                    doLog("resync physical ra motor position to "+MRAAngle.ToString("F1") + "° = " + ((int)newA).ToString()+" (was " + pos.ToString("F1") + "° = "+((int)raPos).ToString()+")", 0);
-                    SharedResources.SendSerialCommand(":Ms" + ((int)newA).ToString("X8")+ "#", 0);
+                MRAAngle*=360.0f/24.0f; // in °. with top=0°
+                double pos= raPos*360.0/raMaxPos-raAmplitude/2; // 0° at top
+                if (_uncountedSteps!=-1)
+                { 
+                    if (Math.Abs(MRAAngle-pos)>2)
+                    {
+                        double newA= (MRAAngle+raAmplitude/2)*raMaxPos/360;
+                        doLog("resync physical ra motor position to "+MRAAngle.ToString("F1") + "° = " + ((int)newA).ToString()+" (was " + pos.ToString("F1") + "° = "+((int)raPos).ToString()+")", 0);
+                        SharedResources.SendSerialCommand(":Ms" + ((int)newA).ToString("X8")+ "#", 0);
+                    }
+                } else { // always sync LST on sync...
+                    double now= utilities.DateUTCToJulian(DateTime.UtcNow);
+                    double start= utilities.DateUTCToJulian(new DateTime(2026, 1, 1));
+                    now= now-start;
+                    SharedResources.SendSerialCommand(":Mt" + ((int)now).ToString("X8")+ "#", 0);
                 }
             }
             // if goto, handle phd2 if there...
